@@ -10,10 +10,12 @@
 
   <ItemGroup>
     <PackageReference Include="Lucene.Net.Analysis.Kuromoji" Version="4.8.0-beta00006" />
-    <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="2.9.5">
+    <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="2.9.7">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
+    <PackageReference Include="tikaondotnet.textextractor" Version="1.17.1" />
   </ItemGroup>
 
 </Project>
