@@ -1,6 +1,6 @@
 ﻿using System;
-
-#pragma warning disable CA1303 // Do not pass literals as localized parameters
+using System.CommandLine;
+using System.CommandLine.Invocation;
 
 namespace BlueMarsh.Tandoku.CommandLine
 {
@@ -9,10 +9,12 @@ namespace BlueMarsh.Tandoku.CommandLine
         [STAThread]
         public static void Main(string[] args)
         {
-            if (args?.Length > 1 && args[0] == "demo")
-                Demos.Run(args.AsSpan(1));
-            else
-                TokenizerDemo.Dump();
+            var rootCommand = new RootCommand
+            {
+                Demos.CreateCommand(),
+            };
+
+            rootCommand.Invoke(args);
         }
     }
 }

@@ -7,8 +7,6 @@ using Lucene.Net.Analysis.Ja;
 using Lucene.Net.Analysis.Ja.TokenAttributes;
 using Lucene.Net.Analysis.TokenAttributes;
 
-#pragma warning disable CA1303 // Do not pass literals as localized parameters
-
 namespace BlueMarsh.Tandoku.CommandLine
 {
     internal static class TokenizerDemo

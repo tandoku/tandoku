@@ -1,29 +1,37 @@
 ﻿using System;
-
-#pragma warning disable CA1303 // Do not pass literals as localized parameters
+using System.CommandLine;
+using System.CommandLine.DragonFruit;
+using System.Reflection;
 
 namespace BlueMarsh.Tandoku.CommandLine
 {
     internal static class Demos
     {
-        internal static void Run(Span<string> args)
+        internal static Command CreateCommand()
         {
-            if (args.Length > 1 && args[0] == "extract")
+            return new Command("demo")
             {
-                TextExtractionDemo.ExtractText(args[1]);
-                return;
-            }
-            else if (args.Length == 1 && args[0] == "dict")
-            {
-                DictionaryLookupDemo.Run();
-                return;
-            }
+                CreateDemoCommand("dictionary", nameof(RunDictionaryLookupDemo), "dict"),
+                CreateDemoCommand("tokenize", nameof(RunTokenizerDemo), "token"),
+            };
+        }
 
-            if (args.Length == 1 && args[0] == "debug")
-            {
-                System.Diagnostics.Debugger.Launch();
-            }
+        private static Command CreateDemoCommand(string name, string method, params string[] aliases)
+        {
+            var command = new Command(name);
+            command.ConfigureFromMethod(typeof(Demos).GetMethod(method, BindingFlags.NonPublic | BindingFlags.Static));
+            foreach (string alias in aliases)
+                command.AddAlias(alias);
+            return command;
+        }
 
+        private static void RunDictionaryLookupDemo()
+        {
+            DictionaryLookupDemo.Run();
+        }
+
+        private static void RunTokenizerDemo()
+        {
             TokenizerDemo.Dump();
         }
     }

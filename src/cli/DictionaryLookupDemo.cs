@@ -6,8 +6,6 @@ using System.Linq;
 using System.Xml;
 using System.Xml.Linq;
 
-#pragma warning disable CA1303 // Do not pass literals as localized parameters
-
 namespace BlueMarsh.Tandoku.CommandLine
 {
     internal static class DictionaryLookupDemo
