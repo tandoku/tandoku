@@ -9,7 +9,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TandokuCliFx", "src\cli-fx\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TandokuReader", "src\reader\TandokuReader.csproj", "{716A73EB-9637-4DAA-9896-F2092CCF11F4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TandokuCore", "src\TandokuCore\TandokuCore.csproj", "{7A79EBDB-BA2A-4696-AA7B-B06105DDDBA9}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TandokuCore", "src\core\TandokuCore.csproj", "{7A79EBDB-BA2A-4696-AA7B-B06105DDDBA9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
