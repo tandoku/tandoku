@@ -9,11 +9,11 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <CodeAnalysisRuleSet>tandoku-cli.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet>TandokuCli.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <CodeAnalysisRuleSet>tandoku-cli.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet>TandokuCli.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
 
   <ItemGroup>
