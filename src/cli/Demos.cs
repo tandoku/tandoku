@@ -13,6 +13,7 @@ namespace BlueMarsh.Tandoku.CommandLine
             {
                 CreateDemoCommand("dictionary", nameof(RunDictionaryLookupDemo), "dict"),
                 CreateDemoCommand("tokenize", nameof(RunTokenizerDemo), "token"),
+                CreateDemoCommand("compile", nameof(RunDictionaryCompiler)),
             };
         }
 
@@ -23,6 +24,11 @@ namespace BlueMarsh.Tandoku.CommandLine
             foreach (string alias in aliases)
                 command.AddAlias(alias);
             return command;
+        }
+
+        private static void RunDictionaryCompiler()
+        {
+            DictionaryCompiler.Compile();
         }
 
         private static void RunDictionaryLookupDemo()

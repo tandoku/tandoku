@@ -7,6 +7,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "tandoku-cli", "src\cli\tand
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "tandoku-cli-fx", "src\cli-fx\tandoku-cli-fx.csproj", "{1DE8F66F-742A-4F97-A6A2-F7EDB94C0E12}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "tandoku-reader", "src\reader\tandoku-reader.csproj", "{716A73EB-9637-4DAA-9896-F2092CCF11F4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{1DE8F66F-742A-4F97-A6A2-F7EDB94C0E12}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1DE8F66F-742A-4F97-A6A2-F7EDB94C0E12}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1DE8F66F-742A-4F97-A6A2-F7EDB94C0E12}.Release|Any CPU.Build.0 = Release|Any CPU
+		{716A73EB-9637-4DAA-9896-F2092CCF11F4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{716A73EB-9637-4DAA-9896-F2092CCF11F4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{716A73EB-9637-4DAA-9896-F2092CCF11F4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{716A73EB-9637-4DAA-9896-F2092CCF11F4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
