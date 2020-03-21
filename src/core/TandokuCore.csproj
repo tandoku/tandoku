@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.1</TargetFramework>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
     <AssemblyName>BlueMarsh.Tandoku.Core</AssemblyName>
     <RootNamespace>BlueMarsh.Tandoku</RootNamespace>
     <Nullable>enable</Nullable>
@@ -16,8 +16,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="LiteDb" Version="5.0.3" />
-    <PackageReference Include="Lucene.Net.Analysis.Kuromoji" Version="4.8.0-beta00006" />
+    <PackageReference Include="LiteDb" Version="5.0.4" />
+    <PackageReference Include="Lucene.Net.Analysis.Kuromoji" Version="4.8.0-beta00007" />
   </ItemGroup>
 
 </Project>

@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp3.0</TargetFramework>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
     <AssemblyName>tandoku</AssemblyName>
     <RootNamespace>BlueMarsh.Tandoku.CommandLine</RootNamespace>
     <Nullable>enable</Nullable>
@@ -17,15 +17,18 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Lucene.Net.Analysis.Kuromoji" Version="4.8.0-beta00006" />
-    <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="2.9.7">
+    <PackageReference Include="Lucene.Net.Analysis.Kuromoji" Version="4.8.0-beta00007" />
+    <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="2.9.8">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
-    <PackageReference Include="System.CommandLine.DragonFruit" Version="0.3.0-alpha.19577.1" />
-    <PackageReference Include="System.CommandLine.Experimental" Version="0.3.0-alpha.19577.1" />
-    <PackageReference Include="System.CommandLine.Rendering" Version="0.3.0-alpha.19577.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+    <PackageReference Include="System.CommandLine" Version="2.0.0-beta1.20158.1" />
+    <PackageReference Include="System.CommandLine.DragonFruit" Version="0.3.0-alpha.20158.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\core\TandokuCore.csproj" />
   </ItemGroup>
 
 </Project>
