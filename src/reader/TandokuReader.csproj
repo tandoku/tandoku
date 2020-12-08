@@ -1,8 +1,8 @@
-<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net5.0-windows</TargetFramework>
     <AssemblyName>tandoku-reader</AssemblyName>
     <RootNamespace>BlueMarsh.Tandoku.Reader</RootNamespace>
     <Nullable>enable</Nullable>
@@ -18,8 +18,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="LiteDb" Version="5.0.4" />
-    <PackageReference Include="Lucene.Net.Analysis.Kuromoji" Version="4.8.0-beta00007" />
+    <PackageReference Include="LiteDb" Version="5.0.9" />
+    <PackageReference Include="Lucene.Net.Analysis.Kuromoji" Version="4.8.0-beta00013" />
   </ItemGroup>
 
 </Project>

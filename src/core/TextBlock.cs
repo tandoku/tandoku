@@ -7,6 +7,8 @@ namespace BlueMarsh.Tandoku
     public sealed class TextBlock
     {
         public string? Text { get; set; }
+        public string? Translation { get; set; }
+        // TODO: figure out how to ignore this when serializing if empty (or maybe need to make this nullable?)
         public List<Token> Tokens { get; } = new List<Token>();
         public string? Location { get; set; }
     }

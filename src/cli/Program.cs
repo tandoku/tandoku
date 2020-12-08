@@ -15,6 +15,8 @@ namespace BlueMarsh.Tandoku.CommandLine
             var rootCommand = new RootCommand
             {
                 Demos.CreateCommand(),
+                CreateCommand("import", nameof(Import)),
+                CreateCommand("export", nameof(Export)),
                 CreateCommand("tokenize", nameof(Tokenize)),
             };
 
@@ -28,6 +30,20 @@ namespace BlueMarsh.Tandoku.CommandLine
             foreach (string alias in aliases)
                 command.AddAlias(alias);
             return command;
+        }
+
+        private static void Import(FileInfo file)
+        {
+            var importer = new Importer();
+            var outPath = importer.Import(file.FullName);
+            Console.WriteLine($"Imported {outPath}");
+        }
+
+        private static void Export(FileInfo file, ExportFormat format)
+        {
+            var exporter = new Exporter();
+            var outPath = exporter.Export(file.FullName, format);
+            Console.WriteLine($"Exported {outPath}");
         }
 
         private static void Tokenize(FileInfo file)
