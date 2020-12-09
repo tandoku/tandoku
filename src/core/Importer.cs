@@ -72,6 +72,8 @@ namespace BlueMarsh.Tandoku
             private string GetTextFromItem(SubtitleItem item)
             {
                 // TODO: this should be fixed in the SubtitlesParser package (there's a TODO in SsaParser)
+                // (send a PR for this and additionally add Actor, Style fields from SSA format; fork and build BlueMarsh copy of SubtitlesParser for now ??)
+                // -OR- try Ass-Loader library instead
                 if (item.Lines.Count == 1)
                 {
                     var lines = item.Lines[0].Split(@"\N");
