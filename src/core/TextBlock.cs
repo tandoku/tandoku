@@ -4,12 +4,21 @@ using System.Text;
 
 namespace BlueMarsh.Tandoku
 {
+    // TODO: consider using records? May not work with YamlDotNet yet
+
     public sealed class TextBlock
     {
         public string? Text { get; set; }
+
+        // TODO: NormalizedText (needed? try out Markdown normalization)
+        //       AnnotatedText (add/remove furigana ruby to match annotation preferences)
+
         public string? Translation { get; set; }
-        // TODO: figure out how to ignore this when serializing if empty (or maybe need to make this nullable?)
+
+        // TODO: make this nullable, only populate when used
         public List<Token> Tokens { get; } = new List<Token>();
+
+        // TODO: replace with Source object
         public string? Location { get; set; }
     }
 
