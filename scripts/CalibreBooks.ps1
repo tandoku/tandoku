@@ -186,8 +186,8 @@ function Get-TandokuPathForCalibreBook {
 }
 
 function GetMatchingString([String[]] $array, $find) {
-    if ($null -eq $array) {
-        return ''
+    if (-not $array) {
+        return $null
     }
     $findMatch = $find -join '|'
     $pattern = "^($findMatch)$"
