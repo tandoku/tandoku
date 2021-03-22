@@ -1,3 +1,15 @@
+function Process-CalibreChangesAndAddOcr {
+    Get-CalibreBook | Update-CalibreMetadataInTandoku
+    $books = Get-CalibreBook O:\Tandoku
+    $books | Move-TandokuContentByCalibreMetadata
+
+    Get-ChildItem O:\Tandoku\Manga\Collection.priority -Filter image*.jpeg -Recurse | Add-GcvOcr
+    Get-ChildItem O:\Tandoku\Manga\Downloads.priority -Filter image*.jpeg -Recurse | Add-GcvOcr
+    Get-ChildItem O:\Tandoku\Manga\Samples.priority -Filter image*.jpeg -Recurse | Add-GcvOcr
+
+    #TODO: clean up empty folders due to moved items
+}
+
 #TODO: clean up duplicate books
 #unique by ASIN: Get-CalibreBooks|?{$_.ASIN -ne $null}|sort -Property ASIN -Unique|count
 #still should get tags and make sure not to delete Sample
