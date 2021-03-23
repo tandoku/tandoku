@@ -10,6 +10,7 @@ function Process-CalibreChangesAndAddOcr {
 
     Get-ChildItem O:\Tandoku\Manga\Collection.priority -Filter image*.jpeg -Recurse | Add-GcvOcr
     Get-ChildItem O:\Tandoku\Manga\Downloads.priority -Filter image*.jpeg -Recurse | Add-GcvOcr
+    Get-ChildItem O:\Tandoku\Manga\Downloads.pri2 -Filter image*.jpeg -Recurse | Add-GcvOcr
     Get-ChildItem O:\Tandoku\Manga\Samples -Filter image*.jpeg -Recurse | Add-GcvOcr
     Get-ChildItem O:\Tandoku\Manga\Samples.priority -Filter image*.jpeg -Recurse | Add-GcvOcr
 
@@ -194,7 +195,7 @@ function Get-TandokuPathForCalibreBook {
         }
 
         if ($collection) {
-            $status = (GetMatchingString $Tags @('Priority', 'Rejected', 'Duplicate')).ToLowerInvariant()
+            $status = (GetMatchingString $Tags @('Priority', 'Pri[0-9]', 'Rejected', 'Duplicate')).ToLowerInvariant()
             $container = $status ? "$collection.$status" : $collection
         }
 
