@@ -1,10 +1,16 @@
 function Process-CalibreChangesAndAddOcr {
-    Get-CalibreBook | Update-CalibreMetadataInTandoku
-    $books = Get-CalibreBook O:\Tandoku
-    $books | Move-TandokuContentByCalibreMetadata
+    $calibreBooks = Get-CalibreBook
+    $calibreBooks | Update-CalibreMetadataInTandoku
+
+    $tandokuBooks = Get-CalibreBook O:\Tandoku
+    $tandokuBooks | Move-TandokuContentByCalibreMetadata
+
+    $calibreBooks | Add-CalibreBookToTandoku
+    Get-ChildItem O:\Tandoku\Manga -Filter *.azw3 -Recurse | Unpack-KindleBookImages
 
     Get-ChildItem O:\Tandoku\Manga\Collection.priority -Filter image*.jpeg -Recurse | Add-GcvOcr
     Get-ChildItem O:\Tandoku\Manga\Downloads.priority -Filter image*.jpeg -Recurse | Add-GcvOcr
+    Get-ChildItem O:\Tandoku\Manga\Samples -Filter image*.jpeg -Recurse | Add-GcvOcr
     Get-ChildItem O:\Tandoku\Manga\Samples.priority -Filter image*.jpeg -Recurse | Add-GcvOcr
 
     #TODO: clean up empty folders due to moved items
@@ -53,6 +59,10 @@ function Update-CalibreMetadataInTandoku {
         [IO.FileInfo]
         $MetadataFile,
 
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
+        [String]
+        $Title,
+
         [Parameter()]
         [String]
         $TargetRoot = 'O:\Tandoku\'
@@ -66,7 +76,7 @@ function Update-CalibreMetadataInTandoku {
     }
     process {
         $target = [IO.FileInfo] $idMap[$UUID]
-        if ($target -ne $null) {
+        if ($target) {
             if (($target.length -ne $MetadataFile.length) -or ($target.lastWriteTime -ne $MetadataFile.lastWriteTime)) {
                 $backupPath = "$target.bak"
                 if (-not (Test-Path -LiteralPath $backupPath)) {
@@ -77,7 +87,7 @@ function Update-CalibreMetadataInTandoku {
                 $target
             }
         } else {
-            Write-Error -Message "Cannot find metadata under target for $UUID" -TargetObject $MetadataFile
+            Write-Error -Message "Cannot find metadata under target for $UUID $Title" -TargetObject $MetadataFile
         }
     }
 }
@@ -120,6 +130,12 @@ function Move-TandokuContentByCalibreMetadata {
 
             $sourcePath = $MetadataFile.Directory.Parent
             $targetPath = [IO.DirectoryInfo] (Get-TandokuPathForCalibreBook -Title $Title -Author $Author -Publisher $Publisher -Tags $Tags -TargetRoot $targetCanonicalRoot)
+
+            if (-not $targetPath) {
+                Write-Error "Could not get Tandoku path for $Title with tags: $Tags"
+                return
+            }
+
             if ($sourcePath.FullName -ne $targetPath.FullName) {
                 if (Test-Path $targetPath) {
                     Write-Error "Target path already exists: $targetPath"
@@ -155,7 +171,11 @@ function Get-TandokuPathForCalibreBook {
 
         [Parameter()]
         [String]
-        $TargetRoot = 'O:\Tandoku\'
+        $TargetRoot = 'O:\Tandoku\',
+
+        [Parameter()]
+        [Switch]
+        $AllowUnknown
     )
     process {
         $sourceType = (GetMatchingString $Tags @('Manga', 'Novel', 'Picture Book', 'Reference', 'Film', 'Game'))
@@ -184,8 +204,10 @@ function Get-TandokuPathForCalibreBook {
 
         if ($sourceType -and $container) {
             Join-Path $TargetRoot $sourceType $container "$pubclean - $authorclean" $titleclean
-        } else {
+        } elseif ($AllowUnknown) {
             Join-Path $TargetRoot 'Unknown' "$pubclean - $authorclean" $titleclean
+        } else {
+            return $null
         }
         <#
         [PSCustomObject] @{
@@ -229,8 +251,7 @@ function Open-ImagesFromCalibreClipboardMetadata([String] $TandokuRoot = 'O:\Tan
     }
 }
 
-#TODO: clean this up to use Get-TandokuPathForCalibreBook (use title for azw3 from path)
-function Copy-CalibreBookToTandoku {
+function Add-CalibreBookToTandoku {
     param(
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
         [String]
@@ -245,8 +266,8 @@ function Copy-CalibreBookToTandoku {
         $Publisher,
 
         [Parameter(ValueFromPipelineByPropertyName=$true)]
-        [String]
-        $Edition,
+        [String[]]
+        $Tags,
 
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
         [IO.DirectoryInfo]
@@ -254,29 +275,32 @@ function Copy-CalibreBookToTandoku {
 
         [Parameter()]
         [String]
-        $TargetRoot = 'O:\Tandoku\Manga\'
+        $TargetRoot = 'O:\Tandoku\'
     )
     process {
-        $kind = switch($Edition) {
-            'Sample' { 'Samples' }
-            'Time-limited' { 'Downloads' }
-            default { 'Collection' }
-        }
-        $pubclean = switch($Publisher) {
-            $null { 'None' }
-            '' { 'None' }
-            default { $Publisher }
-        }
-        $authorclean = [String]::Join(',', $Author)
-        #TODO: $titleclean = replace any [IO.Path]::GetInvalidFilenameChars() with _ (or just remove)
-        $target = (Join-Path $TargetRoot $kind "$pubclean - $authorclean" $Title 'source')
-        if (Test-Path $target) {
-            Write-Error "$target already exists, skipping"
-        } else {
-            Copy-Item -LiteralPath $Location -Destination $target -Recurse
+        $targetCanonicalRoot = (Convert-Path $TargetRoot)
+        $titlePath = [IO.DirectoryInfo] (Get-TandokuPathForCalibreBook -Title $Title -Author $Author -Publisher $Publisher -Tags $Tags -TargetRoot $targetCanonicalRoot)
 
-            $ebook = (Get-ChildItem -LiteralPath $target -Filter *.azw3)[0]
-            Move-Item -LiteralPath $ebook -Destination "$target\$Title.azw3"
+        if (-not $titlePath) {
+            Write-Error "Could not get Tandoku path for $Title with tags: $Tags"
+            return
+        }
+
+        $titleclean = $titlePath.Name
+        $targetPath = (Join-Path $titlePath 'source')
+
+        if (Test-Path $targetPath) {
+            if ((Get-ChildItem -LiteralPath $targetPath -Filter *.azw3).Count -lt 0) {
+                Write-Error "Target path already exists with no azw3: $targetPath"
+            }
+        } else {
+            #Write-Output "Copy $Location to $targetPath"
+            Copy-Item -LiteralPath $Location -Destination $targetPath -Recurse
+
+            $ebook = (Get-ChildItem -LiteralPath $targetPath -Filter *.azw3)[0]
+            $ebookTarget = (Join-Path $targetPath "$titleclean.azw3")
+            Move-Item -LiteralPath $ebook -Destination $ebookTarget
+            [IO.FileInfo] $ebookTarget
         }
     }
 }
@@ -306,7 +330,9 @@ function Unpack-KindleBookImages {
         $source = [IO.FileInfo](Convert-Path $Path)
         $imagesTarget = (Join-Path $source.Directory.Parent 'images')
         if (Test-Path $imagesTarget) {
-            Write-Error "$imagesTarget already exists, skipping"
+            if ((Get-ChildItem $imagesTarget -Filter *.jp*g).Count -lt 0) {
+                Write-Error "$imagesTarget already exists but with no images"
+            }
         } else {
             $unpackTo = (Join-Path $source.Directory 'unpack')
             if (-not (Test-Path $unpackTo)) {
