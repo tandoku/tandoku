@@ -313,12 +313,12 @@ function Add-CalibreBookToTandoku {
 function Unpack-KindleBookImages {
     param(
         [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
-        [ValidateScript({
-            if( -Not ($_ | Test-Path) ){
-                throw "File or folder does not exist"
-            }
-            return $true
-        })]
+        [ValidateScript({
+            if (-not (Test-Path -LiteralPath $_)) {
+                throw "File does not exist: $_"
+            }
+            return $true
+        })]
         [String]
         $Path,
 
@@ -327,7 +327,7 @@ function Unpack-KindleBookImages {
         $KeepUnpackDirectory
     )
     process {
-        $source = [IO.FileInfo](Convert-Path $Path)
+        $source = [IO.FileInfo](Convert-Path -LiteralPath $Path)
         $imagesTarget = (Join-Path $source.Directory.Parent 'images')
         if (Test-Path $imagesTarget) {
             if ((Get-ChildItem $imagesTarget -Filter *.jp*g).Count -lt 0) {
