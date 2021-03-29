@@ -11,6 +11,8 @@ function Process-CalibreChangesAndAddOcr {
     Get-ChildItem O:\Tandoku\Manga\Collection.priority -Filter image*.jpeg -Recurse | Add-GcvOcr
     Get-ChildItem O:\Tandoku\Manga\Downloads.priority -Filter image*.jpeg -Recurse | Add-GcvOcr
     Get-ChildItem O:\Tandoku\Manga\Downloads.pri2 -Filter image*.jpeg -Recurse | Add-GcvOcr
+    Get-ChildItem O:\Tandoku\Manga\Downloads.pri3 -Filter image*.jpeg -Recurse | Add-GcvOcr
+    Get-ChildItem O:\Tandoku\Manga\Downloads.pri4 -Filter image*.jpeg -Recurse | Add-GcvOcr
     Get-ChildItem O:\Tandoku\Manga\Samples -Filter image*.jpeg -Recurse | Add-GcvOcr
     Get-ChildItem O:\Tandoku\Manga\Samples.priority -Filter image*.jpeg -Recurse | Add-GcvOcr
 
@@ -205,6 +207,9 @@ function Get-TandokuPathForCalibreBook {
 
         if ($sourceType -and $container) {
             Join-Path $TargetRoot $sourceType $container "$pubclean - $authorclean" $titleclean
+
+            #TODO: remove publisher, author?
+            #Join-Path $TargetRoot $sourceType $container $titleclean
         } elseif ($AllowUnknown) {
             Join-Path $TargetRoot 'Unknown' "$pubclean - $authorclean" $titleclean
         } else {
