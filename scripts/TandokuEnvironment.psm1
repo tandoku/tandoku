@@ -17,8 +17,8 @@ function ConvertTo-KindleBook($source) {
     $title = RemoveAllExtensions($source)
     $epub = [IO.Path]::ChangeExtension($source, '.epub')
 
-    #ebook-convert $source $epub --epub-version=3 --language=ja --authors=Tandoku --title="$title"
-    pandoc $source -f commonmark+footnotes -o $epub -t epub3 --metadata title="$title" --metadata author=Tandoku --metadata lang=ja
+    ebook-convert $source $epub --epub-version=3 --language=ja --authors=Tandoku --title="$title"
+    #pandoc $source -f commonmark+footnotes -o $epub -t epub3 --metadata title="$title" --metadata author=Tandoku --metadata lang=ja
 
 	kindlegen $epub
 }

@@ -1,3 +1,5 @@
+Import-Module .\tandoku-utils.psm1
+
 #choco install gcloudsdk #may not work due to hash not matching
 $env:GOOGLE_APPLICATION_CREDENTIALS=(Convert-Path 'O:\Tandoku\Tools\tandoku-test1-1c46e530ca99.json')
 
@@ -99,6 +101,57 @@ function Get-GcvOcrContentForImage($imagePath) {
 
     $json = Get-Content -LiteralPath $gcvOcrPath | ConvertFrom-Json
     $json.responses[0].fullTextAnnotation.text
+}
+
+function Export-GcvOcrToMarkdown {
+    Get-ChildItem images -Filter *.gcv.json -Recurse |
+        Sort-STNumerical |
+        Foreach-Object {
+            $baseName = [IO.Path]::GetFileNameWithoutExtension([IO.Path]::GetFileNameWithoutExtension($_))
+            $imagePath = "images/$baseName.jpg"
+            Write-Output "![]($imagePath)"
+            Write-Output ''
+
+            Write-Output "# $baseName"
+            Write-Output ''
+
+            $gcv = Get-Content $_ | ConvertFrom-Json
+#TODO:
+#- add breaks (space, line break)
+#- filter out low-confidence blocks and/or paragraphs (<0.5)
+#- filter out paragraphs with no kana/kanji (could also pre-filter to blocks/paragraphs with detected language != ja or zh)
+#- add italics to low-confidence symbols (<0.5)
+#- filter out furigana... (need to look at bounding boxes for this)
+            $gcv.responses.fullTextAnnotation.pages.blocks.paragraphs |
+                Foreach-Object {
+                    Write-Output (-join $_.words.symbols.text)
+                    Write-Output ''
+                }
+        }
+}
+
+function Get-GcvOcrWordCount {
+    param(
+        [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
+        [ValidateScript({
+            if( -Not ($_ | Test-Path) ){
+                throw "File or folder does not exist"
+            }
+            return $true
+        })]
+        [String]
+        $Path
+    )
+    begin {
+        $n = 0
+    }
+    process {
+        $gcv = (Get-Content $Path | ConvertFrom-Json)
+        $n += $gcv.responses.fullTextAnnotation.pages.blocks.paragraphs.words.count
+    }
+    end {
+        $n
+    }
 }
 
 Export-ModuleMember -Function * -Alias *
