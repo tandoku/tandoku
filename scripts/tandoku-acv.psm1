@@ -44,7 +44,7 @@ function Add-AcvOcr {
                 }
 
                 do {
-                    Start-Sleep -Seconds 3
+                    Start-Sleep 3100
 
                     $response = Invoke-WebRequest `
                       -Method GET `
@@ -71,6 +71,27 @@ function Add-AcvOcr {
             }
         }
     }
+}
+
+function Export-AcvOcrToMarkdown {
+    Get-ChildItem images -Filter *.acv.json -Recurse |
+        Sort-STNumerical |
+        Foreach-Object {
+            $baseName = [IO.Path]::GetFileNameWithoutExtension([IO.Path]::GetFileNameWithoutExtension($_))
+            $imagePath = "images/$baseName.jpeg"
+            Write-Output "![]($imagePath)"
+            Write-Output ''
+
+            #Write-Output "# $baseName"
+            Write-Output ''
+
+            $acv = Get-Content $_ | ConvertFrom-Json
+            $acv.analyzeResult.readResults.lines |
+                Foreach-Object {
+                    Write-Output $_.text
+                    Write-Output ''
+                }
+        }
 }
 
 #TODO: sort lines correctly, remove furigana
