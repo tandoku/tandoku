@@ -1,7 +1,3 @@
-#TODO: when starting tandoku environment, add the scripts directory to $env:PSModulePath so modules are auto-loaded
-#consider choosing another name for Sort-STNumerical since Sort is a reserved verb
-Import-Module (Join-Path (Split-Path $MyInvocation.MyCommand.Path -Parent) 'tandoku-utils.psm1') -DisableNameChecking
-
 #choco install gcloudsdk #may not work due to hash not matching
 $env:GOOGLE_APPLICATION_CREDENTIALS=(Convert-Path 'O:\Tandoku\Tools\tandoku-test1-1c46e530ca99.json')
 

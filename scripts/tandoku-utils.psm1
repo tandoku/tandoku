@@ -1,3 +1,5 @@
+# Consider choosing another name for Sort-STNumerical since Sort is a reserved verb
+# (or try to adapt this so it is used as an argument to Sort-Object rather than doing the sorting itself)
 # Note: I added the call to .Normalize([Text.NormalizationForm]::FormKC) in order to handle full-width numbers
 # (which Convert.ToInt32 doesn't handle)
 # adapted from https://www.powershelladmin.com/wiki/Sort_strings_with_numbers_more_humanely_in_PowerShell
