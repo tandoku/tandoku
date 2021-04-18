@@ -3,10 +3,11 @@ $TandokuTools = "$TandokuRoot\Tools"
 
 $TandokuScripts = (Split-Path $MyInvocation.MyCommand.Path -Parent)
 $TandokuModules = "$TandokuScripts\tandoku*.psm1"
+$TandokuRootModule = "$TandokuScripts\tandoku.psm1"
+$TandokuSecondaryModules = "$TandokuScripts\tandoku-*.psm1"
 
-#Consider adding the scripts directory to $env:PSModulePath rather than loading all modules upfront
-Get-ChildItem $TandokuModules |
-    Import-Module 
+#Consider adding the scripts directory to $env:PSModulePath rather than loading secondary modules upfront
+Get-ChildItem $TandokuSecondaryModules | Import-Module 
 
 function films { cd $TandokuRoot\Films }
 function manga { cd $TandokuRoot\Manga }
@@ -15,8 +16,8 @@ function pbooks { cd "$TandokuRoot\Picture Books" }
 function scripts { cd $TandokuScripts }
 function tools { cd $TandokuTools }
 
-function editenv { gvim (Convert-Path $TandokuModule) }
-function reloadenv { Get-ChildItem $TandokuModule | Import-Module -Force }
+function editenv { gvim (Convert-Path $TandokuRootModule) }
+function reloadenv { Get-ChildItem $TandokuModules | Import-Module -Force }
 
 function ConvertTo-KindleBook($source) {
     $title = RemoveAllExtensions($source)
