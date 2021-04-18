@@ -92,10 +92,8 @@ namespace BlueMarsh.Tandoku
                 {
                     if (inline.FirstChild != null)
                     {
-                        // TODO: calibre ebook-convert doesn't parse \ in .md files but does work with double-space line ending
-                        // However, trailing spaces make the default YAML ugly as it ends up using "" with \n line breaks
-                        // probably use backslash on import and convert/normalize to double-space on kindle .md export only
-                        // (or consider exporting HTML instead of Markdown to use with ebook-convert, or using pandoc instead)
+                        // Use backslash line breaks (rather than double-space line ending) because trailing spaces
+                        // make the default YAML ugly as it ends up using "" with \n line breaks
                         inline.AppendChild(new LineBreakInline
                         {
                             IsBackslash = true,
@@ -107,10 +105,7 @@ namespace BlueMarsh.Tandoku
                 }
                 doc.Add(new ParagraphBlock { Inline = inline });
 
-                var writer = new StringWriter();
-                var renderer = new Markdig.Renderers.Normalize.NormalizeRenderer(writer);
-                renderer.Render(doc);
-                return writer.ToString();
+                return doc.ToMarkdownString();
             }
 
             private static List<SubtitleItem> ParseSubtitleItems(string path)
