@@ -1,13 +1,9 @@
-﻿using Markdig;
-using Markdig.Extensions.Footnotes;
-using Markdig.Syntax;
-using Markdig.Syntax.Inlines;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Markdig;
+using Markdig.Syntax;
+using Markdig.Syntax.Inlines;
 
 namespace BlueMarsh.Tandoku
 {
@@ -35,7 +31,7 @@ namespace BlueMarsh.Tandoku
                 int footnote = 0;
                 foreach (var block in blocks)
                 {
-                    writer.Write(NormalizeMarkdown(block.Text));
+                    WriteNormalizedMarkdown(writer, block.Text);
 
                     if (!string.IsNullOrWhiteSpace(block.Translation))
                     {
@@ -44,7 +40,7 @@ namespace BlueMarsh.Tandoku
                         writer.Write($"[^{footnote}]: ");
 
                         // TODO: clean this up
-                        writer.Write(NormalizeMarkdown(block.Translation.Replace("\n", "\n    ")));
+                        WriteNormalizedMarkdown(writer, block.Translation.Replace("\n", "\n    "));
                     }
 
                     writer.WriteLine();
@@ -54,10 +50,10 @@ namespace BlueMarsh.Tandoku
                 return outPath;
             }
 
-            private static string NormalizeMarkdown(string? s)
+            private static void WriteNormalizedMarkdown(TextWriter writer, string? s)
             {
                 if (string.IsNullOrWhiteSpace(s))
-                    return string.Empty;
+                    return;
 
                 // Calibre ebook-convert doesn't parse \ in .md files but does work with double-space line ending
                 // So we convert backslash line breaks into double-space line breaks
@@ -72,7 +68,7 @@ namespace BlueMarsh.Tandoku
                     }
                 }
 
-                return doc.ToMarkdownString();
+                doc.WriteTo(writer);
             }
         }
     }
