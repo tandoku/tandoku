@@ -12,7 +12,11 @@ function Add-GcvOcr {
             return $true
         })]
         [String]
-        $Path
+        $Path,
+
+        [Parameter]
+        [String]
+        $Language = 'ja'
     )
     process {
         $source = [IO.FileInfo](Convert-Path $Path)
@@ -32,7 +36,7 @@ function Add-GcvOcr {
                         type = 'DOCUMENT_TEXT_DETECTION'
                     })
                     imageContext = @{
-                        languageHints = @('ja')
+                        languageHints = @($Language)
                     }
                 })
             }
