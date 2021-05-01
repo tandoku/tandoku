@@ -14,7 +14,7 @@ function Add-GcvOcr {
         [String]
         $Path,
 
-        [Parameter]
+        [Parameter()]
         [String]
         $Language = 'ja'
     )
