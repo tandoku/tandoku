@@ -20,11 +20,15 @@ function Add-GcvOcr {
     )
     process {
         $source = [IO.FileInfo](Convert-Path $Path)
+
+        #TODO: use Get-GcvOcrPathForImage (will need to Split-Path to get ocr directory and create if needed,
+        # or maybe make this an argument to Get-GcvOcrPathForImage ?)
         $ocrDir = (Join-Path $source.Directory 'ocr')
         if (-not (Test-Path $ocrDir)) {
             [void] (New-Item -Type Directory $ocrDir)
         }
         $target = (Join-Path $ocrDir "$([IO.Path]::GetFilenameWithoutExtension($source.Name)).gcv.json")
+
         if (-not (Test-Path $target)) {
             $base64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes($source))
             $body = @{
@@ -79,6 +83,18 @@ function Add-GcvOcr {
     }
 }
 
+function Get-GcvOcrPathForImage {
+    param(
+        [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
+        [String]
+        $Path
+    )
+    process {
+        $gcvOcrFilename = [IO.Path]::GetFileName([IO.Path]::ChangeExtension($Path, '.gcv.json'))
+        Join-Path ([IO.Path]::GetDirectoryName($Path)) 'ocr' $gcvOcrFilename
+    }
+}
+
 function Import-GcvOcrContent {
     Get-ChildItem images -Filter *.gcv.json -Recurse |
         Get-Content |
@@ -91,10 +107,7 @@ function Get-GcvOcrContentForImage($imagePath) {
         $imagePath = $imagePath.Trim('"')
     }
 
-    #TODO: factor out function to get ocr path from image path (use in Add-GcvOcr as well)
-    $gcvOcrFilename = [IO.Path]::GetFileName([IO.Path]::ChangeExtension($imagePath, '.gcv.json'))
-    $gcvOcrPath = [IO.Path]::Combine([IO.Path]::GetDirectoryName($imagePath), 'ocr')
-    $gcvOcrPath = [IO.Path]::Combine($gcvOcrPath, $gcvOcrFilename)
+    $gcvOcrPath = Get-GcvOcrPathForImage $imagePath
 
     if (-not (Test-Path $gcvOcrPath)) {
         Write-Error "Path does not exist: $gcvOcrPath"
