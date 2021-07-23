@@ -28,7 +28,10 @@ function Rename-SubtitlesToVideo {
 
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        $VideoFilter
+        $VideoFilter,
+
+        [Parameter()]
+        [Switch] $Force
     )
     $subtitles = Get-ChildItem $SubtitleFilter
     $videos = Get-ChildItem $VideoFilter
@@ -38,12 +41,12 @@ function Rename-SubtitlesToVideo {
     }
 
     $subextlen = ($subtitles | Group-Object {[IO.Path]::GetExtension($_)}).Length
-    if ($subextlen -ne 1) {
+    if ($subextlen -ne 1 -and (-not $Force)) {
         throw 'Specified subtitles include multiple file extensions'
     }
 
     $vidextlen = ($videos | Group-Object {[IO.Path]::GetExtension($_)}).Length
-    if ($vidextlen -ne 1) {
+    if ($vidextlen -ne 1 -and (-not $Force)) {
         throw 'Specified videos include multiple file extensions'
     }
 
