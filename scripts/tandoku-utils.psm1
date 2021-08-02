@@ -61,7 +61,7 @@ function Sort-STNumerical {
             Sort-Object -Property `
                 @{ Expression = {
                     [Regex]::Replace($_, '(\d+)', {
-                        "{0:D$MaximumDigitCount}" -f [Int] $Args[0].Value.Normalize([Text.NormalizationForm]::FormKC) })
+                        "{0:D$MaximumDigitCount}" -f [Int64] $Args[0].Value.Normalize([Text.NormalizationForm]::FormKC) })
                     }
                 },
                 @{ Expression = { $_ } }

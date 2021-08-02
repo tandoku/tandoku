@@ -35,25 +35,32 @@ function Add-AcvOcr {
               -Body $body `
               -MaximumRetryCount 3 `
               -RetryIntervalSec 2 `
-              -Uri "https://westus2.api.cognitive.microsoft.com/vision/v3.2-preview.3/read/analyze?language=ja"
+              -Uri "https://tandoku.cognitiveservices.azure.com/vision/v3.2/read/analyze?language=ja"
 
             if ($response.StatusCode -eq 202) {
                 $resultUri = [string]$response.Headers.'Operation-Location'
                 $headers = @{
                     'Ocp-Apim-Subscription-Key' = $script:acvApiKey
                 }
+                
+                Write-Verbose "Resource location: $resultUri"
 
                 do {
-                    Start-Sleep 3100
+                    # Sleep between operations since free tier is limited to 20 calls per minute
+                    # (this wouldn't be necessary if using S1 pricing tier)
+                    Write-Verbose "Waiting 3 seconds to avoid free tier request throttling..."
+                    Start-Sleep -Milliseconds 3100
 
+                    Write-Verbose "Requesting resource..."
                     $response = Invoke-WebRequest `
                       -Method GET `
                       -Headers $headers `
                       -MaximumRetryCount 3 `
-                      -RetryIntervalSec 2 `
+                      -RetryIntervalSec 4 `
                       -Uri $resultUri
 
                     $responseJson = $response | ConvertFrom-Json
+                    Write-Verbose "Request status: $($responseJson.status)"
                     if ($responseJson.status -eq 'succeeded') {
                         $response.Content | Out-File $target
                     }
