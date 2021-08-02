@@ -28,6 +28,11 @@ function Add-AcvOcr {
                 'Ocp-Apim-Subscription-Key' = $script:acvApiKey
             }
 
+            # Sleep between operations since free tier is limited to 20 calls per minute
+            # (this wouldn't be necessary if using S1 pricing tier)
+            Write-Verbose "Waiting 3 seconds to avoid free tier request throttling..."
+            Start-Sleep -Milliseconds 3100
+
             $response = Invoke-WebRequest `
               -Method POST `
               -Headers $headers `
