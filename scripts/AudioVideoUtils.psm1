@@ -19,4 +19,44 @@ function Extract-Audio($source, $target) {
     }
 }
 
+function Rename-SubtitlesToVideo {
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        $SubtitleFilter,
+
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        $VideoFilter,
+
+        [Parameter()]
+        [Switch] $Force
+    )
+    $subtitles = Get-ChildItem $SubtitleFilter
+    $videos = Get-ChildItem $VideoFilter
+
+    if ($subtitles.count -ne $videos.count) {
+        throw 'Specified inputs for subtitles and videos have different lengths'
+    }
+
+    $subextlen = ($subtitles | Group-Object {[IO.Path]::GetExtension($_)}).Length
+    if ($subextlen -ne 1 -and (-not $Force)) {
+        throw 'Specified subtitles include multiple file extensions'
+    }
+
+    $vidextlen = ($videos | Group-Object {[IO.Path]::GetExtension($_)}).Length
+    if ($vidextlen -ne 1 -and (-not $Force)) {
+        throw 'Specified videos include multiple file extensions'
+    }
+
+    for ($i = 0; $i -lt $subtitles.Count; $i++) {
+        $sub = $subtitles[$i]
+        $vid = $videos[$i]
+        $newname = [IO.Path]::ChangeExtension($vid, [IO.Path]::GetExtension($sub))
+        $sub | Rename-Item -NewName $newname
+        $newname
+    }
+}
+
 Export-ModuleMember -Function * -Alias *
