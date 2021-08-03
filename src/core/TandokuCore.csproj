@@ -16,10 +16,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="LiteDb" Version="5.0.9" />
-    <PackageReference Include="Lucene.Net.Analysis.Kuromoji" Version="4.8.0-beta00013" />
-    <PackageReference Include="Markdig" Version="0.22.1" />
-    <PackageReference Include="SubtitlesParser" Version="1.4.8" />
+    <PackageReference Include="LiteDb" Version="5.0.11" />
+    <PackageReference Include="Lucene.Net.Analysis.Kuromoji" Version="4.8.0-beta00014" />
+    <PackageReference Include="Markdig" Version="0.25.0" />
+    <PackageReference Include="SubtitlesParser" Version="1.4.9" />
   </ItemGroup>
 
 </Project>
