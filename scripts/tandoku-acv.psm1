@@ -90,7 +90,11 @@ function Export-AcvOcrToMarkdown {
         Sort-STNumerical |
         Foreach-Object {
             $baseName = [IO.Path]::GetFileNameWithoutExtension([IO.Path]::GetFileNameWithoutExtension($_))
-            $imagePath = "images/$baseName.jpeg"
+            if (Test-Path "images/$baseName.jpeg") {
+                $imagePath = "images/$baseName.jpeg"
+            } else {
+                $imagePath = "images/$baseName.jpg"
+            }
             Write-Output "![]($imagePath)"
             Write-Output ''
 
