@@ -19,6 +19,9 @@ function tools { cd $TandokuTools }
 function editenv { gvim (Convert-Path $TandokuRootModule) }
 function reloadenv { Get-ChildItem $TandokuModules | Import-Module -Force }
 
+# Use kindlegen from Kindle Previewer 3 installation since kindlegen download was discontinued
+Set-Alias kindlegen "$env:LocalAppData\Amazon\Kindle Previewer 3\lib\fc\bin\kindlegen.exe"
+
 function ConvertTo-KindleBook($source) {
     $title = RemoveAllExtensions($source)
     $epub = [IO.Path]::ChangeExtension($source, '.epub')
