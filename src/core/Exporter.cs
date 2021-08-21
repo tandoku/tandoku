@@ -37,7 +37,7 @@ namespace BlueMarsh.Tandoku
                         // TODO: this is intended for screenshots, rework this for subtitles and maybe omit for manga (??)
                         if (block.Location!=null)
                         {
-                            writer.WriteLine($"# {block.Location}");
+                            writer.WriteLine($"## {block.Location}");
                             writer.WriteLine();
                         }
 

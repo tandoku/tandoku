@@ -61,7 +61,7 @@ namespace BlueMarsh.Tandoku
                     var textBlock = new TextBlock
                     {
                         Image = new Image { Name = imageName },
-                        Location = $"#{imageNumber} - {imageName}",
+                        Location = $"#{imageNumber} - {Path.GetFileNameWithoutExtension(imageName)}",
                     };
 
                     var ocrPath = Path.Combine(
