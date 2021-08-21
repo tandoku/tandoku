@@ -49,7 +49,7 @@ function RemoveAllExtensions($path) {
     return $result
 }
 
-Set-Alias tandoku W:\tandoku\src\cli\bin\Debug\net5.0\tandoku.exe
+Set-Alias tandoku W:\tandoku\src\cli\bin\Debug\net6.0\tandoku.exe
 
 Set-Alias subs2srs $TandokuTools\subs2srs\subs2srs.exe
 Set-Alias SubtitleEdit $TandokuTools\SubtitleEdit\SubtitleEdit.exe

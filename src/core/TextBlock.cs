@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Drawing;
-using System.Text;
 
 namespace BlueMarsh.Tandoku
 {
@@ -35,17 +33,6 @@ namespace BlueMarsh.Tandoku
     public sealed class ImageMap
     {
         public List<ImageMapLine> Lines { get; init; } = new List<ImageMapLine>();
-    }
-
-    public interface IHasBoundingBox
-    {
-        int[] BoundingBox { get; }
-
-        public Rectangle ToRectangle() => Rectangle.FromLTRB(
-            BoundingBox[0],
-            BoundingBox[1],
-            BoundingBox[6],
-            BoundingBox[7]);
     }
 
     public sealed class ImageMapLine : IHasBoundingBox

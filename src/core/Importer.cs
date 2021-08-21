@@ -47,7 +47,7 @@ namespace BlueMarsh.Tandoku
                 };
 
                 var imagesPath = Path.Combine(path, "images");
-                foreach (var imagePath in Directory.GetFiles(imagesPath))
+                foreach (var imagePath in Directory.EnumerateFiles(imagesPath).OrderBy(p => p, StringComparer.OrdinalIgnoreCase))
                 {
                     var textBlock = new TextBlock
                     {
@@ -89,11 +89,9 @@ namespace BlueMarsh.Tandoku
 
             private IEnumerable<ImageMapLine> FilterLines(IEnumerable<ImageMapLine> lines)
             {
-                // TODO: move furigana processing after block clustering
-                var allLines = lines.ToList();
-                var furiganaLineHeight = allLines.Count > 0 ? allLines.Max(GetLineHeight) * 0.5 : 0;
+                var filteredLines = new List<ImageMapLine>();
 
-                foreach (var line in allLines)
+                foreach (var line in lines)
                 {
                     // Exclude low-confidence lines
                     if (line.Words.All(w => w.Confidence != null && w.Confidence < 0.5))
@@ -103,19 +101,28 @@ namespace BlueMarsh.Tandoku
                     if (line.Text?.Any(c => WanaKana.IsKana(c) || WanaKana.IsKanji(c)) == false)
                         continue;
 
+                    filteredLines.Add(line);
+                }
+
+                // TODO: move furigana processing after block clustering
+                var furiganaLineHeight = filteredLines.Count > 0 ? filteredLines.Max(GetLineHeight) * 0.7 : 0;
+
+                foreach (var line in filteredLines)
+                {
                     // Exclude furigana lines (TODO: should happen after block clustering/line reordering, based on comparison to next line)
-                    if (GetLineHeight(line) <= furiganaLineHeight)
+                    if (GetLineHeight(line) <= furiganaLineHeight && line.Text?.All(IsAllowedForFurigana) == true)
                         continue;
 
                     yield return line;
                 }
             }
 
-            private static int GetLineHeight(ImageMapLine line)
-            {
-                IHasBoundingBox box = line;
-                return box.ToRectangle().Height;
-            }
+            private static int GetLineHeight(ImageMapLine line) => line.ToRectangle().Height;
+            private static bool IsAllowedForFurigana(char c) =>
+                WanaKana.IsKana(c) ||
+                char.IsWhiteSpace(c) ||
+                WanaKana.IsJapanesePunctuation(c) ||
+                WanaKana.IsEnglishPunctuation(c);
 
             private record OcrData(AnalyzeResult AnalyzeResult);
             private record AnalyzeResult(List<ReadResult> ReadResults);
