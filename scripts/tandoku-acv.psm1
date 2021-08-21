@@ -8,7 +8,10 @@ function Add-AcvOcr {
             return $true
         })]
         [String]
-        $Path
+        $Path,
+
+        [Switch]
+        $FreeTier
     )
     process {
         $source = [IO.FileInfo](Convert-Path $Path)
@@ -29,9 +32,15 @@ function Add-AcvOcr {
             }
 
             # Sleep between operations since free tier is limited to 20 calls per minute
-            # (this wouldn't be necessary if using S1 pricing tier)
-            Write-Verbose "Waiting 3 seconds to avoid free tier request throttling..."
-            Start-Sleep -Milliseconds 3100
+            # (this isn't necessary if using S1 pricing tier)
+            if ($FreeTier) {
+                Write-Verbose "Waiting 3 seconds to avoid free tier request throttling..."
+                Start-Sleep -Milliseconds 3100
+
+                $retryIntervalSec = 4
+            } else {
+                $retryIntervalSec = 2
+            }
 
             $response = Invoke-WebRequest `
               -Method POST `
@@ -39,7 +48,7 @@ function Add-AcvOcr {
               -ContentType: "application/octet-stream" `
               -Body $body `
               -MaximumRetryCount 3 `
-              -RetryIntervalSec 2 `
+              -RetryIntervalSec $retryIntervalSec `
               -Uri "https://tandoku.cognitiveservices.azure.com/vision/v3.2/read/analyze?language=ja"
 
             if ($response.StatusCode -eq 202) {
@@ -52,16 +61,18 @@ function Add-AcvOcr {
 
                 do {
                     # Sleep between operations since free tier is limited to 20 calls per minute
-                    # (this wouldn't be necessary if using S1 pricing tier)
-                    Write-Verbose "Waiting 3 seconds to avoid free tier request throttling..."
-                    Start-Sleep -Milliseconds 3100
+                    # (this isn't necessary if using S1 pricing tier)
+                    if ($FreeTier) {
+                        Write-Verbose "Waiting 3 seconds to avoid free tier request throttling..."
+                        Start-Sleep -Milliseconds 3100
+                    }
 
                     Write-Verbose "Requesting resource..."
                     $response = Invoke-WebRequest `
                       -Method GET `
                       -Headers $headers `
                       -MaximumRetryCount 3 `
-                      -RetryIntervalSec 4 `
+                      -RetryIntervalSec $retryIntervalSec `
                       -Uri $resultUri
 
                     $responseJson = $response | ConvertFrom-Json
