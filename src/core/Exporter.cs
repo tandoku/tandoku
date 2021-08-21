@@ -31,6 +31,13 @@ namespace BlueMarsh.Tandoku
                 int footnote = 0;
                 foreach (var block in blocks)
                 {
+                    // TODO: skip image if same as previous
+                    if (block.Image != null)
+                    {
+                        writer.WriteLine($"![](images/{block.Image.Name})");
+                        writer.WriteLine();
+                    }
+
                     WriteNormalizedMarkdown(writer, block.Text);
 
                     if (!string.IsNullOrWhiteSpace(block.Translation))

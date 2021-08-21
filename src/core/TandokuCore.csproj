@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <AssemblyName>BlueMarsh.Tandoku.Core</AssemblyName>
     <RootNamespace>BlueMarsh.Tandoku</RootNamespace>
     <Nullable>enable</Nullable>
@@ -20,6 +20,7 @@
     <PackageReference Include="Lucene.Net.Analysis.Kuromoji" Version="4.8.0-beta00014" />
     <PackageReference Include="Markdig" Version="0.25.0" />
     <PackageReference Include="SubtitlesParser" Version="1.4.9" />
+    <PackageReference Include="WanaKanaSharp" Version="0.1.1" />
   </ItemGroup>
 
 </Project>

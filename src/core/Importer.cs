@@ -3,30 +3,128 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using Markdig;
 using Markdig.Syntax;
 using Markdig.Syntax.Inlines;
 using SubtitlesParser.Classes;
+using WanaKanaSharp;
 
 namespace BlueMarsh.Tandoku
 {
     public sealed class Importer
     {
-        public string Import(string path)
+        public string Import(string path, bool images = false)
         {
-            var textBlocks = Path.GetExtension(path).ToUpperInvariant() switch
-            {
-                ".MD" => new MarkdownImporter().Import(path),
-                ".ASS" => new SubtitleImporter().Import(path),
-                _ => throw new ArgumentException($"Unsupported file type: {path}"),
-            };
+            // TODO: when importing images, select a real filename for outPath
+
+            IContentImporter importer = images ? new ImagesImporter() :
+                Path.GetExtension(path).ToUpperInvariant() switch
+                {
+                    ".MD" => new MarkdownImporter(),
+                    ".ASS" => new SubtitleImporter(),
+                    _ => throw new ArgumentException($"Unsupported file type: {path}"),
+                };
+            var textBlocks = importer.Import(path);
             var outPath = Path.ChangeExtension(path, ".tdkc.jsonl");
             var serializer = new TextBlockSerializer();
             serializer.Serialize(outPath, textBlocks);
             return outPath;
         }
 
-        private sealed class MarkdownImporter
+        private interface IContentImporter
+        {
+            IEnumerable<TextBlock> Import(string path);
+        }
+
+        private sealed class ImagesImporter : IContentImporter
+        {
+            public IEnumerable<TextBlock> Import(string path)
+            {
+                var ocrJsonOptions = new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                };
+
+                var imagesPath = Path.Combine(path, "images");
+                foreach (var imagePath in Directory.GetFiles(imagesPath))
+                {
+                    var textBlock = new TextBlock
+                    {
+                        Image = new Image { Name = Path.GetFileName(imagePath) }
+                    };
+
+                    var ocrPath = Path.Combine(
+                        imagesPath,
+                        "ocr",
+                        Path.GetFileNameWithoutExtension(imagePath) + ".acv.json");
+                    if (File.Exists(ocrPath))
+                    {
+                        var ocr = JsonSerializer.Deserialize<OcrData>(File.ReadAllText(ocrPath), ocrJsonOptions);
+                        textBlock.Image.Map = new ImageMap
+                        {
+                            Lines = FilterLines(ocr.AnalyzeResult.ReadResults.Single().Lines.Select(l => new ImageMapLine
+                            {
+                                BoundingBox = l.BoundingBox,
+                                Text = l.Text,
+                                Words = l.Words.Select(w => new ImageMapWord
+                                {
+                                    BoundingBox = w.BoundingBox,
+                                    Text = w.Text,
+                                    Confidence = w.Confidence,
+                                }).ToList(),
+                            })).ToList(),
+                        };
+
+                        FilterLines(textBlock.Image.Map.Lines);
+
+                        textBlock.Text = string.Join(
+                            "\n\n",
+                            textBlock.Image.Map.Lines.Select(l => l.Text));
+                    }
+
+                    yield return textBlock;
+                }
+            }
+
+            private IEnumerable<ImageMapLine> FilterLines(IEnumerable<ImageMapLine> lines)
+            {
+                // TODO: move furigana processing after block clustering
+                var allLines = lines.ToList();
+                var furiganaLineHeight = allLines.Count > 0 ? allLines.Max(GetLineHeight) * 0.5 : 0;
+
+                foreach (var line in allLines)
+                {
+                    // Exclude low-confidence lines
+                    if (line.Words.All(w => w.Confidence != null && w.Confidence < 0.5))
+                        continue;
+
+                    // Exclude lines with no Japanese characters
+                    if (line.Text?.Any(c => WanaKana.IsKana(c) || WanaKana.IsKanji(c)) == false)
+                        continue;
+
+                    // Exclude furigana lines (TODO: should happen after block clustering/line reordering, based on comparison to next line)
+                    if (GetLineHeight(line) <= furiganaLineHeight)
+                        continue;
+
+                    yield return line;
+                }
+            }
+
+            private static int GetLineHeight(ImageMapLine line)
+            {
+                IHasBoundingBox box = line;
+                return box.ToRectangle().Height;
+            }
+
+            private record OcrData(AnalyzeResult AnalyzeResult);
+            private record AnalyzeResult(List<ReadResult> ReadResults);
+            private record ReadResult(List<ReadResultLine> Lines);
+            private record ReadResultLine(int[] BoundingBox, string Text, List<ReadResultWord> Words);
+            private record ReadResultWord(int[] BoundingBox, string Text, double Confidence);
+        }
+
+        private sealed class MarkdownImporter : IContentImporter
         {
             public IEnumerable<TextBlock> Import(string path)
             {
@@ -46,7 +144,7 @@ namespace BlueMarsh.Tandoku
             }
         }
 
-        private sealed class SubtitleImporter
+        private sealed class SubtitleImporter : IContentImporter
         {
             public IEnumerable<TextBlock> Import(string path)
             {

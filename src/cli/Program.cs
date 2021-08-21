@@ -32,10 +32,16 @@ namespace BlueMarsh.Tandoku.CommandLine
             return command;
         }
 
-        private static void Import(FileInfo file)
+        private static void Import(FileInfo? file = null, bool images = false)
         {
+            if (file == null && !images)
+            {
+                Console.WriteLine("Expected either <file> or --images argument");
+                return;
+            }
+
             var importer = new Importer();
-            var outPath = importer.Import(file.FullName);
+            var outPath = importer.Import(file?.FullName ?? ".", images);
             Console.WriteLine($"Imported {outPath}");
         }
 

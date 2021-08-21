@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Text;
 
 namespace BlueMarsh.Tandoku
@@ -8,11 +9,14 @@ namespace BlueMarsh.Tandoku
 
     public sealed class TextBlock
     {
+        public Image? Image { get; set; }
+
         public string? Text { get; set; }
 
         // TODO: NormalizedText (needed? try out Markdown normalization)
         //       AnnotatedText (add/remove furigana ruby to match annotation preferences)
 
+        // TODO: rename to AlternateText, change to Dictionary<string, string>
         public string? Translation { get; set; }
 
         // TODO: make this nullable, only populate when used
@@ -20,6 +24,42 @@ namespace BlueMarsh.Tandoku
 
         // TODO: replace with Source object
         public string? Location { get; set; }
+    }
+
+    public sealed class Image
+    {
+        public string? Name { get; set; }
+        public ImageMap? Map { get; set; }
+    }
+
+    public sealed class ImageMap
+    {
+        public List<ImageMapLine> Lines { get; init; } = new List<ImageMapLine>();
+    }
+
+    public interface IHasBoundingBox
+    {
+        int[] BoundingBox { get; }
+
+        public Rectangle ToRectangle() => Rectangle.FromLTRB(
+            BoundingBox[0],
+            BoundingBox[1],
+            BoundingBox[6],
+            BoundingBox[7]);
+    }
+
+    public sealed class ImageMapLine : IHasBoundingBox
+    {
+        public int[] BoundingBox { get; init; } = new int[8];
+        public string? Text { get; set; }
+        public List<ImageMapWord> Words { get; init; } = new List<ImageMapWord>();
+    }
+
+    public sealed class ImageMapWord : IHasBoundingBox
+    {
+        public int[] BoundingBox { get; init; } = new int[8];
+        public string? Text { get; set; }
+        public double? Confidence { get; set; }
     }
 
     public sealed class Token
