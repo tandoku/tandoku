@@ -34,6 +34,13 @@ namespace BlueMarsh.Tandoku
                     // TODO: skip image if same as previous
                     if (block.Image != null)
                     {
+                        // TODO: this is intended for screenshots, rework this for subtitles and maybe omit for manga (??)
+                        if (block.Location!=null)
+                        {
+                            writer.WriteLine($"# {block.Location}");
+                            writer.WriteLine();
+                        }
+
                         writer.WriteLine($"![](images/{block.Image.Name})");
                         writer.WriteLine();
                     }

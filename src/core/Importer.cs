@@ -47,11 +47,21 @@ namespace BlueMarsh.Tandoku
                 };
 
                 var imagesPath = Path.Combine(path, "images");
-                foreach (var imagePath in Directory.EnumerateFiles(imagesPath).OrderBy(p => p, StringComparer.OrdinalIgnoreCase))
+                int imageNumber = 0;
+
+                // Sorting with StringComparer.OrdinalIgnoreCase (or even Ordinal) puts '_' before digits
+                var imageList = Directory.GetFiles(imagesPath);
+                Array.Sort(imageList);
+
+                foreach (var imagePath in imageList)
                 {
+                    var imageName = Path.GetFileName(imagePath);
+                    imageNumber++;
+
                     var textBlock = new TextBlock
                     {
-                        Image = new Image { Name = Path.GetFileName(imagePath) }
+                        Image = new Image { Name = imageName },
+                        Location = $"#{imageNumber} - {imageName}",
                     };
 
                     var ocrPath = Path.Combine(
