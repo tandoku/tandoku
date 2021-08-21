@@ -22,14 +22,22 @@ function reloadenv { Get-ChildItem $TandokuModules | Import-Module -Force }
 # Use kindlegen from Kindle Previewer 3 installation since kindlegen download was discontinued
 Set-Alias kindlegen "$env:LocalAppData\Amazon\Kindle Previewer 3\lib\fc\bin\kindlegen.exe"
 
-function ConvertTo-KindleBook($source) {
-    $title = RemoveAllExtensions($source)
-    $epub = [IO.Path]::ChangeExtension($source, '.epub')
+function ConvertTo-KindleBook($Path, $TargetFormat) {
+    $title = RemoveAllExtensions($Path)
 
-    ebook-convert $source $epub --epub-version=3 --language=ja --authors=Tandoku --title="$title"
-    #pandoc $source -f commonmark+footnotes -o $epub -t epub3 --metadata title="$title" --metadata author=Tandoku --metadata lang=ja
+    if ($TargetFormat -eq 'AZW3') {
+        $azw3 = [IO.Path]::ChangeExtension($Path, '.azw3')
 
-	kindlegen $epub
+        # NOTE: do not use --share-not-sync option as this breaks Vocabulary Builder
+        ebook-convert $Path $azw3 --language=ja --authors=Tandoku --title="$title"
+    } else {
+        $epub = [IO.Path]::ChangeExtension($Path, '.epub')
+
+        ebook-convert $Path $epub --epub-version=3 --language=ja --authors=Tandoku --title="$title"
+        #pandoc $source -f commonmark+footnotes -o $epub -t epub3 --metadata title="$title" --metadata author=Tandoku --metadata lang=ja
+
+        kindlegen $epub
+    }
 }
 Set-Alias tokindle ConvertTo-KindleBook
 
