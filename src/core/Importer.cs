@@ -49,11 +49,7 @@ namespace BlueMarsh.Tandoku
                 var imagesPath = Path.Combine(path, "images");
                 int imageNumber = 0;
 
-                // Sorting with StringComparer.OrdinalIgnoreCase (or even Ordinal) puts '_' before digits
-                var imageList = Directory.GetFiles(imagesPath);
-                Array.Sort(imageList);
-
-                foreach (var imagePath in imageList)
+                foreach (var imagePath in Directory.EnumerateFiles(imagesPath))
                 {
                     var imageName = Path.GetFileName(imagePath);
                     imageNumber++;
@@ -85,8 +81,6 @@ namespace BlueMarsh.Tandoku
                                 }).ToList(),
                             })).ToList(),
                         };
-
-                        FilterLines(textBlock.Image.Map.Lines);
 
                         textBlock.Text = string.Join(
                             "\n\n",
@@ -189,7 +183,7 @@ namespace BlueMarsh.Tandoku
                 }
             }
 
-            private string GetTextFromItem(SubtitleItem item)
+            private static string GetTextFromItem(SubtitleItem item)
             {
                 // TODO: this should be fixed in the SubtitlesParser package (there's a TODO in SsaParser)
                 // (send a PR for this and additionally add Actor, Style fields from SSA format; fork and build BlueMarsh copy of SubtitlesParser for now ??)
