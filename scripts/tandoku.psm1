@@ -70,6 +70,59 @@ function RemoveAllExtensions($path) {
     return $result
 }
 
+function Compress-TandokuVolume {
+    [CmdletBinding(SupportsShouldProcess=$true)]
+    param(
+        [Parameter(Mandatory=$false, ValueFromPipeline=$true)]
+        [ValidateScript({
+            if( -Not ($_ | Test-Path) ){
+                throw "File or folder does not exist"
+            }
+            return $true
+        })]
+        [String] $Path = '.'
+    )
+    process {
+        Get-ChildItem -Path $Path -Filter images -Recurse -Directory |
+            Foreach-Object {
+                $volumePath = (Split-Path $_ -Parent)
+                Push-Location $volumePath
+
+                $coverPath = 'cover.jpg'
+                if (-not (Test-Path $coverPath)) {
+                  Get-ChildItem ./images/cover*.jp*g |
+                    Foreach-Object {
+                      Write-Verbose "Copying $_ to $coverPath"
+                      Copy-Item $_ $coverPath
+                    }
+                } else {
+                    Write-Verbose "$(Resolve-Path $coverPath) already exists"
+                }
+
+                $title = (Split-Path $volumePath -Leaf)
+                $cbzPath = "$title.cbz"
+                if ((Test-Path $coverPath) -and (-not (Test-Path $cbzPath))) {
+                  Write-Verbose "Creating $cbzPath from images"
+                  Compress-Archive ./images/*.* $cbzPath
+
+                  # verify all items added
+                  $cbzFileCount = (7z l $cbzPath|sls '(\d+) files$').Matches[0].Groups[1].Value
+                  $imgFileCount = (Get-ChildItem ./images/*.*).Count
+                  if ($cbzFileCount -eq $imgFileCount) {
+                      Write-Verbose "Removing $imgFileCount files from images"
+                      Remove-Item ./images/*.*
+                  }
+                } elseif (-not (Test-Path $coverPath)) {
+                    Write-Verbose "Missing $coverPath, skipping .cbz archive for $title"
+                } else {
+                    Write-Verbose "$(Resolve-Path $cbzPath) already exists"
+                }
+
+                Pop-Location
+            }
+    }
+}
+
 Set-Alias tandoku W:\tandoku\src\cli\bin\Debug\net6.0\tandoku.exe
 
 Set-Alias subs2srs $TandokuTools\subs2srs\subs2srs.exe
