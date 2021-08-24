@@ -80,7 +80,11 @@ function Compress-TandokuVolume {
             }
             return $true
         })]
-        [String] $Path = '.'
+        [String] $Path = '.',
+
+        [Switch] $ImagesAsCbz,
+
+        [Switch] $Ocr
     )
     process {
         Get-ChildItem -Path $Path -Filter images -Recurse -Directory |
@@ -88,6 +92,7 @@ function Compress-TandokuVolume {
                 $volumePath = (Split-Path $_ -Parent)
                 Push-Location $volumePath
 
+                # TODO: move this to a separate cmdlet?
                 $coverPath = 'cover.jpg'
                 if (-not (Test-Path $coverPath)) {
                   Get-ChildItem ./images/cover*.jp*g |
@@ -100,22 +105,45 @@ function Compress-TandokuVolume {
                 }
 
                 $title = (Split-Path $volumePath -Leaf)
-                $cbzPath = "$title.cbz"
-                if ((Test-Path $coverPath) -and (-not (Test-Path $cbzPath))) {
-                  Write-Verbose "Creating $cbzPath from images"
-                  Compress-Archive ./images/*.* $cbzPath
 
-                  # verify all items added
-                  $cbzFileCount = (7z l $cbzPath|sls '(\d+) files$').Matches[0].Groups[1].Value
-                  $imgFileCount = (Get-ChildItem ./images/*.*).Count
-                  if ($cbzFileCount -eq $imgFileCount) {
-                      Write-Verbose "Removing $imgFileCount files from images"
-                      Remove-Item ./images/*.*
-                  }
-                } elseif (-not (Test-Path $coverPath)) {
-                    Write-Verbose "Missing $coverPath, skipping .cbz archive for $title"
-                } else {
-                    Write-Verbose "$(Resolve-Path $cbzPath) already exists"
+                if ($ImagesAsCbz) {
+                    $cbzPath = "$title.cbz"
+                    if ((Test-Path $coverPath) -and (-not (Test-Path $cbzPath))) {
+                      Write-Verbose "Creating $cbzPath from images"
+                      Compress-Archive ./images/*.* $cbzPath
+
+                      # verify all items added
+                      $cbzFileCount = (7z l $cbzPath|sls '(\d+) files$').Matches[0].Groups[1].Value
+                      $imgFileCount = (Get-ChildItem ./images/*.*).Count
+                      if ($cbzFileCount -eq $imgFileCount) {
+                          Write-Verbose "Removing $imgFileCount files from images"
+                          Remove-Item ./images/*.*
+                      }
+                    } elseif (-not (Test-Path $coverPath)) {
+                        Write-Verbose "Missing $coverPath, skipping .cbz archive for $title"
+                    } else {
+                        Write-Verbose "$(Resolve-Path $cbzPath) already exists"
+                    }
+                }
+
+                if ($Ocr) {
+                    $tdzPath = "$title.tdz"
+                    $tdzTempPath = 'tandoku.zip'
+                    if (Test-Path ./images/ocr/*.*) {
+                        Write-Verbose "Copying ocr images to $tdzPath"
+                        7z a -spf $tdzTempPath images/ocr/*.*
+                        Move-Item $tdzTempPath $tdzPath
+
+                        # verify all items added
+                        $tdzFileCount = (7z l $tdzPath|sls '(\d+) files$').Matches[0].Groups[1].Value
+                        $ocrFileCount = (Get-ChildItem ./images/ocr/*.*).Count
+                        if ($tdzFileCount -eq $ocrFileCount) {
+                            Write-Verbose "Removing $ocrFileCount files from images/ocr"
+                            Remove-Item ./images/ocr/*.*
+                        }
+                    } else {
+                        Write-Verbose "No images/ocr files found for $title"
+                    }
                 }
 
                 Pop-Location
