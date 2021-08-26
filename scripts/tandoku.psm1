@@ -128,11 +128,9 @@ function Compress-TandokuVolume {
 
                 if ($Ocr) {
                     $tdzPath = "$title.tdz"
-                    $tdzTempPath = 'tandoku.zip'
                     if (Test-Path ./images/ocr/*.*) {
                         Write-Verbose "Copying ocr images to $tdzPath"
-                        7z a -spf $tdzTempPath images/ocr/*.*
-                        Move-Item $tdzTempPath $tdzPath
+                        7z a -spf -tzip $tdzPath images/ocr/*.*
 
                         # verify all items added
                         $tdzFileCount = (7z l $tdzPath|sls '(\d+) files$').Matches[0].Groups[1].Value
