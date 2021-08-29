@@ -1,6 +1,6 @@
 Import-Module tandoku-utils.psm1
 
-function Process-CalibreChangesAndAddOcr {
+function Process-CalibreChangesAndAddText {
     $calibreBooks = Get-CalibreBook
     $calibreBooks | Update-CalibreMetadataInTandoku
 
@@ -10,13 +10,13 @@ function Process-CalibreChangesAndAddOcr {
     $calibreBooks | Add-CalibreBookToTandoku
     Get-ChildItem O:\Tandoku\Manga -Filter *.azw3 -Recurse | Unpack-KindleBookImages
 
-    Get-ChildItem O:\Tandoku\Manga\Collection.priority -Filter image*.jpeg -Recurse | Add-GcvOcr
-    Get-ChildItem O:\Tandoku\Manga\Downloads.priority -Filter image*.jpeg -Recurse | Add-GcvOcr
-    Get-ChildItem O:\Tandoku\Manga\Downloads.pri2 -Filter image*.jpeg -Recurse | Add-GcvOcr
-    Get-ChildItem O:\Tandoku\Manga\Downloads.pri3 -Filter image*.jpeg -Recurse | Add-GcvOcr
-    Get-ChildItem O:\Tandoku\Manga\Downloads.pri4 -Filter image*.jpeg -Recurse | Add-GcvOcr
-    Get-ChildItem O:\Tandoku\Manga\Samples -Filter image*.jpeg -Recurse | Add-GcvOcr
-    Get-ChildItem O:\Tandoku\Manga\Samples.priority -Filter image*.jpeg -Recurse | Add-GcvOcr
+    Get-ChildItem O:\Tandoku\Manga\Collection.priority -Filter image*.jpeg -Recurse | Add-GcvText
+    Get-ChildItem O:\Tandoku\Manga\Downloads.priority -Filter image*.jpeg -Recurse | Add-GcvText
+    Get-ChildItem O:\Tandoku\Manga\Downloads.pri2 -Filter image*.jpeg -Recurse | Add-GcvText
+    Get-ChildItem O:\Tandoku\Manga\Downloads.pri3 -Filter image*.jpeg -Recurse | Add-GcvText
+    Get-ChildItem O:\Tandoku\Manga\Downloads.pri4 -Filter image*.jpeg -Recurse | Add-GcvText
+    Get-ChildItem O:\Tandoku\Manga\Samples -Filter image*.jpeg -Recurse | Add-GcvText
+    Get-ChildItem O:\Tandoku\Manga\Samples.priority -Filter image*.jpeg -Recurse | Add-GcvText
 
     #TODO: clean up empty folders due to moved items
 }

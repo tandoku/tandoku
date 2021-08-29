@@ -41,7 +41,7 @@ namespace BlueMarsh.Tandoku
         {
             public IEnumerable<TextBlock> Import(string path)
             {
-                var ocrJsonOptions = new JsonSerializerOptions
+                var imageTextJsonOptions = new JsonSerializerOptions
                 {
                     PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
                 };
@@ -60,16 +60,16 @@ namespace BlueMarsh.Tandoku
                         Location = $"#{imageNumber} - {Path.GetFileNameWithoutExtension(imageName)}",
                     };
 
-                    var ocrPath = Path.Combine(
+                    var imageTextPath = Path.Combine(
                         imagesPath,
-                        "ocr",
+                        "text",
                         Path.GetFileNameWithoutExtension(imagePath) + ".acv.json");
-                    if (File.Exists(ocrPath))
+                    if (File.Exists(imageTextPath))
                     {
-                        var ocr = JsonSerializer.Deserialize<OcrData>(File.ReadAllText(ocrPath), ocrJsonOptions);
+                        var imageText = JsonSerializer.Deserialize<ImageTextData>(File.ReadAllText(imageTextPath), imageTextJsonOptions);
                         textBlock.Image.Map = new ImageMap
                         {
-                            Lines = FilterLines(ocr.AnalyzeResult.ReadResults.Single().Lines.Select(l => new ImageMapLine
+                            Lines = FilterLines(imageText.AnalyzeResult.ReadResults.Single().Lines.Select(l => new ImageMapLine
                             {
                                 BoundingBox = l.BoundingBox,
                                 Text = l.Text,
@@ -114,8 +114,12 @@ namespace BlueMarsh.Tandoku
                 foreach (var line in filteredLines)
                 {
                     // Exclude furigana lines (TODO: should happen after block clustering/line reordering, based on comparison to next line)
-                    if (GetLineHeight(line) <= furiganaLineHeight && line.Text?.All(IsAllowedForFurigana) == true)
+                    if (GetLineHeight(line) <= furiganaLineHeight &&
+                        line.Text?.Any(WanaKana.IsKana) == true &&
+                        line.Text?.All(IsAllowedForFurigana) == true)
+                    {
                         continue;
+                    }
 
                     yield return line;
                 }
@@ -128,7 +132,7 @@ namespace BlueMarsh.Tandoku
                 WanaKana.IsJapanesePunctuation(c) ||
                 WanaKana.IsEnglishPunctuation(c);
 
-            private record OcrData(AnalyzeResult AnalyzeResult);
+            private record ImageTextData(AnalyzeResult AnalyzeResult);
             private record AnalyzeResult(List<ReadResult> ReadResults);
             private record ReadResult(List<ReadResultLine> Lines);
             private record ReadResultLine(int[] BoundingBox, string Text, List<ReadResultWord> Words);

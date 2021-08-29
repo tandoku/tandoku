@@ -1,4 +1,4 @@
-function Add-AcvOcr {
+function Add-AcvText {
     param(
         [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
         [ValidateScript({
@@ -15,11 +15,11 @@ function Add-AcvOcr {
     )
     process {
         $source = [IO.FileInfo](Convert-Path $Path)
-        $ocrDir = (Join-Path $source.Directory 'ocr')
-        if (-not (Test-Path $ocrDir)) {
-            [void] (New-Item -Type Directory $ocrDir)
+        $textDir = (Join-Path $source.Directory 'text')
+        if (-not (Test-Path $textDir)) {
+            [void] (New-Item -Type Directory $textDir)
         }
-        $target = (Join-Path $ocrDir "$([IO.Path]::GetFilenameWithoutExtension($source.Name)).acv.json")
+        $target = (Join-Path $textDir "$([IO.Path]::GetFilenameWithoutExtension($source.Name)).acv.json")
         if (-not (Test-Path $target)) {
             if (-not ($script:acvApiKey)) {
                 $script:acvApiKey = (Get-Content O:\Tandoku\Tools\tandoku-azure-vision.txt)
@@ -96,7 +96,7 @@ function Add-AcvOcr {
     }
 }
 
-function Export-AcvOcrToMarkdown {
+function Export-AcvTextToMarkdown {
     Get-ChildItem images -Filter *.acv.json -Recurse |
         Sort-STNumerical |
         Foreach-Object {

@@ -84,7 +84,7 @@ function Compress-TandokuVolume {
 
         [Switch] $ImagesAsCbz,
 
-        [Switch] $Ocr
+        [Switch] $ImageText
     )
     process {
         Get-ChildItem -Path $Path -Filter images -Recurse -Directory |
@@ -126,21 +126,21 @@ function Compress-TandokuVolume {
                     }
                 }
 
-                if ($Ocr) {
+                if ($ImageText) {
                     $tdzPath = "$title.tdz"
-                    if (Test-Path ./images/ocr/*.*) {
-                        Write-Verbose "Copying ocr images to $tdzPath"
-                        7z a -spf -tzip $tdzPath images/ocr/*.*
+                    if (Test-Path ./images/text/*.*) {
+                        Write-Verbose "Copying ./images/text/ to $tdzPath"
+                        7z a -spf -tzip $tdzPath images/text/*.*
 
                         # verify all items added
                         $tdzFileCount = (7z l $tdzPath|sls '(\d+) files$').Matches[0].Groups[1].Value
-                        $ocrFileCount = (Get-ChildItem ./images/ocr/*.*).Count
-                        if ($tdzFileCount -eq $ocrFileCount) {
-                            Write-Verbose "Removing $ocrFileCount files from images/ocr"
-                            Remove-Item ./images/ocr/*.*
+                        $textFileCount = (Get-ChildItem ./images/text/*.*).Count
+                        if ($tdzFileCount -eq $textFileCount) {
+                            Write-Verbose "Removing $textFileCount files from images/text"
+                            Remove-Item ./images/text/*.*
                         }
                     } else {
-                        Write-Verbose "No images/ocr files found for $title"
+                        Write-Verbose "No images/text files found for $title"
                     }
                 }
 

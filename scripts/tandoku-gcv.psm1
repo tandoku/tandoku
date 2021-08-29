@@ -1,8 +1,8 @@
 #choco install gcloudsdk #may not work due to hash not matching
 $env:GOOGLE_APPLICATION_CREDENTIALS=(Convert-Path 'O:\Tandoku\Tools\tandoku-test1-1c46e530ca99.json')
 
-#ls image*.jpeg -Recurse|Add-GcvOcr
-function Add-GcvOcr {
+#ls image*.jpeg -Recurse|Add-GcvText
+function Add-GcvText {
     param(
         [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
         [ValidateScript({
@@ -21,13 +21,13 @@ function Add-GcvOcr {
     process {
         $source = [IO.FileInfo](Convert-Path $Path)
 
-        #TODO: use Get-GcvOcrPathForImage (will need to Split-Path to get ocr directory and create if needed,
-        # or maybe make this an argument to Get-GcvOcrPathForImage ?)
-        $ocrDir = (Join-Path $source.Directory 'ocr')
-        if (-not (Test-Path $ocrDir)) {
-            [void] (New-Item -Type Directory $ocrDir)
+        #TODO: use Get-GcvTextPathForImage (will need to Split-Path to get text directory and create if needed,
+        # or maybe make this an argument to Get-GcvTextPathForImage ?)
+        $textDir = (Join-Path $source.Directory 'text')
+        if (-not (Test-Path $textDir)) {
+            [void] (New-Item -Type Directory $textDir)
         }
-        $target = (Join-Path $ocrDir "$([IO.Path]::GetFilenameWithoutExtension($source.Name)).gcv.json")
+        $target = (Join-Path $textDir "$([IO.Path]::GetFilenameWithoutExtension($source.Name)).gcv.json")
 
         if (-not (Test-Path $target)) {
             $base64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes($source))
@@ -83,42 +83,42 @@ function Add-GcvOcr {
     }
 }
 
-function Get-GcvOcrPathForImage {
+function Get-GcvTextPathForImage {
     param(
         [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
         [String]
         $Path
     )
     process {
-        $gcvOcrFilename = [IO.Path]::GetFileName([IO.Path]::ChangeExtension($Path, '.gcv.json'))
-        Join-Path ([IO.Path]::GetDirectoryName($Path)) 'ocr' $gcvOcrFilename
+        $gcvTextFilename = [IO.Path]::GetFileName([IO.Path]::ChangeExtension($Path, '.gcv.json'))
+        Join-Path ([IO.Path]::GetDirectoryName($Path)) 'text' $gcvTextFilename
     }
 }
 
-function Import-GcvOcrContent {
+function Import-GcvTextContent {
     Get-ChildItem images -Filter *.gcv.json -Recurse |
         Get-Content |
         ConvertFrom-Json
 }
 
-function Get-GcvOcrContentForImage($imagePath) {
+function Get-GcvTextContentForImage($imagePath) {
     if (-not $imagePath) {
         $imagePath = [String] (Get-Clipboard)
         $imagePath = $imagePath.Trim('"')
     }
 
-    $gcvOcrPath = Get-GcvOcrPathForImage $imagePath
+    $gcvTextPath = Get-GcvTextPathForImage $imagePath
 
-    if (-not (Test-Path $gcvOcrPath)) {
-        Write-Error "Path does not exist: $gcvOcrPath"
+    if (-not (Test-Path $gcvTextPath)) {
+        Write-Error "Path does not exist: $gcvTextPath"
         return
     }
 
-    $json = Get-Content -LiteralPath $gcvOcrPath | ConvertFrom-Json
+    $json = Get-Content -LiteralPath $gcvTextPath | ConvertFrom-Json
     $json.responses[0].fullTextAnnotation.text
 }
 
-function Export-GcvOcrToMarkdown {
+function Export-GcvTextToMarkdown {
     Get-ChildItem images -Filter *.gcv.json -Recurse |
         Sort-STNumerical |
         Foreach-Object {
@@ -145,7 +145,7 @@ function Export-GcvOcrToMarkdown {
         }
 }
 
-function Get-GcvOcrWordCount {
+function Get-GcvTextWordCount {
     param(
         [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
         [ValidateScript({
