@@ -16,8 +16,6 @@ namespace BlueMarsh.Tandoku
     {
         public string Import(string path, bool images = false)
         {
-            // TODO: when importing images, select a real filename for outPath
-
             IContentImporter importer = images ? new ImagesImporter() :
                 Path.GetExtension(path).ToUpperInvariant() switch
                 {
@@ -26,7 +24,10 @@ namespace BlueMarsh.Tandoku
                     _ => throw new ArgumentException($"Unsupported file type: {path}"),
                 };
             var textBlocks = importer.Import(path);
-            var outPath = Path.ChangeExtension(path, ".tdkc.jsonl");
+            var outPath = Directory.Exists(path) ?
+                // TODO: this won't work properly if *path* ends in directory separator
+                Path.Combine(path, Path.GetFileName(Path.GetFullPath(path)) + ".tdkc.jsonl") :
+                Path.ChangeExtension(path, ".tdkc.jsonl");
             var serializer = new TextBlockSerializer();
             serializer.Serialize(outPath, textBlocks);
             return outPath;
