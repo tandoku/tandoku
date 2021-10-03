@@ -21,6 +21,28 @@ namespace BlueMarsh.Tandoku
         public void Serialize(string path, IEnumerable<TextBlock> blocks)
         {
             /*
+            Path.GetExtension(path).ToUpperInvariant() switch
+            {
+                ".JSONL" => SerializeJson(path, blocks),
+                ".YAML" => SerializeYaml(path, blocks),
+            };
+            */
+
+            switch (Path.GetExtension(path).ToUpperInvariant())
+            {
+                case ".JSONL":
+                    SerializeJson(path, blocks);
+                    break;
+
+                case ".YAML":
+                    SerializeYaml(path, blocks);
+                    break;
+            }
+        }
+
+        public void SerializeJson(string path, IEnumerable<TextBlock> blocks)
+        {
+            /*
             using var stream = File.Create(path);
             using var writer = new Utf8JsonWriter(stream);
             foreach (var block in blocks)
@@ -39,6 +61,38 @@ namespace BlueMarsh.Tandoku
             using var writer = File.CreateText(path);
             foreach (var block in blocks)
                 writer.WriteLine(JsonSerializer.Serialize(block, options));
+        }
+
+        public void SerializeYaml(string path, IEnumerable<TextBlock> blocks)
+        {
+            using var writer = File.CreateText(path);
+
+            // TODO: consider implementing IEmitter wrapper that ignores Stream/Document events
+            // (pass this to Serialize method and emit these events ourselves here)
+            //var emitter = new YamlDotNet.Core.Emitter(writer);
+            //emitter.Emit(new YamlDotNet.Core.Events.StreamStart());
+
+            var serializer = new YamlDotNet.Serialization.SerializerBuilder()
+                .WithNamingConvention(YamlDotNet.Serialization.NamingConventions.CamelCaseNamingConvention.Instance)
+                .Build();
+            bool first = true;
+            foreach (var block in blocks)
+            {
+                if (first)
+                    first = false;
+                else
+                    writer.WriteLine();
+
+                //emitter.Emit(new YamlDotNet.Core.Events.DocumentStart());
+                //serializer.Serialize(emitter, block);
+                //emitter.Emit(new YamlDotNet.Core.Events.DocumentEnd(isImplicit: false));
+
+                serializer.Serialize(writer, block);
+
+                writer.Write("---");
+            }
+
+            //emitter.Emit(new YamlDotNet.Core.Events.StreamEnd());
         }
     }
 }

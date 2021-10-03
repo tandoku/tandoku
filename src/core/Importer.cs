@@ -26,8 +26,8 @@ namespace BlueMarsh.Tandoku
             var textBlocks = importer.Import(path);
             var outPath = Directory.Exists(path) ?
                 // TODO: this won't work properly if *path* ends in directory separator
-                Path.Combine(path, Path.GetFileName(Path.GetFullPath(path)) + ".tdkc.jsonl") :
-                Path.ChangeExtension(path, ".tdkc.jsonl");
+                Path.Combine(path, Path.GetFileName(Path.GetFullPath(path)) + ".tdkc.yaml") :
+                Path.ChangeExtension(path, ".tdkc.yaml");
             var serializer = new TextBlockSerializer();
             serializer.Serialize(outPath, textBlocks);
             return outPath;
