@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using YamlDotNet.Serialization;
 
 namespace BlueMarsh.Tandoku
 {
@@ -73,7 +74,12 @@ namespace BlueMarsh.Tandoku
             //emitter.Emit(new YamlDotNet.Core.Events.StreamStart());
 
             var serializer = new YamlDotNet.Serialization.SerializerBuilder()
-                .WithNamingConvention(YamlDotNet.Serialization.NamingConventions.CamelCaseNamingConvention.Instance)
+                //.WithNamingConvention(NamingConventions.CamelCaseNamingConvention.Instance)
+                .WithEventEmitter(next => new Yaml.StringQuotingEmitter(next))
+                .ConfigureDefaultValuesHandling(
+                    //DefaultValuesHandling.OmitEmptyCollections,
+                    DefaultValuesHandling.OmitDefaults |
+                    DefaultValuesHandling.OmitNull)
                 .Build();
             bool first = true;
             foreach (var block in blocks)

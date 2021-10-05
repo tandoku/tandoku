@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using YamlDotNet.Core;
+using YamlDotNet.Serialization;
 
 namespace BlueMarsh.Tandoku
 {
@@ -9,15 +11,18 @@ namespace BlueMarsh.Tandoku
     {
         public Image? Image { get; set; }
 
+        [YamlMember(ScalarStyle = ScalarStyle.Literal)]
         public string? Text { get; set; }
 
         // TODO: NormalizedText (needed? try out Markdown normalization)
         //       AnnotatedText (add/remove furigana ruby to match annotation preferences)
 
         // TODO: rename to AlternateText, change to Dictionary<string, string>
+        // OR Alternates with Image and Text under
         public string? Translation { get; set; }
 
-        // TODO: make this nullable, only populate when used
+        // TODO: make this nullable, only populate when used? (YamlDotNet can omit empty collections
+        // but not sure if possible with System.Text.Json)
         public List<Token> Tokens { get; } = new List<Token>();
 
         // TODO: replace with Source object
@@ -37,6 +42,7 @@ namespace BlueMarsh.Tandoku
 
     public sealed class ImageMapLine : IHasBoundingBox
     {
+        // TODO: use compact YAML style
         public int[] BoundingBox { get; init; } = new int[8];
         public string? Text { get; set; }
         public List<ImageMapWord> Words { get; init; } = new List<ImageMapWord>();
