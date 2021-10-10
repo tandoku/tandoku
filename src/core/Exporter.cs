@@ -11,6 +11,7 @@ namespace BlueMarsh.Tandoku
     {
         public string Export(string path, string? outPath, ExportFormat format)
         {
+            // TODO: optionally infer format from outPath
             return format switch
             {
                 ExportFormat.Markdown => new MarkdownExporter().Export(path, outPath),
@@ -38,7 +39,7 @@ namespace BlueMarsh.Tandoku
                     if (block.Image != null)
                     {
                         // TODO: this is intended for screenshots, rework this for subtitles and maybe omit for manga (??)
-                        if (block.Location!=null)
+                        if (block.Location != null)
                         {
                             writer.WriteLine($"## {block.Location}");
                             writer.WriteLine();

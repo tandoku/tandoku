@@ -5,6 +5,8 @@ using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using YamlDotNet.Core;
+using YamlDotNet.Core.Events;
 using YamlDotNet.Serialization;
 
 namespace BlueMarsh.Tandoku
@@ -13,10 +15,42 @@ namespace BlueMarsh.Tandoku
     {
         public IEnumerable<TextBlock> Deserialize(string path)
         {
+            return Path.GetExtension(path).ToLowerInvariant() switch
+            {
+                ".jsonl" => DeserializeJson(path),
+                ".yaml" => DeserializeYaml(path),
+                _ => throw new ArgumentException("Unexpected extension for 'path'."),
+            };
+        }
+
+        public IEnumerable<TextBlock> DeserializeJson(string path)
+        {
             using var reader = File.OpenText(path);
             string? line;
             while ((line = reader.ReadLine()) != null)
                 yield return JsonSerializer.Deserialize<TextBlock>(line);
+        }
+
+        public IEnumerable<TextBlock> DeserializeYaml(string path)
+        {
+            var deserializer = new YamlDotNet.Serialization.DeserializerBuilder()
+                .Build();
+
+            using var reader = File.OpenText(path);
+            var parser = new YamlDotNet.Core.Parser(reader);
+            parser.Consume<StreamStart>();
+
+            while (parser.Current is DocumentStart)
+            {
+                var block = deserializer.Deserialize<TextBlock>(parser);
+                if (block is not null)
+                    yield return block;
+
+                // TODO: handle comments?? or Deserialize does this already?
+                // (can comments appear *before* DocumentStart?)
+            }
+
+            parser.Consume<StreamEnd>();
         }
 
         public void Serialize(string path, IEnumerable<TextBlock> blocks)
@@ -29,18 +63,18 @@ namespace BlueMarsh.Tandoku
             };
             */
 
-            switch (Path.GetExtension(path).ToUpperInvariant())
+            switch (Path.GetExtension(path).ToLowerInvariant())
             {
-                case ".JSONL":
+                case ".jsonl":
                     SerializeJson(path, blocks);
                     break;
 
-                case ".YAML":
+                case ".yaml":
                     SerializeYaml(path, blocks);
                     break;
 
                 default:
-                    throw new ArgumentException("Expected 'path' to have a supported extension.");
+                    throw new ArgumentException("Unexpected extension for 'path'.");
             }
         }
 

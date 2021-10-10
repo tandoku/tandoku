@@ -23,7 +23,7 @@ namespace BlueMarsh.Tandoku
 
         // TODO: make this nullable, only populate when used? (YamlDotNet can omit empty collections
         // but not sure if possible with System.Text.Json)
-        public List<Token> Tokens { get; } = new List<Token>();
+        public List<Token> Tokens { get; init; } = new List<Token>();
 
         // TODO: replace with Source object
         public string? Location { get; set; }
