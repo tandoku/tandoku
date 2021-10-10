@@ -8,6 +8,7 @@ using System.Text.Json.Serialization;
 using YamlDotNet.Core;
 using YamlDotNet.Core.Events;
 using YamlDotNet.Serialization;
+using YamlDotNet.Serialization.NamingConventions;
 
 namespace BlueMarsh.Tandoku
 {
@@ -34,6 +35,7 @@ namespace BlueMarsh.Tandoku
         public IEnumerable<TextBlock> DeserializeYaml(string path)
         {
             var deserializer = new YamlDotNet.Serialization.DeserializerBuilder()
+                .WithNamingConvention(CamelCaseNamingConvention.Instance)
                 .Build();
 
             using var reader = File.OpenText(path);
@@ -111,7 +113,7 @@ namespace BlueMarsh.Tandoku
             //emitter.Emit(new YamlDotNet.Core.Events.StreamStart());
 
             var serializer = new YamlDotNet.Serialization.SerializerBuilder()
-                //.WithNamingConvention(NamingConventions.CamelCaseNamingConvention.Instance)
+                .WithNamingConvention(CamelCaseNamingConvention.Instance)
                 .WithEventEmitter(next => new Yaml.StringQuotingEmitter(next))
                 .ConfigureDefaultValuesHandling(
                     //DefaultValuesHandling.OmitEmptyCollections,
