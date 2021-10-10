@@ -38,6 +38,7 @@ namespace BlueMarsh.Tandoku
             {
                 outPath = Path.Combine(outPath, outFileName);
             }
+            // TODO: outPath still could be invalid (unknown extension or directory that doesn't exist)
 
             var serializer = new TextBlockSerializer();
             serializer.Serialize(outPath, textBlocks);

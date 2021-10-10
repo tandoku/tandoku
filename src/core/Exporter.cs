@@ -9,23 +9,26 @@ namespace BlueMarsh.Tandoku
 {
     public sealed class Exporter
     {
-        public string Export(string path, ExportFormat format)
+        public string Export(string path, string? outPath, ExportFormat format)
         {
             return format switch
             {
-                ExportFormat.Markdown => new MarkdownExporter().Export(path),
+                ExportFormat.Markdown => new MarkdownExporter().Export(path, outPath),
                 _ => throw new ArgumentOutOfRangeException(nameof(format), format, "Unsupported format"),
             };
         }
 
         private sealed class MarkdownExporter
         {
-            public string Export(string path)
+            public string Export(string path, string? outPath)
             {
                 var serializer = new TextBlockSerializer();
                 var blocks = serializer.Deserialize(path);
 
-                var outPath = Path.ChangeExtension(path, ".md");
+                if (outPath is null)
+                    outPath = Path.ChangeExtension(path, ".md");
+                // TODO: support for outPath as directory (share with Importer)
+
                 using var writer = File.CreateText(outPath);
 
                 int footnote = 0;

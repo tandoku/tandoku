@@ -38,6 +38,9 @@ namespace BlueMarsh.Tandoku
                 case ".YAML":
                     SerializeYaml(path, blocks);
                     break;
+
+                default:
+                    throw new ArgumentException("Expected 'path' to have a supported extension.");
             }
         }
 
