@@ -114,6 +114,7 @@ namespace BlueMarsh.Tandoku
 
             var serializer = new YamlDotNet.Serialization.SerializerBuilder()
                 .WithNamingConvention(CamelCaseNamingConvention.Instance)
+                .WithEventEmitter(next => new Yaml.FlowStyleEventEmitter(next))
                 .WithEventEmitter(next => new Yaml.StringQuotingEmitter(next))
                 .ConfigureDefaultValuesHandling(
                     //DefaultValuesHandling.OmitEmptyCollections,
