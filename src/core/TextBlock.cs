@@ -42,7 +42,6 @@ namespace BlueMarsh.Tandoku
 
     public sealed class ImageMapLine : IHasBoundingBox
     {
-        // TODO: use compact YAML style
         public int[] BoundingBox { get; init; } = new int[8];
         public string? Text { get; set; }
         public List<ImageMapWord> Words { get; init; } = new List<ImageMapWord>();

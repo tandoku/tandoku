@@ -13,7 +13,8 @@ namespace BlueMarsh.Tandoku
         {
             var serializer = new TextBlockSerializer();
             string tempPath = Path.GetTempFileName();
-            serializer.Serialize(tempPath, Tokenize(serializer.Deserialize(path)));
+            var format = TextBlockFormatExtensions.FromFilePath(path);
+            serializer.Serialize(tempPath, Tokenize(serializer.Deserialize(path)), format);
             File.Delete(path);
             File.Move(tempPath, path);
         }

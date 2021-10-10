@@ -14,12 +14,12 @@ namespace BlueMarsh.Tandoku
 {
     public sealed class TextBlockSerializer
     {
-        public IEnumerable<TextBlock> Deserialize(string path)
+        public IEnumerable<TextBlock> Deserialize(string path, TextBlockFormat? format = null)
         {
-            return Path.GetExtension(path).ToLowerInvariant() switch
+            return (format ?? TextBlockFormatExtensions.FromFilePath(path)) switch
             {
-                ".jsonl" => DeserializeJson(path),
-                ".yaml" => DeserializeYaml(path),
+                TextBlockFormat.Jsonl => DeserializeJson(path),
+                TextBlockFormat.Yaml => DeserializeYaml(path),
                 _ => throw new ArgumentException("Unexpected extension for 'path'."),
             };
         }
@@ -55,23 +55,15 @@ namespace BlueMarsh.Tandoku
             parser.Consume<StreamEnd>();
         }
 
-        public void Serialize(string path, IEnumerable<TextBlock> blocks)
+        public void Serialize(string path, IEnumerable<TextBlock> blocks, TextBlockFormat? format = null)
         {
-            /*
-            Path.GetExtension(path).ToUpperInvariant() switch
+            switch (format ?? TextBlockFormatExtensions.FromFilePath(path))
             {
-                ".JSONL" => SerializeJson(path, blocks),
-                ".YAML" => SerializeYaml(path, blocks),
-            };
-            */
-
-            switch (Path.GetExtension(path).ToLowerInvariant())
-            {
-                case ".jsonl":
+                case TextBlockFormat.Jsonl:
                     SerializeJson(path, blocks);
                     break;
 
-                case ".yaml":
+                case TextBlockFormat.Yaml:
                     SerializeYaml(path, blocks);
                     break;
 
@@ -92,6 +84,7 @@ namespace BlueMarsh.Tandoku
                 stream.WriteByte((byte)'\n');
             }*/
 
+            // TODO: use camelCase for consistency with YAML
             var options = new JsonSerializerOptions
             {
                 Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
