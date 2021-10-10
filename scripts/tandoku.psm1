@@ -33,10 +33,14 @@ function ConvertTo-KindleBook {
         })]
         [String] $Path,
 
-        [ValidateSet('AZW3','MD')]
-        [String] $TargetFormat
+        [ValidateSet('AZW3','MOBI')]
+        [String] $TargetFormat,
+
+        [String] $Title
     )
-    $title = RemoveAllExtensions($Path)
+    if (-not $Title) {
+        $title = RemoveAllExtensions($Path)
+    }
 
     $parentPath = (Split-Path $Path -Parent)
     $cover = (Join-Path $parentPath 'cover.jpg') 
@@ -50,11 +54,11 @@ function ConvertTo-KindleBook {
         $azw3 = [IO.Path]::ChangeExtension($Path, '.azw3')
 
         # NOTE: do not use --share-not-sync option as this breaks Vocabulary Builder
-        ebook-convert $Path $azw3 --language=ja --authors=Tandoku --title="$title" $otherParams
+        ebook-convert $Path $azw3 --language=ja --authors=tandoku --title="$title" $otherParams
     } else {
         $epub = [IO.Path]::ChangeExtension($Path, '.epub')
 
-        ebook-convert $Path $epub --epub-version=3 --language=ja --authors=Tandoku --title="$title" $otherParams
+        ebook-convert $Path $epub --epub-version=3 --language=ja --authors=tandoku --title="$title" $otherParams
         #pandoc $source -f commonmark+footnotes -o $epub -t epub3 --metadata title="$title" --metadata author=Tandoku --metadata lang=ja
 
         kindlegen $epub
