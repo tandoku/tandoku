@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -14,7 +15,9 @@ namespace BlueMarsh.Tandoku
 {
     public sealed class Importer
     {
-        public string Import(string path, bool images = false)
+        private const string DefaultExtension = ".tdkc.yaml";
+
+        public string Import(string path, string? outPath = null, bool images = false)
         {
             IContentImporter importer = images ? new ImagesImporter() :
                 Path.GetExtension(path).ToUpperInvariant() switch
@@ -24,13 +27,37 @@ namespace BlueMarsh.Tandoku
                     _ => throw new ArgumentException($"Unsupported file type: {path}"),
                 };
             var textBlocks = importer.Import(path);
-            var outPath = Directory.Exists(path) ?
-                // TODO: this won't work properly if *path* ends in directory separator
-                Path.Combine(path, Path.GetFileName(Path.GetFullPath(path)) + ".tdkc.yaml") :
-                Path.ChangeExtension(path, ".tdkc.yaml");
+
+            if (outPath is null)
+            {
+                outPath = TryGetFileNameFromDirectory(path, DefaultExtension, out var outFileName) ?
+                    Path.Combine(path, outFileName) :
+                    Path.ChangeExtension(path, DefaultExtension);
+            }
+            else if (TryGetFileNameFromDirectory(outPath, DefaultExtension, out var outFileName))
+            {
+                outPath = Path.Combine(outPath, outFileName);
+            }
+
             var serializer = new TextBlockSerializer();
             serializer.Serialize(outPath, textBlocks);
             return outPath;
+        }
+
+        private static bool TryGetFileNameFromDirectory(
+            string path,
+            string extension,
+            [NotNullWhen(true)] out string? fileName)
+        {
+            if (Directory.Exists(path))
+            {
+                fileName = Path.GetFileName(
+                    Path.TrimEndingDirectorySeparator(Path.GetFullPath(path)))
+                    + ".tdkc.yaml";
+                return true;
+            }
+            fileName = null;
+            return false;
         }
 
         private interface IContentImporter
