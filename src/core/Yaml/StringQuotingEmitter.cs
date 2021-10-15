@@ -14,53 +14,51 @@
 //    License for the specific language governing permissions and limitations
 //    under the License.
 
-using System;
+namespace BlueMarsh.Tandoku.Yaml;
+
 using System.Text.RegularExpressions;
 using YamlDotNet;
 using YamlDotNet.Core;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.EventEmitters;
 
-namespace BlueMarsh.Tandoku.Yaml
+public class StringQuotingEmitter : ChainedEventEmitter
 {
-    public class StringQuotingEmitter : ChainedEventEmitter
+    // Patterns from https://yaml.org/spec/1.2/spec.html#id2804356
+    private static Regex _quotedRegex = new Regex(
+        @"^(\~|null|true|false|-?(0|[0-9][0-9]*)(\.[0-9]*)?([eE][-+]?[0-9]+)?)?$",
+        RegexOptions.Compiled);
+
+    public StringQuotingEmitter(IEventEmitter next) : base(next) { }
+
+    public override void Emit(ScalarEventInfo eventInfo, IEmitter emitter)
     {
-        // Patterns from https://yaml.org/spec/1.2/spec.html#id2804356
-        private static Regex _quotedRegex = new Regex(
-            @"^(\~|null|true|false|-?(0|[0-9][0-9]*)(\.[0-9]*)?([eE][-+]?[0-9]+)?)?$",
-            RegexOptions.Compiled);
+        var typeCode = eventInfo.Source.Value != null ?
+            Type.GetTypeCode(eventInfo.Source.Type) :
+            TypeCode.Empty;
 
-        public StringQuotingEmitter(IEventEmitter next) : base(next) { }
-
-        public override void Emit(ScalarEventInfo eventInfo, IEmitter emitter)
+        switch (typeCode)
         {
-            var typeCode = eventInfo.Source.Value != null ?
-                Type.GetTypeCode(eventInfo.Source.Type) :
-                TypeCode.Empty;
+            case TypeCode.Char:
+                if (char.IsDigit((char)eventInfo.Source.Value))
+                {
+                    eventInfo.Style = ScalarStyle.DoubleQuoted;
+                }
+                break;
 
-            switch (typeCode)
-            {
-                case TypeCode.Char:
-                    if (char.IsDigit((char)eventInfo.Source.Value))
-                    {
-                        eventInfo.Style = ScalarStyle.DoubleQuoted;
-                    }
-                    break;
-
-                case TypeCode.String:
-                    var val = eventInfo.Source.Value.ToString();
-                    if (_quotedRegex.IsMatch(val))
-                    {
-                        eventInfo.Style = ScalarStyle.DoubleQuoted;
-                    }
-                    else if (val.IndexOf('\n') > -1)
-                    {
-                        eventInfo.Style = ScalarStyle.Literal;
-                    }
-                    break;
-            }
-
-            base.Emit(eventInfo, emitter);
+            case TypeCode.String:
+                var val = eventInfo.Source.Value.ToString();
+                if (_quotedRegex.IsMatch(val))
+                {
+                    eventInfo.Style = ScalarStyle.DoubleQuoted;
+                }
+                else if (val.IndexOf('\n') > -1)
+                {
+                    eventInfo.Style = ScalarStyle.Literal;
+                }
+                break;
         }
+
+        base.Emit(eventInfo, emitter);
     }
 }

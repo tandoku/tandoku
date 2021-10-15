@@ -1,19 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
+﻿namespace BlueMarsh.Tandoku.CommandLine;
+
 using System.CommandLine;
 using System.CommandLine.Invocation;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace BlueMarsh.Tandoku.CommandLine
+public static class CommandLineExtensions
 {
-    public static class CommandLineExtensions
+    public static Command WithHandler(this Command command, ICommandHandler handler)
     {
-        public static Command WithHandler(this Command command, ICommandHandler handler)
-        {
-            command.Handler = handler;
-            return command;
-        }
+        command.Handler = handler;
+        return command;
     }
 }
