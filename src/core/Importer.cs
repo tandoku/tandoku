@@ -89,10 +89,14 @@ public sealed class Importer
                     imagesPath,
                     "text",
                     Path.GetFileNameWithoutExtension(imagePath) + ".acv.json");
+
                 if (File.Exists(imageTextPath))
                 {
-                    var imageText = JsonSerializer.Deserialize<ImageTextData>(File.ReadAllText(imageTextPath), imageTextJsonOptions);
-                    textBlock.Image.Map = new ImageMap
+                    var imageText = JsonSerializer.Deserialize<ImageTextData>(
+                        File.ReadAllText(imageTextPath),
+                        imageTextJsonOptions);
+
+                    var imageMap = new ImageMap
                     {
                         Lines = FilterLines(imageText.AnalyzeResult.ReadResults.Single().Lines.Select(l => new ImageMapLine
                         {
@@ -107,9 +111,13 @@ public sealed class Importer
                         })).ToList(),
                     };
 
-                    textBlock.Text = string.Join(
-                        "\n\n",
-                        textBlock.Image.Map.Lines.Select(l => l.Text));
+                    if (imageMap.Lines.Any())
+                    {
+                        textBlock.Image.Map = imageMap;
+                        textBlock.Text = string.Join(
+                            "\n\n",
+                            imageMap.Lines.Select(l => l.Text));
+                    }
                 }
 
                 yield return textBlock;
