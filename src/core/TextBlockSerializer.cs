@@ -106,8 +106,8 @@ public sealed class TextBlockSerializer
             .WithEventEmitter(next => new Yaml.FlowStyleEventEmitter(next))
             .WithEventEmitter(next => new Yaml.StringQuotingEmitter(next))
             .ConfigureDefaultValuesHandling(
-                //DefaultValuesHandling.OmitEmptyCollections,
                 DefaultValuesHandling.OmitDefaults |
+                DefaultValuesHandling.OmitEmptyCollections |
                 DefaultValuesHandling.OmitNull)
             .Build();
         bool first = true;
