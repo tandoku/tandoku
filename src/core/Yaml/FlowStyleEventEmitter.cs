@@ -31,6 +31,8 @@ internal sealed class FlowStyleEventEmitter : ChainedEventEmitter
     private static bool UseFlowStyle(object? o)
     {
         // TODO: generalize this
-        return o is int[];
+        return o is int[] ||
+            o is ImageMapWord ||
+            o is Token;
     }
 }
