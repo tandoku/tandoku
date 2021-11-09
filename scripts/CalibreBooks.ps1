@@ -238,10 +238,6 @@ function GetMatchingString([String[]] $array, $find) {
     ([string] ($array -match $pattern))
 }
 
-function CleanInvalidPathChars($name, $replaceWith = '_') {
-    ($name.Split([IO.Path]::GetInvalidFileNameChars()) -join $replaceWith).Trim()
-}
-
 function Open-ImagesFromCalibreClipboardMetadata([String] $TandokuRoot = 'O:\Tandoku\') {
     $asin = (Get-Clipboard|select-string '^Identifiers\s*:.*mobi-asin:([^,]+)').matches.groups[1].value
     if (-not ($script:tandokuPathByAsinMap)) {

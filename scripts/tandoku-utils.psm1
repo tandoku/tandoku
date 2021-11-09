@@ -1,3 +1,7 @@
+function CleanInvalidPathChars($name, $replaceWith = '_') {
+    ($name.Split([IO.Path]::GetInvalidFileNameChars()) -join $replaceWith).Trim()
+}
+
 # Consider choosing another name for Sort-STNumerical since Sort is a reserved verb
 # (or try to adapt this so it is used as an argument to Sort-Object rather than doing the sorting itself)
 # Note: I added the call to .Normalize([Text.NormalizationForm]::FormKC) in order to handle full-width numbers
