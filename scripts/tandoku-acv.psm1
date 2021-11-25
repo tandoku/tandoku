@@ -10,6 +10,9 @@ function Add-AcvText {
         [String]
         $Path,
 
+        [String]
+        $Language = 'ja',
+
         [Switch]
         $FreeTier
     )
@@ -49,7 +52,7 @@ function Add-AcvText {
               -Body $body `
               -MaximumRetryCount 3 `
               -RetryIntervalSec $retryIntervalSec `
-              -Uri "https://tandoku.cognitiveservices.azure.com/vision/v3.2/read/analyze?language=ja"
+              -Uri "https://tandoku.cognitiveservices.azure.com/vision/v3.2/read/analyze?language=$Language"
 
             if ($response.StatusCode -eq 202) {
                 $resultUri = [string]$response.Headers.'Operation-Location'
