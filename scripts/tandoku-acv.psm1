@@ -27,7 +27,7 @@ function Add-AcvText {
                 
             $body = [IO.File]::ReadAllBytes($source)
             $headers = @{
-                'Content-Type' = 'image/jpeg'
+                'Content-Type' = (GetMimeType $source)
                 'Ocp-Apim-Subscription-Key' = $script:acvApiKey
             }
 
@@ -93,6 +93,16 @@ function Add-AcvText {
                 Write-Error "Failed to create $target"
             }
         }
+    }
+}
+
+function GetMimeType($fileName) {
+    $ext = [IO.Path]::GetExtension($fileName)
+    switch ($ext) {
+        '.jpg' {'image/jpeg'}
+        '.jpeg' {'image/jpeg'}
+        '.png' {'image/png'}
+        '.tiff' {'image/tiff'}
     }
 }
 
