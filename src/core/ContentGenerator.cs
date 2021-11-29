@@ -34,8 +34,6 @@ public sealed class ContentGenerator
         string? outPath = null,
         ContentOutputBehavior contentOutputBehavior = ContentOutputBehavior.None)
     {
-        // TODO: expand wildcards in inputPaths
-
         var inferredInputType = inputType ?? DetectInputType(inputPaths);
         var generator = GetContentGenerator(inferredInputType);
         var expandedInputPaths = ExpandPaths(inputPaths);
@@ -92,7 +90,7 @@ public sealed class ContentGenerator
 
     private IEnumerable<string> ExpandPaths(IEnumerable<string> inputPaths)
     {
-        // TODO: implement this
+        // TODO: implement this (switch to FileSystemInfo first)
         //foreach (var path in inputPaths)
         //{
         //    foreach (var childPath in Directory.EnumerateFiles(path))
