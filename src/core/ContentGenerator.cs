@@ -9,36 +9,97 @@ using Markdig.Syntax.Inlines;
 using SubtitlesParser.Classes;
 using WanaKanaSharp;
 
-public sealed class Importer
+public enum ContentGeneratorInputType
+{
+    ImageText,
+    Markdown,
+    Subtitles,
+}
+
+public enum ContentOutputBehavior
+{
+    None,
+    Append,
+    Overwrite,
+}
+
+public sealed class ContentGenerator
 {
     private const string DefaultExtension = ".tdkc.yaml";
 
-    public string Import(string path, string? outPath = null, bool images = false)
+    // TODO: change inputPaths/outPath to FileSystemInfo/FileInfo
+    public string Generate(
+        IEnumerable<string> inputPaths,
+        ContentGeneratorInputType? inputType = null,
+        string? outPath = null,
+        ContentOutputBehavior contentOutputBehavior = ContentOutputBehavior.None)
     {
-        IContentImporter importer = images ? new ImagesImporter() :
-            Path.GetExtension(path).ToUpperInvariant() switch
-            {
-                ".MD" => new MarkdownImporter(),
-                ".ASS" => new SubtitleImporter(),
-                _ => throw new ArgumentException($"Unsupported file type: {path}"),
-            };
-        var textBlocks = importer.Import(path);
+        // TODO: expand wildcards in inputPaths
 
-        if (outPath is null)
-        {
-            outPath = TryGetFileNameFromDirectory(path, DefaultExtension, out var outFileName) ?
-                Path.Combine(path, outFileName) :
-                Path.ChangeExtension(path, DefaultExtension);
-        }
-        else if (TryGetFileNameFromDirectory(outPath, DefaultExtension, out var outFileName))
-        {
-            outPath = Path.Combine(outPath, outFileName);
-        }
+        var inferredInputType = inputType ?? DetectInputType(inputPaths);
+        var generator = GetContentGenerator(inferredInputType);
+        var expandedInputPaths = ExpandPaths(inputPaths);
+        var textBlocks = generator.GenerateContent(expandedInputPaths);
+
+        //TODO: implement outPath inference
+        //if (outPath is null)
+        //{
+        //    outPath = TryGetFileNameFromDirectory(path, DefaultExtension, out var outFileName) ?
+        //        Path.Combine(path, outFileName) :
+        //        Path.ChangeExtension(path, DefaultExtension);
+        //}
+        //else if (TryGetFileNameFromDirectory(outPath, DefaultExtension, out var outFileName))
+        //{
+        //    outPath = Path.Combine(outPath, outFileName);
+        //}
         // TODO: outPath still could be invalid (unknown extension or directory that doesn't exist)
 
         var serializer = new TextBlockSerializer();
         serializer.Serialize(outPath, textBlocks);
         return outPath;
+    }
+
+    private static ContentGeneratorInputType DetectInputType(IEnumerable<string> inputPaths)
+    {
+        var extensions = inputPaths
+            .Select(p => Path.GetExtension(p))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var extension = extensions.Count == 1 ?
+            extensions.Single() :
+            throw new ArgumentException($"Cannot determine input type from the specified extensions '{string.Join(", ", extensions)}'.");
+
+        return extension.ToUpperInvariant() switch
+        {
+            ".JPG" => ContentGeneratorInputType.ImageText,
+            ".JPEG" => ContentGeneratorInputType.ImageText,
+            ".PNG" => ContentGeneratorInputType.ImageText,
+            ".MD" => ContentGeneratorInputType.Markdown,
+            ".ASS" => ContentGeneratorInputType.Subtitles,
+            _ => throw new ArgumentException($"Cannot determine input type from the specified extension '{extension}'"),
+        };
+    }
+
+    private static IContentGenerator GetContentGenerator(ContentGeneratorInputType inputType)
+    {
+        return inputType switch
+        {
+            ContentGeneratorInputType.ImageText => new ImageTextContentGenerator(),
+            ContentGeneratorInputType.Markdown => new MarkdownContentGenerator(),
+            ContentGeneratorInputType.Subtitles => new SubtitleContentGenerator(),
+        };
+    }
+
+    private IEnumerable<string> ExpandPaths(IEnumerable<string> inputPaths)
+    {
+        // TODO: implement this
+        //foreach (var path in inputPaths)
+        //{
+        //    foreach (var childPath in Directory.EnumerateFiles(path))
+        //        yield return childPath;
+        //}
+
+        return inputPaths;
     }
 
     private static bool TryGetFileNameFromDirectory(
@@ -57,24 +118,23 @@ public sealed class Importer
         return false;
     }
 
-    private interface IContentImporter
+    private interface IContentGenerator
     {
-        IEnumerable<TextBlock> Import(string path);
+        IEnumerable<TextBlock> GenerateContent(IEnumerable<string> inputPaths);
     }
 
-    private sealed class ImagesImporter : IContentImporter
+    private sealed class ImageTextContentGenerator : IContentGenerator
     {
-        public IEnumerable<TextBlock> Import(string path)
+        public IEnumerable<TextBlock> GenerateContent(IEnumerable<string> inputPaths)
         {
             var imageTextJsonOptions = new JsonSerializerOptions
             {
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             };
 
-            var imagesPath = Path.Combine(path, "images");
             int imageNumber = 0;
 
-            foreach (var imagePath in Directory.EnumerateFiles(imagesPath))
+            foreach (var imagePath in inputPaths)
             {
                 var imageName = Path.GetFileName(imagePath);
                 imageNumber++;
@@ -86,7 +146,7 @@ public sealed class Importer
                 };
 
                 var imageTextPath = Path.Combine(
-                    imagesPath,
+                    Path.GetDirectoryName(imagePath),
                     "text",
                     Path.GetFileNameWithoutExtension(imagePath) + ".acv.json");
 
@@ -172,51 +232,57 @@ public sealed class Importer
         private record ReadResultWord(int[] BoundingBox, string Text, double Confidence);
     }
 
-    private sealed class MarkdownImporter : IContentImporter
+    private sealed class MarkdownContentGenerator : IContentGenerator
     {
-        public IEnumerable<TextBlock> Import(string path)
+        public IEnumerable<TextBlock> GenerateContent(IEnumerable<string> inputPaths)
         {
             //var markdownPipeline = new MarkdownPipelineBuilder()
             //    .UseFootnotes()
             //    .Build();
             //var doc = Markdown.Parse(File.ReadAllText(path), markdownPipeline);
 
-            var doc = Markdown.Parse(File.ReadAllText(path));
-            foreach (var para in doc.OfType<ParagraphBlock>())
+            foreach (var inputPath in inputPaths)
             {
-                foreach (var literal in para.Inline.OfType<LiteralInline>())
+                var doc = Markdown.Parse(File.ReadAllText(inputPath));
+                foreach (var para in doc.OfType<ParagraphBlock>())
                 {
-                    yield return new TextBlock { Text = literal.Content.ToString() };
+                    foreach (var literal in para.Inline.OfType<LiteralInline>())
+                    {
+                        yield return new TextBlock { Text = literal.Content.ToString() };
+                    }
                 }
             }
         }
     }
 
-    private sealed class SubtitleImporter : IContentImporter
+    private sealed class SubtitleContentGenerator : IContentGenerator
     {
-        public IEnumerable<TextBlock> Import(string path)
+        public IEnumerable<TextBlock> GenerateContent(IEnumerable<string> inputPaths)
         {
-            var subtitleItems = ParseSubtitleItems(path);
-
-            var itemsEnum = subtitleItems.GetEnumerator();
-
-            while (itemsEnum.MoveNext())
+            foreach (var inputPath in inputPaths)
             {
-                var text = GetTextFromItem(itemsEnum.Current);
-                var times = (itemsEnum.Current.StartTime, itemsEnum.Current.EndTime);
+                var subtitleItems = ParseSubtitleItems(inputPath);
 
-                string? translation = null;
-                if (itemsEnum.MoveNext() && times == (itemsEnum.Current.StartTime, itemsEnum.Current.EndTime))
+                var itemsEnum = subtitleItems.GetEnumerator();
+
+                while (itemsEnum.MoveNext())
                 {
-                    translation = GetTextFromItem(itemsEnum.Current);
+                    var text = GetTextFromItem(itemsEnum.Current);
+                    var times = (itemsEnum.Current.StartTime, itemsEnum.Current.EndTime);
+
+                    string? translation = null;
+                    if (itemsEnum.MoveNext() && times == (itemsEnum.Current.StartTime, itemsEnum.Current.EndTime))
+                    {
+                        translation = GetTextFromItem(itemsEnum.Current);
+                    }
+
+                    yield return new TextBlock
+                    {
+                        Text = text,
+                        Translation = translation,
+                        Location = TimeSpan.FromMilliseconds(times.StartTime).ToString("g")
+                    };
                 }
-
-                yield return new TextBlock
-                {
-                    Text = text,
-                    Translation = translation,
-                    Location = TimeSpan.FromMilliseconds(times.StartTime).ToString("g")
-                };
             }
         }
 

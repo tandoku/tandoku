@@ -10,7 +10,7 @@ public static class Program
     {
         return new RootCommand("Command-line interface for tandoku")
         {
-            CreateImportCommand(),
+            CreateGenerateCommand(),
             CreateExportCommand(),
             CreateTokenizeCommand(),
 
@@ -18,18 +18,23 @@ public static class Program
         }.Invoke(args);
     }
 
-    private static Command CreateImportCommand() =>
-        new Command("import", "Import content into tandoku library")
+    private static Command CreateGenerateCommand() =>
+        new Command("generate", "Generate tandoku content from various input formats")
         {
-            new Argument<FileSystemInfo>("in", "Input file or path").ExistingOnly(),
-            new Argument<FileInfo>("out", "Output file path") { Arity = ArgumentArity.ZeroOrOne }.LegalFilePathsOnly(),
-            new Option<bool>("--images", "Import images from the specified directory"),
+            new Argument<FileSystemInfo[]>("in", "Input files or paths") { Arity = ArgumentArity.OneOrMore }.LegalFilePathsOnly(),
+            new Option<ContentGeneratorInputType?>(new[] { "-t", "--input-type" }, "Type of input (derived from extension if not specified)"),
+            new Option<FileInfo>(new[] { "-o", "--out" }, "Output file path").LegalFilePathsOnly(),
+            new Option<bool>(new[]{"-a", "--append"}, "Append to existing content"),
+            new Option<bool>(new[]{"-f", "--force", "--overwrite"}, "Overwrite existing content"),
         }.WithHandler(CommandHandler.Create(
-            (FileSystemInfo @in, FileInfo? @out, bool images) =>
+            (FileSystemInfo[] @in, ContentGeneratorInputType? inputType, FileInfo? @out, bool append, bool force) =>
             {
-                var importer = new Importer();
-                var outPath = importer.Import(@in.FullName, @out?.FullName, images);
-                Console.WriteLine($"Imported {outPath}");
+                var generator = new ContentGenerator();
+                var outputBehavior = append ? ContentOutputBehavior.Append :
+                    force ? ContentOutputBehavior.Overwrite :
+                    ContentOutputBehavior.None;
+                var outPath = generator.Generate(@in.Select(i => i.FullName), inputType, @out?.FullName, outputBehavior);
+                Console.WriteLine($"Generated {outPath}");
             }));
 
     private static Command CreateExportCommand() =>
