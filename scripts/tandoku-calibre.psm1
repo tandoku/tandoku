@@ -386,3 +386,4 @@ function Save-CalibreBookList {
         Out-File booklist.txt
 }
 
+Export-ModuleMember -Function *-*
