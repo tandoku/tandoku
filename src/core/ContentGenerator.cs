@@ -74,7 +74,7 @@ public sealed class ContentGenerator
             ".PNG" => ContentGeneratorInputType.ImageText,
             ".MD" => ContentGeneratorInputType.Markdown,
             ".ASS" => ContentGeneratorInputType.Subtitles,
-            _ => throw new ArgumentException($"Cannot determine input type from the specified extension '{extension}'"),
+            _ => throw new ArgumentException($"Cannot determine input type from the specified extension '{extension}'."),
         };
     }
 
@@ -85,6 +85,7 @@ public sealed class ContentGenerator
             ContentGeneratorInputType.ImageText => new ImageTextContentGenerator(),
             ContentGeneratorInputType.Markdown => new MarkdownContentGenerator(),
             ContentGeneratorInputType.Subtitles => new SubtitleContentGenerator(),
+            _ => throw new ArgumentOutOfRangeException(nameof(inputType)),
         };
     }
 
@@ -123,6 +124,8 @@ public sealed class ContentGenerator
 
     private sealed class ImageTextContentGenerator : IContentGenerator
     {
+        private static readonly string DoubleLineBreak = string.Concat(Environment.NewLine, Environment.NewLine);
+
         public IEnumerable<TextBlock> GenerateContent(IEnumerable<string> inputPaths)
         {
             var imageTextJsonOptions = new JsonSerializerOptions
@@ -156,6 +159,7 @@ public sealed class ContentGenerator
 
                     var imageMap = new ImageMap
                     {
+                        // TODO: move filtering into transforms
                         Lines = FilterLines(imageText.AnalyzeResult.ReadResults.Single().Lines.Select(l => new ImageMapLine
                         {
                             BoundingBox = l.BoundingBox,
@@ -173,7 +177,7 @@ public sealed class ContentGenerator
                     {
                         textBlock.Image.Map = imageMap;
                         textBlock.Text = string.Join(
-                            "\n\n",
+                            DoubleLineBreak,
                             imageMap.Lines.Select(l => l.Text));
                     }
                 }
