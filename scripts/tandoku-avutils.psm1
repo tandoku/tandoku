@@ -31,6 +31,10 @@ function Rename-SubtitlesToVideo {
         $VideoFilter,
 
         [Parameter()]
+        [String]
+        $Language,
+
+        [Parameter()]
         [Switch] $Force
     )
     $subtitles = Get-ChildItem $SubtitleFilter
@@ -53,7 +57,11 @@ function Rename-SubtitlesToVideo {
     for ($i = 0; $i -lt $subtitles.Count; $i++) {
         $sub = $subtitles[$i]
         $vid = $videos[$i]
-        $newname = [IO.Path]::ChangeExtension($vid, [IO.Path]::GetExtension($sub))
+        $newext = [IO.Path]::GetExtension($sub)
+        if ($Language) {
+            $newext = ".$Language$newext"
+        }
+        $newname = [IO.Path]::ChangeExtension($vid, $newext)
         $sub | Rename-Item -NewName $newname
         $newname
     }
