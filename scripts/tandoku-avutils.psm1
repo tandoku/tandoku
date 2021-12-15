@@ -67,4 +67,4 @@ function Rename-SubtitlesToVideo {
     }
 }
 
-Export-ModuleMember -Function * -Alias *
+Export-ModuleMember -Function *-* -Alias *

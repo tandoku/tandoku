@@ -169,4 +169,4 @@ function Get-GcvTextWordCount {
     }
 }
 
-Export-ModuleMember -Function * -Alias *
+Export-ModuleMember -Function *-* -Alias *

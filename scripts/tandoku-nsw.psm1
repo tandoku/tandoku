@@ -42,4 +42,4 @@ function CopyShellFolderContents($shellApp, $folderItem, $targetPath) {
     }
 }
 
-Export-ModuleMember -Function Import-NintendoSwitchToStaging -Alias *
+Export-ModuleMember -Function *-* -Alias *

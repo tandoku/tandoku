@@ -5,4 +5,4 @@ function Extract-ImagesFromPdf($path) {
     mutool extract $path
 }
 
-Export-ModuleMember -Function * -Alias *
+Export-ModuleMember -Function *-* -Alias *

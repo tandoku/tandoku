@@ -142,3 +142,5 @@ function Export-AcvTextToMarkdown {
 #vertical text
 #$acv.analyzeResult.readResults.lines|Sort-Object -Property @{Expression={$_.boundingBox[0]}} -Descending
 #$acv.analyzeResult.readResults.lines|Sort-Object -Property @{Expression={$_.boundingBox[0]}} -Descending|Select-Object -Property @{Expression={$_.boundingBox[4] - $_.boundingBox[0]};Name='width'},*|? width -lt 100|Sort-Object -Property width -Descending
+
+Export-ModuleMember -Function *-* -Alias *

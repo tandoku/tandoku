@@ -24,3 +24,5 @@ function Save-AllTextFromTandokuContent {
     $outPath = [IO.Path]::ChangeExtension($Path, '.txt')
     Get-AllTextFromTandokuContent $Path | Out-File $outPath
 }
+
+Export-ModuleMember -Function *-* -Alias *

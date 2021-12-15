@@ -1,5 +1,3 @@
-Import-Module tandoku-utils.psm1
-
 function Process-CalibreChangesAndAddText {
     $calibreBooks = Get-CalibreBook
     $calibreBooks | Update-CalibreMetadataInTandoku
@@ -362,6 +360,7 @@ function Unpack-KindleBookImages {
     }
 }
 
+# TODO: switch to using mobiunpack (https://pypi.org/project/mobi/)
 function kindleunpack {
     $pypath = (Convert-Path O:\Tandoku\Tools\KindleUnpack\lib\kindleunpack.py)
     python $pypath $args
@@ -386,4 +385,4 @@ function Save-CalibreBookList {
         Out-File booklist.txt
 }
 
-Export-ModuleMember -Function *-*
+Export-ModuleMember -Function *-* -Alias *

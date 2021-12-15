@@ -35,6 +35,85 @@ function New-TandokuVolume {
     }
 }
 
+function Compress-TandokuVolume {
+    [CmdletBinding(SupportsShouldProcess=$true)]
+    param(
+        [Parameter(Mandatory=$false, ValueFromPipeline=$true)]
+        [ValidateScript({
+            if( -Not ($_ | Test-Path) ){
+                throw "File or folder does not exist"
+            }
+            return $true
+        })]
+        [String] $Path = '.',
+
+        [Switch] $ImagesAsCbz,
+
+        [Switch] $ImageText
+    )
+    process {
+        Get-ChildItem -Path $Path -Filter images -Recurse -Directory |
+            Foreach-Object {
+                $volumePath = (Split-Path $_ -Parent)
+                Push-Location $volumePath
+
+                # TODO: move this to a separate cmdlet?
+                $coverPath = 'cover.jpg'
+                if (-not (Test-Path $coverPath)) {
+                  Get-ChildItem ./images/cover*.jp*g |
+                    Foreach-Object {
+                      Write-Verbose "Copying $_ to $coverPath"
+                      Copy-Item $_ $coverPath
+                    }
+                } else {
+                    Write-Verbose "$(Resolve-Path $coverPath) already exists"
+                }
+
+                $title = (Split-Path $volumePath -Leaf)
+
+                if ($ImagesAsCbz) {
+                    $cbzPath = "$title.cbz"
+                    if ((Test-Path $coverPath) -and (-not (Test-Path $cbzPath))) {
+                      Write-Verbose "Creating $cbzPath from images"
+                      Compress-Archive ./images/*.* $cbzPath
+
+                      # verify all items added
+                      $cbzFileCount = (7z l $cbzPath|sls '(\d+) files$').Matches[0].Groups[1].Value
+                      $imgFileCount = (Get-ChildItem ./images/*.*).Count
+                      if ($cbzFileCount -eq $imgFileCount) {
+                          Write-Verbose "Removing $imgFileCount files from images"
+                          Remove-Item ./images/*.*
+                      }
+                    } elseif (-not (Test-Path $coverPath)) {
+                        Write-Verbose "Missing $coverPath, skipping .cbz archive for $title"
+                    } else {
+                        Write-Verbose "$(Resolve-Path $cbzPath) already exists"
+                    }
+                }
+
+                if ($ImageText) {
+                    $tdzPath = "$title.tdz"
+                    if (Test-Path ./images/text/*.*) {
+                        Write-Verbose "Copying ./images/text/ to $tdzPath"
+                        7z a -spf -tzip $tdzPath images/text/*.*
+
+                        # verify all items added
+                        $tdzFileCount = (7z l $tdzPath|sls '(\d+) files$').Matches[0].Groups[1].Value
+                        $textFileCount = (Get-ChildItem ./images/text/*.*).Count
+                        if ($tdzFileCount -eq $textFileCount) {
+                            Write-Verbose "Removing $textFileCount files from images/text"
+                            Remove-Item ./images/text/*.*
+                        }
+                    } else {
+                        Write-Verbose "No images/text files found for $title"
+                    }
+                }
+
+                Pop-Location
+            }
+    }
+}
+
 function Import-TandokuContent {
     param(
         [Parameter(Mandatory=$true)]
@@ -134,3 +213,5 @@ function Get-TandokuPath {
         throw "Path is not in tandoku library blob store: $Path"
     }
 }
+
+Export-ModuleMember -Function *-* -Alias *
