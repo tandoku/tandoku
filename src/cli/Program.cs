@@ -1,4 +1,4 @@
-﻿namespace BlueMarsh.Tandoku.CommandLine;
+﻿namespace Tandoku.CommandLine;
 
 using System.CommandLine;
 using System.CommandLine.Invocation;

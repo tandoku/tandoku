@@ -14,7 +14,7 @@
 //    License for the specific language governing permissions and limitations
 //    under the License.
 
-namespace BlueMarsh.Tandoku.Yaml;
+namespace Tandoku.Yaml;
 
 using System.Text.RegularExpressions;
 using YamlDotNet;

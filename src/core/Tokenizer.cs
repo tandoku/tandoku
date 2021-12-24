@@ -1,4 +1,4 @@
-﻿namespace BlueMarsh.Tandoku;
+﻿namespace Tandoku;
 
 using Lucene.Net.Analysis.Ja;
 using Lucene.Net.Analysis.Ja.TokenAttributes;

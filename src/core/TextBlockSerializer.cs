@@ -1,4 +1,4 @@
-﻿namespace BlueMarsh.Tandoku;
+﻿namespace Tandoku;
 
 using System.Text.Encodings.Web;
 using System.Text.Json;

@@ -3,7 +3,7 @@ using System.CommandLine;
 using System.CommandLine.DragonFruit;
 using System.Reflection;
 
-namespace BlueMarsh.Tandoku.CommandLine
+namespace Tandoku.CommandLine
 {
     internal static class Demos
     {

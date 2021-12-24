@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BlueMarsh.Tandoku.CommandLine.Legacy
+namespace Tandoku.CommandLine.Legacy
 {
     class Program
     {
@@ -25,7 +25,7 @@ namespace BlueMarsh.Tandoku.CommandLine.Legacy
             }
         }
 
-        // TODO: move to BlueMarsh.Common
+        // TODO: move to common utils
         private sealed class Utf8EncodingOverride : IDisposable
         {
             private readonly Encoding originalEncoding;

@@ -4,7 +4,7 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net6.0</TargetFramework>
     <AssemblyName>tandoku</AssemblyName>
-    <RootNamespace>BlueMarsh.Tandoku.CommandLine</RootNamespace>
+    <RootNamespace>Tandoku.CommandLine</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>

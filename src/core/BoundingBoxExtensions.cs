@@ -1,4 +1,4 @@
-﻿namespace BlueMarsh.Tandoku;
+﻿namespace Tandoku;
 
 using System.Drawing;
 

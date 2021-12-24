@@ -1,4 +1,4 @@
-﻿namespace BlueMarsh.Tandoku.Yaml;
+﻿namespace Tandoku.Yaml;
 
 using YamlDotNet.Core;
 using YamlDotNet.Core.Events;

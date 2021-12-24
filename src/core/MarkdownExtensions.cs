@@ -1,4 +1,4 @@
-﻿namespace BlueMarsh.Tandoku;
+﻿namespace Tandoku;
 
 using Markdig.Renderers.Normalize;
 using Markdig.Syntax;

@@ -7,7 +7,7 @@ using Lucene.Net.Analysis.Ja;
 using Lucene.Net.Analysis.Ja.TokenAttributes;
 using Lucene.Net.Analysis.TokenAttributes;
 
-namespace BlueMarsh.Tandoku.CommandLine
+namespace Tandoku.CommandLine
 {
     internal static class TokenizerDemo
     {
@@ -80,7 +80,7 @@ namespace BlueMarsh.Tandoku.CommandLine
             return s + new string(' ', Math.Max(0, width - adjustedLen));
         }
 
-        // TODO: move to BlueMarsh.Common
+        // TODO: move to common utils
         private sealed class Utf8EncodingOverride : IDisposable
         {
             private readonly Encoding? originalEncoding;

@@ -12,7 +12,7 @@ using System.Linq;
 using System.Xml;
 using System.Xml.Linq;
 
-namespace BlueMarsh.Tandoku.CommandLine
+namespace Tandoku.CommandLine
 {
     internal static class DictionaryCompiler
     {

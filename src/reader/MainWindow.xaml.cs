@@ -1,4 +1,4 @@
-﻿using BlueMarsh.Tandoku.Reader;
+﻿using Tandoku.Reader;
 using Lucene.Net.Analysis.Core;
 using Lucene.Net.Index;
 using Lucene.Net.Search;

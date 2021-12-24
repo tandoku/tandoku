@@ -1,4 +1,4 @@
-﻿namespace BlueMarsh.Tandoku;
+﻿namespace Tandoku;
 
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
@@ -291,7 +291,7 @@ public sealed class ContentGenerator
         private static string GetTextFromItem(SubtitleItem item)
         {
             // TODO: this should be fixed in the SubtitlesParser package (there's a TODO in SsaParser)
-            // (send a PR for this and additionally add Actor, Style fields from SSA format; fork and build BlueMarsh copy of SubtitlesParser for now ??)
+            // (send a PR for this and additionally add Actor, Style fields from SSA format; fork and build tandoku copy of SubtitlesParser for now ??)
             // -OR- try Ass-Loader library instead
             if (item.Lines.Count == 1)
             {

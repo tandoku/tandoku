@@ -2,8 +2,8 @@
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
-    <AssemblyName>BlueMarsh.Tandoku.Core</AssemblyName>
-    <RootNamespace>BlueMarsh.Tandoku</RootNamespace>
+    <AssemblyName>Tandoku.Core</AssemblyName>
+    <RootNamespace>Tandoku</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>

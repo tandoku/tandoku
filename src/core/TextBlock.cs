@@ -1,4 +1,4 @@
-﻿namespace BlueMarsh.Tandoku;
+﻿namespace Tandoku;
 
 using YamlDotNet.Core;
 using YamlDotNet.Serialization;

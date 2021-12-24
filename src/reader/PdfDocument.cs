@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Xml.Serialization;
 
-namespace BlueMarsh.Tandoku.Reader
+namespace Tandoku.Reader
 {
     [XmlRoot("document")]
     public class PdfDocument

@@ -6,7 +6,7 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{1DE8F66F-742A-4F97-A6A2-F7EDB94C0E12}</ProjectGuid>
     <OutputType>Exe</OutputType>
-    <RootNamespace>BlueMarsh.Tandoku.CommandLine.Legacy</RootNamespace>
+    <RootNamespace>Tandoku.CommandLine.Legacy</RootNamespace>
     <AssemblyName>tandoku-fx</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
