@@ -7,19 +7,7 @@ function Test-Command {
         [Parameter(Mandatory=$true)]
         $Name
     )
-    $oldPreference = $ErrorActionPreference
-    $ErrorActionPreference = 'Stop'
-    try {
-        if (Get-Command -Name $Name) {
-            return $true
-        }
-    }
-    catch {
-        return $false
-    }
-    finally {
-        $ErrorActionPreference = $oldPreference
-    }
+    return !!(Get-Command -Name $Name -ErrorAction SilentlyContinue)
 }
 
 # Consider choosing another name for Sort-STNumerical since Sort is a reserved verb
