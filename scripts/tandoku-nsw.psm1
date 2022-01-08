@@ -1,9 +1,48 @@
+function Sync-NintendoSwitchAlbums {
+    Copy-NintendoSwitchDeviceAlbums
+
+    <#
+    Get-TandokuVolume -Tags nintendo-switch-album |
+        Update-TandokuVolume |
+        Export-TandokuVolumeToKindle
+
+	Sync-Kindle
+    #>
+}
+
 function Copy-NintendoSwitchDeviceAlbums($DestinationPath) {
     if (-not $DestinationPath) {
-        # TODO: get from library config
-        $DestinationPath = 'O:\tandoku\external\nintendo-switch\import'
+        $DestinationPath = Get-NintendoSwitchStagingPath -Import
     }
     Copy-ShellDriveContents 'Nintendo Switch' $DestinationPath
+}
+
+function Get-NintendoSwitchStagingPath {
+    param(
+        [Parameter()]
+        [Switch]
+        $Import
+    )
+
+    $basePath = $null
+
+    $libraryConfig = Get-TandokuLibraryConfig
+    if ($libraryConfig) {
+        $nswConfig = $libraryConfig['nintendo-switch']
+        if ($nswConfig -and $nswConfig.stagingPath) {
+            $basePath = $nswConfig.stagingPath
+        }
+    }
+
+    if (-not $basePath) {
+        $extStagingPath = Get-TandokuExternalStagingPath
+        $basePath = Join-Path $extStagingPath 'nintendo-switch'
+    }
+
+    if ($Import) {
+        return Join-Path $basePath 'import'
+    }
+    return $basePath
 }
 
 # Portions copied from and inspired by https://github.com/WillyMoselhy/Weekend-Projects/blob/master/Copy-MTPCameraByMonth.ps1

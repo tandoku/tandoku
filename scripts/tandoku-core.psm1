@@ -1,3 +1,90 @@
+$tandokuLibraryRoot = $null
+$tandokuLibraryMetadataPath = $null
+
+function Initialize-TandokuLibrary {
+    param(
+        [Parameter()]
+        [String]
+        $Path = '.',
+
+        [Parameter()]
+        [String]
+        $Name = 'library',
+
+        [Parameter()]
+        [String]
+        $BlobStorePath,
+
+        [Parameter()]
+        [String]
+        $ExternalStagingPath
+    )
+
+    $metadataPath = (Join-Path $Path "$Name.tdkl.yaml")
+    $metadataObj = @{
+        version = '0.1.0'
+    }
+
+    if ($BlobStorePath) {
+        $metadataObj.blobStorePath = (Convert-Path $BlobStorePath)
+    }
+
+    if ($ExternalStagingPath) {
+        $metadataObj.config = @{
+            core = @{
+               externalStagingPath = (Convert-Path $ExternalStagingPath)
+            }
+        }
+    }
+
+    ConvertTo-Yaml $metadataObj | Set-Content $metadataPath
+}
+
+function Register-TandokuLibrary {
+    param(
+        [Parameter(Mandatory=$true)]
+        [String]
+        $Path
+    )
+
+    if ((Split-Path $Path -Extension) -eq '.yaml') {
+        $leafBase = Split-Path $Path -LeafBase
+        if ((Split-Path $leafBase -Extension) -eq '.tdkl') {
+            $script:tandokuLibraryMetadataPath = (Convert-Path $Path)
+            $script:tandokuLibraryRoot = (Convert-Path (Split-Path $Path -Parent))
+
+            return $script:tandokuLibraryRoot
+        }
+    }
+
+    if (Test-Path $Path -PathType Container) {
+        # TODO: find .tdkl.yaml and load it
+        # $metadataPath = Get-Item (Join-Path $Path '*.tdkl.yaml')
+    }
+
+    throw "Not a valid tandoku library: $Path"
+}
+
+function Get-TandokuLibraryMetadata {
+    if (-not $tandokuLibraryMetadataPath) {
+        throw 'Register tandoku library first'
+    }
+
+    Get-Item $tandokuLibraryMetadataPath |
+        Get-Content |
+        ConvertFrom-Yaml
+}
+
+function Get-TandokuLibraryConfig {
+    $m = Get-TandokuLibraryMetadata
+    return $m.config
+}
+
+function Get-TandokuExternalStagingPath {
+    $c = Get-TandokuLibraryConfig
+    return $c.core.externalStagingPath
+}
+
 function New-TandokuVolume {
     param(
         [Parameter(Mandatory=$true)]
