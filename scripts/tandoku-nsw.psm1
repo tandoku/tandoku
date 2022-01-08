@@ -1,5 +1,9 @@
-function Import-NintendoSwitchToStaging {
-    Copy-ShellDriveContents 'Nintendo Switch' 'O:\tandoku\external\nintendo-switch\import'
+function Copy-NintendoSwitchDeviceAlbums($DestinationPath) {
+    if (-not $DestinationPath) {
+        # TODO: get from library config
+        $DestinationPath = 'O:\tandoku\external\nintendo-switch\import'
+    }
+    Copy-ShellDriveContents 'Nintendo Switch' $DestinationPath
 }
 
 # Portions copied from and inspired by https://github.com/WillyMoselhy/Weekend-Projects/blob/master/Copy-MTPCameraByMonth.ps1
