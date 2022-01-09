@@ -1,5 +1,13 @@
 function Sync-NintendoSwitchAlbums {
-    Copy-NintendoSwitchDeviceAlbums
+    param(
+        [Parameter()]
+        [Switch]
+        $SkipDeviceSync
+    )
+
+    if (-not $SkipDeviceSync) {
+        Copy-NintendoSwitchDeviceAlbums
+    }
 
     <#
     Get-TandokuVolume -Tags nintendo-switch-album |

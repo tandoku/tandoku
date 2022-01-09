@@ -14,4 +14,8 @@ if (Test-Path "$tandokuRepoRoot/src/cli/bin/Debug/net6.0/tandoku.exe") {
 # OR declare secondary modules as dependencies (see tip under -Global parameter at https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/import-module?view=powershell-7.1&WT.mc_id=ps-gethelp#parameters)
 Get-ChildItem $tandokuSecondaryModules | Import-Module -Scope Global
 
+function Reset-TandokuModules {
+    Get-ChildItem $tandokuSecondaryModules | Import-Module -Scope Global -Force
+}
+
 Export-ModuleMember -Function *-* -Alias *
