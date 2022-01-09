@@ -2,10 +2,10 @@ function Sync-NintendoSwitchAlbums {
     param(
         [Parameter()]
         [Switch]
-        $SkipDeviceSync
+        $SkipDeviceImport
     )
 
-    if (-not $SkipDeviceSync) {
+    if (-not $SkipDeviceImport) {
         Copy-NintendoSwitchDeviceAlbums
     }
 
