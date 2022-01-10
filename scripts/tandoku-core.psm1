@@ -82,6 +82,8 @@ function GetTandokuLibraryRootPath {
     return (Split-Path (GetTandokuLibraryMetadataPath) -Parent)
 }
 
+# TODO: change this to Get-TandokuLibrary and return additional info
+# such as the library root path? (similar to Get-TandokuVolume)
 function Get-TandokuLibraryMetadata {
     ReadMetadataContent (GetTandokuLibraryMetadataPath)
 }
@@ -198,6 +200,48 @@ function New-TandokuVolume {
     }
 
     WriteMetadataContent $metadataPath $metadataObj
+}
+
+function Get-TandokuVolume {
+    param(
+        [Parameter()]
+        [String[]]
+        $Tags
+    )
+
+    Get-ChildItem -LiteralPath (GetTandokuLibraryRootPath) -Filter *.tdkv.yaml -Recurse |
+        Foreach-Object {
+            $m = Get-TandokuVolumeMetadata $_
+            [PSCustomObject] @{
+                Title = $m.title
+                Moniker = $m.moniker
+                Tags = $m.tags
+                MetadataPath = [String] $_
+                # TODO: Path, BlobPath
+            }
+        } |
+        Where-Object {
+            if ($Tags) {
+                foreach ($tag in $Tags) {
+                    if ($_.Tags -notcontains $tag) {
+                        return $false
+                    }
+                }
+            }
+
+            return $true
+        }
+}
+
+# TODO: not sure whether this function should be exposed
+# (probably just use Get-TandokuVolume instead?)
+function Get-TandokuVolumeMetadata {
+    param(
+        [Parameter()]
+        [String]
+        $Path
+    )
+    ReadMetadataContent $Path
 }
 
 function Compress-TandokuVolume {
