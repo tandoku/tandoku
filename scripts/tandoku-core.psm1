@@ -82,6 +82,11 @@ function GetTandokuLibraryRootPath {
     return (Split-Path (GetTandokuLibraryMetadataPath) -Parent)
 }
 
+function GetTandokuLibraryBlobRootPath {
+    $m = Get-TandokuLibraryMetadata
+    return $m.blobStorePath
+}
+
 # TODO: change this to Get-TandokuLibrary and return additional info
 # such as the library root path? (similar to Get-TandokuVolume)
 function Get-TandokuLibraryMetadata {
@@ -102,31 +107,59 @@ function Get-TandokuLibraryPath {
     param(
         [Parameter()]
         [String]
-        $Path,
+        $LiteralPath,
 
         [Parameter()]
         [Switch]
         $Blob
     )
 
-    $rootPath = $null
     if ($Blob) {
-        $m = Get-TandokuLibraryMetadata
-        $rootPath = $m.blobStorePath
+        $rootPath = GetTandokuLibraryBlobRootPath
 
         if (-not $rootPath) {
             return $null
         }
-    }
-
-    if (-not $rootPath) {
+    } else {
         $rootPath = GetTandokuLibraryRootPath
     }
 
-    if ($Path) {
-        return (Join-Path $rootPath $Path)
+    if ($LiteralPath) {
+        # Treat paths starting with '.' as relative to working directory
+        # (otherwise relative paths are considered relative to library root)
+        # TODO: consider separating these into separate properties or have a switch
+        # to control this behavior (e.g. RelativeToLibraryRoot or something)
+        if ($LiteralPath -like '.*') {
+            $LiteralPath = Resolve-Path -LiteralPath $LiteralPath
+        }
+
+        if (Split-Path $LiteralPath -IsAbsolute) {
+            $LiteralPath = Convert-Path -LiteralPath $LiteralPath
+
+            $relativePath = ExtractRelativePath (GetTandokuLibraryRootPath) $LiteralPath
+            if (-not $relativePath) {
+                $relativePath = ExtractRelativePath (GetTandokuLibraryBlobRootPath) $LiteralPath
+            }
+
+            if (-not $relativePath) {
+                throw "Specified path is not a library path: $LiteralPath"
+            }
+        } else {
+            $relativePath = $LiteralPath
+        }
+
+        return (Join-Path $rootPath $relativePath)
     } else {
         return $rootPath
+    }
+}
+
+function ExtractRelativePath($basePath, $childPath) {
+    $basePathWithSep = Join-Path $basePath /
+    if ($childPath -like "$basePathWithSep*") {
+        return $childPath.Substring($basePathWithSep.length)
+    } else {
+        return $null
     }
 }
 
@@ -211,13 +244,15 @@ function Get-TandokuVolume {
 
     Get-ChildItem -LiteralPath (GetTandokuLibraryRootPath) -Filter *.tdkv.yaml -Recurse |
         Foreach-Object {
+            $volumePath = Split-Path $_ -Parent
             $m = Get-TandokuVolumeMetadata $_
             [PSCustomObject] @{
                 Title = $m.title
                 Moniker = $m.moniker
                 Tags = $m.tags
+                Path = $volumePath
                 MetadataPath = [String] $_
-                # TODO: Path, BlobPath
+                BlobPath = (Get-TandokuLibraryPath $volumePath -Blob)
             }
         } |
         Where-Object {
@@ -242,6 +277,21 @@ function Get-TandokuVolumeMetadata {
         $Path
     )
     ReadMetadataContent $Path
+}
+
+function Update-TandokuVolume {
+    param(
+        # TODO: multiple parameter sets to allow calling this with $Path or similar
+        [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
+        $InputObject
+    )
+    process {
+        if ($InputObject.Tags -contains 'nintendo-switch-album') {
+            Update-NintendoSwitchAlbumTandokuVolume $InputObject
+        } else {
+            Write-Error "Unable to update volume: $($InputObject.Title)"
+        }
+    }
 }
 
 function Compress-TandokuVolume {

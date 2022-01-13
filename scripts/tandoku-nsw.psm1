@@ -53,6 +53,19 @@ function Get-NintendoSwitchStagingPath {
     return $basePath
 }
 
+function Update-NintendoSwitchAlbumTandokuVolume {
+    param(
+        [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
+        $InputObject
+    )
+
+    $albumBasePath = Join-Path (Get-NintendoSwitchStagingPath -Import) 'Album'
+    # TODO: check volume.config.nintendo-switch-album.title first
+    $nswTitlePath = Join-Path $albumBasePath $InputObject.Title
+
+    Write-Host "Importing from $nswTitlePath - $(Test-Path $nswTitlePath)"
+}
+
 # Portions copied from and inspired by https://github.com/WillyMoselhy/Weekend-Projects/blob/master/Copy-MTPCameraByMonth.ps1
 
 function Copy-ShellDriveContents($shellDriveName, $targetPath) {
