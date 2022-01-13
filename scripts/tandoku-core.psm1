@@ -58,49 +58,37 @@ function Register-TandokuLibrary {
 
     if ($Path -like '*.tdkl.yaml') {
         $script:tandokuLibraryMetadataPath = (Convert-Path $Path)
-
-        return GetTandokuLibraryRootPath
+    } elseif (Test-Path $Path -PathType Container) {
+        $metadataPath = Get-Item (Join-Path $Path '*.tdkl.yaml')
+        if ($metadataPath.Count -ne 1) {
+            throw "Expecting single tandoku library (.tdkl.yaml) at $Path"
+        }
+        $script:tandokuLibraryMetadataPath = (Convert-Path $metadataPath)
+    } else {
+        throw "Not a valid tandoku library: $Path"
     }
 
-    if (Test-Path $Path -PathType Container) {
-        # TODO: find .tdkl.yaml and load it
-        # $metadataPath = Get-Item (Join-Path $Path '*.tdkl.yaml')
-    }
-
-    throw "Not a valid tandoku library: $Path"
+    return Get-TandokuLibrary
 }
 
-function GetTandokuLibraryMetadataPath {
+function Get-TandokuLibrary {
     if (-not $script:tandokuLibraryMetadataPath) {
         throw 'Register tandoku library first'
     }
 
-    return $script:tandokuLibraryMetadataPath
-}
-
-function GetTandokuLibraryRootPath {
-    return (Split-Path (GetTandokuLibraryMetadataPath) -Parent)
-}
-
-function GetTandokuLibraryBlobRootPath {
-    $m = Get-TandokuLibraryMetadata
-    return $m.blobStorePath
-}
-
-# TODO: change this to Get-TandokuLibrary and return additional info
-# such as the library root path? (similar to Get-TandokuVolume)
-function Get-TandokuLibraryMetadata {
-    ReadMetadataContent (GetTandokuLibraryMetadataPath)
-}
-
-function Get-TandokuLibraryConfig {
-    $m = Get-TandokuLibraryMetadata
-    return $m.config
+    $metadataPath = $script:tandokuLibraryMetadataPath
+    $m = ReadMetadataContent $metadataPath
+    return [PSCustomObject] @{
+        Path = (Split-Path $metadataPath -Parent)
+        MetadataPath = $metadataPath
+        BlobPath = $m.blobStorePath
+        Config = $m.config
+    }
 }
 
 function Get-TandokuExternalStagingPath {
-    $c = Get-TandokuLibraryConfig
-    return $c.core.externalStagingPath
+    $lib = Get-TandokuLibrary
+    return $lib.config.core.externalStagingPath
 }
 
 function Get-TandokuLibraryPath {
@@ -114,14 +102,16 @@ function Get-TandokuLibraryPath {
         $Blob
     )
 
+    $lib = Get-TandokuLibrary
+
     if ($Blob) {
-        $rootPath = GetTandokuLibraryBlobRootPath
+        $rootPath = $lib.BlobPath
 
         if (-not $rootPath) {
             return $null
         }
     } else {
-        $rootPath = GetTandokuLibraryRootPath
+        $rootPath = $lib.Path
     }
 
     if ($LiteralPath) {
@@ -136,9 +126,9 @@ function Get-TandokuLibraryPath {
         if (Split-Path $LiteralPath -IsAbsolute) {
             $LiteralPath = Convert-Path -LiteralPath $LiteralPath
 
-            $relativePath = ExtractRelativePath (GetTandokuLibraryRootPath) $LiteralPath
-            if (-not $relativePath) {
-                $relativePath = ExtractRelativePath (GetTandokuLibraryBlobRootPath) $LiteralPath
+            $relativePath = ExtractRelativePath $lib.Path $LiteralPath
+            if (-not $relativePath -and $lib.BlobPath) {
+                $relativePath = ExtractRelativePath $lib.BlobPath $LiteralPath
             }
 
             if (-not $relativePath) {
@@ -190,11 +180,11 @@ function New-TandokuVolume {
     if ($Moniker) {
         $volumeFSName = "$Moniker $volumeFSName"
     }
-    $volumePath = (Join-Path (Get-TandokuLibraryPath $ContainerPath) $volumeFSName)
+    $volumePath = Join-Path (Get-TandokuLibraryPath $ContainerPath) $volumeFSName
 
-    $blobContainerPath = (Get-TandokuLibraryPath $ContainerPath -Blob)
+    $blobContainerPath = Get-TandokuLibraryPath $ContainerPath -Blob
     if ($blobContainerPath) {
-        $volumeBlobPath = (Join-Path $blobContainerPath $volumeFSName)
+        $volumeBlobPath = Join-Path $blobContainerPath $volumeFSName
     } else {
         $volumeBlobPath = $null
     }
@@ -204,7 +194,7 @@ function New-TandokuVolume {
             throw "$volumePath already exists"
         }
     } else {
-        New-Item $volumePath -Type Directory
+        [void](New-Item $volumePath -Type Directory)
     }
 
     if ($volumeBlobPath) {
@@ -233,19 +223,31 @@ function New-TandokuVolume {
     }
 
     WriteMetadataContent $metadataPath $metadataObj
+
+    return Get-TandokuVolume $metadataPath
 }
 
 function Get-TandokuVolume {
     param(
         [Parameter()]
+        [String]
+        $Path,
+
+        [Parameter()]
         [String[]]
         $Tags
     )
 
-    Get-ChildItem -LiteralPath (GetTandokuLibraryRootPath) -Filter *.tdkv.yaml -Recurse |
+    $lib = Get-TandokuLibrary
+    
+    if (-not $Path) {
+        $Path = $lib.Path
+    }
+
+    Get-ChildItem $Path -Filter *.tdkv.yaml -Recurse |
         Foreach-Object {
             $volumePath = Split-Path $_ -Parent
-            $m = Get-TandokuVolumeMetadata $_
+            $m = ReadMetadataContent $_
             [PSCustomObject] @{
                 Title = $m.title
                 Moniker = $m.moniker
@@ -266,17 +268,6 @@ function Get-TandokuVolume {
 
             return $true
         }
-}
-
-# TODO: not sure whether this function should be exposed
-# (probably just use Get-TandokuVolume instead?)
-function Get-TandokuVolumeMetadata {
-    param(
-        [Parameter()]
-        [String]
-        $Path
-    )
-    ReadMetadataContent $Path
 }
 
 function Update-TandokuVolume {
@@ -413,7 +404,7 @@ function Add-TandokuResource {
         $TextLanguage = 'ja'
     )
 
-    $targetPath = (Get-TandokuPath $Volume -Blob)
+    $targetPath = Get-TandokuLibraryPath $Volume -Blob
     # TODO: only support image resources for now
     $targetPath = (Join-Path $targetPath 'images')
     if (-not (Test-Path $targetPath)) {
@@ -431,32 +422,6 @@ function Add-TandokuResource {
         }
 
         $targetItemPath
-    }
-}
-
-# TODO: move to Get-TandokuLibraryPath function
-# (need to support converting absolute path to library/blob path)
-function Get-TandokuPath {
-    param(
-        [Parameter(Mandatory=$true)]
-        [String]
-        $Path,
-
-        [Parameter()]
-        [Switch]
-        $Blob
-    )
-
-    if ($Blob) {
-        if ($Path -match '\\tandoku-library\\(.+)$') {
-            return (Join-Path 'O:\tandoku\library\' $matches[1])
-        }
-        throw "Path is not in tandoku library: $Path"
-    } else {
-        if ($Path -match '\\tandoku\\library\\(.+)$') {
-            return (Join-Path 'R:\tandoku-library\' $matches[1])
-        }
-        throw "Path is not in tandoku library blob store: $Path"
     }
 }
 
