@@ -284,6 +284,7 @@ function Update-TandokuVolume {
         $InputObject
     )
     process {
+        # TODO: consider using splatting (see about_Splatting) to forward parameters to child functions
         if ($InputObject.Tags -contains 'nintendo-switch-album') {
             Update-NintendoSwitchAlbumTandokuVolume $InputObject
         } else {

@@ -22,11 +22,7 @@ function Copy-ItemIfNewer {
             $targetPath = Join-Path $Destination (Split-Path $_ -Leaf)
             $target = (Test-Path $targetPath) ? (Get-Item -LiteralPath $targetPath) : $null
             if (-not $target -or ($target.LastWriteTime -lt $_.LastWriteTime)) {
-                if ($PassThru) {
-                    Copy-Item -LiteralPath $_ -Destination $Destination -PassThru
-                } else {
-                    Copy-Item -LiteralPath $_ -Destination $Destination
-                }
+                Copy-Item -LiteralPath $_ -Destination $Destination -PassThru:$PassThru
             }
         }
 }

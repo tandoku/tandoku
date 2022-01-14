@@ -2,19 +2,28 @@ function Sync-NintendoSwitchAlbums {
     param(
         [Parameter()]
         [Switch]
-        $SkipDeviceImport
+        $SkipDeviceImport,
+
+        [Parameter()]
+        [Switch]
+        $SkipKindleExport
     )
 
     if (-not $SkipDeviceImport) {
         Copy-NintendoSwitchDeviceAlbums
     }
 
-    # TODO: finish implementing this
-    Get-TandokuVolume -Tags nintendo-switch-album |
-        Update-TandokuVolume #|
-        #Export-TandokuVolumeToKindle
-
-	#Sync-Kindle
+    $updatedVolumes = Get-TandokuVolume -Tags nintendo-switch-album |
+        Update-TandokuVolume
+    
+    <# TODO: finish implementing this
+    if ($SkipKindleExport) {
+        $updatedVolumes | Export-TandokuVolumeToMarkdown
+    } else {
+        $updatedVolumes | Export-TandokuVolumeToKindle
+        Sync-Kindle
+    }
+    #>
 
     # TODO: optionally create .cbz
 }
@@ -30,29 +39,29 @@ function Get-NintendoSwitchStagingPath {
     param(
         [Parameter()]
         [Switch]
-        $Import
+        $Import,
+
+        [Parameter()]
+        [Switch]
+        $Album
     )
 
-    $basePath = $null
-
     $lib = Get-TandokuLibrary
-    # TODO: figure out PowerShell syntax for escaping property reference
-    # (should be able to just check if ($lib.config.nintendo-switch.stagingPath)
-    #  but need to escape nintendo-switch)
-    if ($lib.config) {
-        $nswConfig = $lib.config['nintendo-switch']
-        if ($nswConfig -and $nswConfig.stagingPath) {
-            $basePath = $nswConfig.stagingPath
-        }
-    }
+    $basePath = $lib.config.'nintendo-switch'.stagingPath
 
     if (-not $basePath) {
         $extStagingPath = Get-TandokuExternalStagingPath
         $basePath = Join-Path $extStagingPath 'nintendo-switch'
     }
 
-    if ($Import) {
-        return Join-Path $basePath 'import'
+    if ($Import -or $Album) {
+        $path = Join-Path $basePath 'import'
+
+        if ($Album) {
+            $path = Join-Path $path 'Album'
+        }
+
+        return $path
     }
     return $basePath
 }
@@ -63,9 +72,8 @@ function Update-NintendoSwitchAlbumTandokuVolume {
         $InputObject
     )
 
-    $albumBasePath = Join-Path (Get-NintendoSwitchStagingPath -Import) 'Album'
     # TODO: check volume.config.nintendo-switch-album.title first
-    $albumStagingPath = Join-Path $albumBasePath $InputObject.Title
+    $albumStagingPath = Join-Path (Get-NintendoSwitchStagingPath -Album) $InputObject.Title
 
     $volumePath = $InputObject.Path
     $volumeBlobPath = $InputObject.BlobPath ?? $volumePath
