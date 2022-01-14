@@ -2,6 +2,35 @@ function CleanInvalidPathChars($name, $replaceWith = '_') {
     ($name.Split([IO.Path]::GetInvalidFileNameChars()) -join $replaceWith).Trim()
 }
 
+function Copy-ItemIfNewer {
+    param(
+        [Parameter(Mandatory=$true)]
+        [String]
+        $Path,
+
+        [Parameter(Mandatory=$true)]
+        [String]
+        $Destination,
+
+        [Parameter()]
+        [Switch]
+        $PassThru
+    )
+
+    Get-ChildItem $Path |
+        Foreach-Object {
+            $targetPath = Join-Path $Destination (Split-Path $_ -Leaf)
+            $target = (Test-Path $targetPath) ? (Get-Item -LiteralPath $targetPath) : $null
+            if (-not $target -or ($target.LastWriteTime -lt $_.LastWriteTime)) {
+                if ($PassThru) {
+                    Copy-Item -LiteralPath $_ -Destination $Destination -PassThru
+                } else {
+                    Copy-Item -LiteralPath $_ -Destination $Destination
+                }
+            }
+        }
+}
+
 function Test-Command {
     param(
         [Parameter(Mandatory=$true)]

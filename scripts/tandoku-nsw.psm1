@@ -9,13 +9,14 @@ function Sync-NintendoSwitchAlbums {
         Copy-NintendoSwitchDeviceAlbums
     }
 
-    <#
+    # TODO: finish implementing this
     Get-TandokuVolume -Tags nintendo-switch-album |
-        Update-TandokuVolume |
-        Export-TandokuVolumeToKindle
+        Update-TandokuVolume #|
+        #Export-TandokuVolumeToKindle
 
-	Sync-Kindle
-    #>
+	#Sync-Kindle
+
+    # TODO: optionally create .cbz
 }
 
 function Copy-NintendoSwitchDeviceAlbums($DestinationPath) {
@@ -34,9 +35,12 @@ function Get-NintendoSwitchStagingPath {
 
     $basePath = $null
 
-    $libraryConfig = Get-TandokuLibraryConfig
-    if ($libraryConfig) {
-        $nswConfig = $libraryConfig['nintendo-switch']
+    $lib = Get-TandokuLibrary
+    # TODO: figure out PowerShell syntax for escaping property reference
+    # (should be able to just check if ($lib.config.nintendo-switch.stagingPath)
+    #  but need to escape nintendo-switch)
+    if ($lib.config) {
+        $nswConfig = $lib.config['nintendo-switch']
         if ($nswConfig -and $nswConfig.stagingPath) {
             $basePath = $nswConfig.stagingPath
         }
@@ -61,9 +65,26 @@ function Update-NintendoSwitchAlbumTandokuVolume {
 
     $albumBasePath = Join-Path (Get-NintendoSwitchStagingPath -Import) 'Album'
     # TODO: check volume.config.nintendo-switch-album.title first
-    $nswTitlePath = Join-Path $albumBasePath $InputObject.Title
+    $albumStagingPath = Join-Path $albumBasePath $InputObject.Title
 
-    Write-Host "Importing from $nswTitlePath - $(Test-Path $nswTitlePath)"
+    $volumePath = $InputObject.Path
+    $volumeBlobPath = $InputObject.BlobPath ?? $volumePath
+
+    # TODO: include a -Force option to regenerate content even if no files added
+    # (maybe run Add-AcvText for all files in this case as well?)
+    $newItems = Copy-ItemIfNewer $albumStagingPath/*.jpg $volumeBlobPath/images/ -PassThru
+    if ($newItems.Count -gt 0) {
+        [void] ($newItems | Add-AcvText -Language $InputObject.Language)
+
+        # Create tandoku content from images and generate Markdown file
+        $contentFileName = Split-Path $volumePath -Leaf
+        $contentFileName = "$contentFileName.tdkc.yaml"
+        $contentPath = Join-Path $volumePath $contentFileName
+        $contentImages = Get-ChildItem $volumeBlobPath/images/*.jpg
+        [void] (tandoku generate $contentImages --out $contentPath)
+
+        return $InputObject
+    }
 }
 
 # Portions copied from and inspired by https://github.com/WillyMoselhy/Weekend-Projects/blob/master/Copy-MTPCameraByMonth.ps1

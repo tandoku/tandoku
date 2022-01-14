@@ -12,6 +12,10 @@ function Initialize-TandokuLibrary {
 
         [Parameter()]
         [String]
+        $Language = 'ja',
+
+        [Parameter()]
+        [String]
         $BlobStorePath,
 
         [Parameter()]
@@ -22,6 +26,7 @@ function Initialize-TandokuLibrary {
     $metadataPath = (Join-Path $Path "$Name.tdkl.yaml")
     $metadataObj = @{
         version = '0.1.0'
+        language = $Language
     }
 
     if ($BlobStorePath) {
@@ -83,6 +88,7 @@ function Get-TandokuLibrary {
         MetadataPath = $metadataPath
         BlobPath = $m.blobStorePath
         Config = $m.config
+        Language = $m.language
     }
 }
 
@@ -251,6 +257,7 @@ function Get-TandokuVolume {
             [PSCustomObject] @{
                 Title = $m.title
                 Moniker = $m.moniker
+                Language = $m.Language ?? $lib.Language
                 Tags = $m.tags
                 Path = $volumePath
                 MetadataPath = [String] $_
