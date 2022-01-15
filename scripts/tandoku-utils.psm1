@@ -35,6 +35,25 @@ function Test-Command {
     return !!(Get-Command -Name $Name -ErrorAction SilentlyContinue)
 }
 
+function New-TempDirectory {
+    $tempDirPath = (Join-Path ([IO.Path]::GetTempPath()) (New-Guid))
+    [void] (New-Item $tempDirPath -ItemType Directory)
+
+    return [TempDirectoryDisposable]::new($tempDirPath)
+}
+
+class TempDirectoryDisposable : System.IDisposable {
+    [String] $TempDirPath
+
+    TempDirectoryDisposable([string] $tempDirPath) {
+        $this.TempDirPath = $tempDirPath
+    }
+
+    [void] Dispose() {
+        Remove-Item $this.tempDirPath -Recurse -Force
+    }
+}
+
 # Consider choosing another name for Sort-STNumerical since Sort is a reserved verb
 # (or try to adapt this so it is used as an argument to Sort-Object rather than doing the sorting itself)
 # Note: I added the call to .Normalize([Text.NormalizationForm]::FormKC) in order to handle full-width numbers
