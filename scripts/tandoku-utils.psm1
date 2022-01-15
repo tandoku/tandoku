@@ -36,10 +36,31 @@ function Test-Command {
 }
 
 function New-TempDirectory {
-    $tempDirPath = (Join-Path ([IO.Path]::GetTempPath()) (New-Guid))
+    param(
+        [Parameter()]
+        [String]
+        $Prefix
+    )
+
+    $dirName = New-Guid
+    if ($Prefix) {
+        $dirName = "$Prefix-$dirName"
+    }
+    $tempDirPath = Join-Path ([IO.Path]::GetTempPath()) $dirName
     [void] (New-Item $tempDirPath -ItemType Directory)
 
     return [TempDirectoryDisposable]::new($tempDirPath)
+}
+
+function Remove-TempDirectories {
+    param(
+        [Parameter(Mandatory=$true)]
+        [String]
+        $Prefix
+    )
+
+    $tempDirPath = Join-Path ([IO.Path]::GetTempPath()) "$Prefix-*"
+    Remove-Item $tempDirPath -Recurse -Force
 }
 
 class TempDirectoryDisposable : System.IDisposable {
