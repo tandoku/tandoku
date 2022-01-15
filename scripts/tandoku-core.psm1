@@ -293,6 +293,29 @@ function Update-TandokuVolume {
     }
 }
 
+function Export-TandokuVolumeToMarkdown {
+    param(
+        # TODO: multiple parameter sets to allow calling this with $Path or similar
+        [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
+        $InputObject
+    )
+    process {
+        $volumePath = $InputObject.Path
+
+        # TODO: tandoku CLI should take volume as input rather than single content file
+        $contentPath = Get-Item (Join-Path $volumePath '*.tdkc.yaml')
+        if ($contentPath.Count -ne 1) {
+            Write-Error "Unable to export volume: $($InputObject.Title)"
+            return
+        }
+
+        $contentFileName = Split-Path $contentPath -Leaf
+        $exportFileName = [IO.Path]::ChangeExtension($contentFileName, '.md')
+
+        tandoku export $contentPath $volumePath\export\$exportFileName --format Markdown
+    }
+}
+
 function Compress-TandokuVolume {
     [CmdletBinding(SupportsShouldProcess=$true)]
     param(

@@ -16,14 +16,14 @@ function Sync-NintendoSwitchAlbums {
     $updatedVolumes = Get-TandokuVolume -Tags nintendo-switch-album |
         Update-TandokuVolume
     
-    <# TODO: finish implementing this
     if ($SkipKindleExport) {
         $updatedVolumes | Export-TandokuVolumeToMarkdown
     } else {
+        <# TODO: finish implementing this
         $updatedVolumes | Export-TandokuVolumeToKindle
         Sync-Kindle
+        #>
     }
-    #>
 
     # TODO: optionally create .cbz
 }
