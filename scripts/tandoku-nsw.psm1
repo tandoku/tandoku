@@ -2,11 +2,19 @@ function Sync-NintendoSwitchAlbums {
     param(
         [Parameter()]
         [Switch]
+        $Force,
+
+        [Parameter()]
+        [Switch]
         $SkipDeviceImport,
 
         [Parameter()]
         [Switch]
-        $SkipKindleExport
+        $SkipKindleExport,
+
+        [Parameter()]
+        [Switch]
+        $SkipCbzExport
     )
 
     if (-not $SkipDeviceImport) {
@@ -14,7 +22,7 @@ function Sync-NintendoSwitchAlbums {
     }
 
     $updatedVolumes = Get-TandokuVolume -Tags nintendo-switch-album |
-        Update-TandokuVolume
+        Update-TandokuVolume -Force:$Force
     
     if ($SkipKindleExport) {
         $updatedVolumes | Export-TandokuVolumeToMarkdown
@@ -23,7 +31,16 @@ function Sync-NintendoSwitchAlbums {
         Sync-Kindle
     }
 
-    # TODO: optionally create .cbz
+    if (-not $SkipCbzExport) {
+        # TODO: use Compress-TandokuVolume (add switch to create cbz without deleting images)
+        $updatedVolumes |
+            Foreach-Object {
+                # Update images CBZ
+                $volumeBlobPath = $_.BlobPath ?? $_.Path
+                $volumeFileName = Split-Path $_.Path -Leaf
+                Compress-Archive $volumeBlobPath/images/*.* -DestinationPath $volumeBlobPath/$volumeFileName.cbz -Force
+            }
+    }
 }
 
 function Copy-NintendoSwitchDeviceAlbums($DestinationPath) {
@@ -67,7 +84,11 @@ function Get-NintendoSwitchStagingPath {
 function Update-NintendoSwitchAlbumTandokuVolume {
     param(
         [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
-        $InputObject
+        $InputObject,
+
+        [Parameter()]
+        [Switch]
+        $Force
     )
 
     # TODO: check volume.config.nintendo-switch-album.title first
@@ -76,18 +97,18 @@ function Update-NintendoSwitchAlbumTandokuVolume {
     $volumePath = $InputObject.Path
     $volumeBlobPath = $InputObject.BlobPath ?? $volumePath
 
-    # TODO: include a -Force option to regenerate content even if no files added
-    # (maybe run Add-AcvText for all files in this case as well?)
     $newItems = Copy-ItemIfNewer $albumStagingPath/*.jpg $volumeBlobPath/images/ -PassThru
-    if ($newItems.Count -gt 0) {
-        [void] ($newItems | Add-AcvText -Language $InputObject.Language)
+    if ($Force -or $newItems.Count -gt 0) {
+        $contentItems = Get-ChildItem $volumeBlobPath/images/*.jpg
+
+        $ocrItems = $Force ? $contentItems : $newItems 
+        [void] ($ocrItems | Add-AcvText -Language $InputObject.Language)
 
         # Create tandoku content from images and generate Markdown file
         $contentFileName = Split-Path $volumePath -Leaf
         $contentFileName = "$contentFileName.tdkc.yaml"
         $contentPath = Join-Path $volumePath $contentFileName
-        $contentImages = Get-ChildItem $volumeBlobPath/images/*.jpg
-        [void] (tandoku generate $contentImages --out $contentPath)
+        [void] (tandoku generate $contentItems --out $contentPath)
 
         return $InputObject
     }

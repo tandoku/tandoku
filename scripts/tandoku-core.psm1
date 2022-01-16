@@ -295,12 +295,15 @@ function Update-TandokuVolume {
     param(
         # TODO: multiple parameter sets to allow calling this with $Path or similar
         [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
-        $InputObject
+        $InputObject,
+
+        [Parameter()]
+        [Switch]
+        $Force
     )
     process {
-        # TODO: consider using splatting (see about_Splatting) to forward parameters to child functions
         if ($InputObject.Tags -contains 'nintendo-switch-album') {
-            Update-NintendoSwitchAlbumTandokuVolume $InputObject
+            Update-NintendoSwitchAlbumTandokuVolume @PSBoundParameters
         } else {
             Write-Error "Unable to update volume: $($InputObject.Title)"
         }
