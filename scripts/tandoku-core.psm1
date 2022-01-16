@@ -158,20 +158,58 @@ function Get-TandokuLibraryPath {
             $relativePath = $LiteralPath
         }
 
-        return (Join-Path $rootPath $relativePath)
+        return (Join-Path $rootPath $relativePath -Resolve)
     } else {
         return $rootPath
     }
 }
 
 function ExtractRelativePath($basePath, $childPath) {
+    if ($basePath -eq $childPath) {
+        return '.'
+    }
+
     $basePathWithSep = Join-Path $basePath /
+    $childPathWithSep = Join-Path $childPath /
+    if ($basePathWithSep -eq $childPathWithSep) {
+        return '.'
+    }
+
     if ($childPath -like "$basePathWithSep*") {
         return $childPath.Substring($basePathWithSep.length)
     } else {
         return $null
     }
 }
+
+function Set-LocationToTandokuLibraryPath {
+    param(
+        [Parameter()]
+        [String]
+        $Path,
+
+        [Parameter()]
+        [Switch]
+        $Blob
+    )
+
+    if (-not $Path) {
+        $Path = $PWD
+    }
+    $newPath = Get-TandokuLibraryPath $Path -Blob:$Blob
+    Set-Location $newPath
+}
+Set-Alias gotolib Set-LocationToTandokuLibraryPath
+
+function Set-LocationToTandokuBlobPath {
+    param(
+        [Parameter()]
+        [String]
+        $Path
+    )
+    Set-LocationToTandokuLibraryPath $Path -Blob
+}
+Set-Alias gotoblob Set-LocationToTandokuBlobPath
 
 function New-TandokuVolume {
     param(
