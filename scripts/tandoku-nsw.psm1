@@ -23,23 +23,25 @@ function Sync-NintendoSwitchAlbums {
 
     $updatedVolumes = Get-TandokuVolume -Tags nintendo-switch-album |
         Update-TandokuVolume -Force:$Force
-    
-    if ($SkipKindleExport) {
-        $updatedVolumes | Export-TandokuVolumeToMarkdown
-    } else {
-        $updatedVolumes | Export-TandokuVolumeToKindle
-        Sync-Kindle
-    }
 
-    if (-not $SkipCbzExport) {
-        # TODO: use Compress-TandokuVolume (add switch to create cbz without deleting images)
-        $updatedVolumes |
-            Foreach-Object {
-                # Update images CBZ
-                $volumeBlobPath = $_.BlobPath ?? $_.Path
-                $volumeFileName = Split-Path $_.Path -Leaf
-                Compress-Archive $volumeBlobPath/images/*.* -DestinationPath $volumeBlobPath/$volumeFileName.cbz -Force
-            }
+    if ($updatedVolumes.Count -gt 0) {
+        if ($SkipKindleExport) {
+            $updatedVolumes | Export-TandokuVolumeToMarkdown
+        } else {
+            $updatedVolumes | Export-TandokuVolumeToKindle
+            Sync-Kindle
+        }
+
+        if (-not $SkipCbzExport) {
+            # TODO: use Compress-TandokuVolume (add switch to create cbz without deleting images)
+            $updatedVolumes |
+                Foreach-Object {
+                    # Update images CBZ
+                    $volumeBlobPath = $_.BlobPath ?? $_.Path
+                    $volumeFileName = Split-Path $_.Path -Leaf
+                    Compress-Archive $volumeBlobPath/images/*.* -DestinationPath $volumeBlobPath/$volumeFileName.cbz -Force
+                }
+        }
     }
 }
 
@@ -91,8 +93,9 @@ function Update-NintendoSwitchAlbumTandokuVolume {
         $Force
     )
 
-    # TODO: check volume.config.nintendo-switch-album.title first
-    $albumStagingPath = Join-Path (Get-NintendoSwitchStagingPath -Album) $InputObject.Title
+    # TODO: check volume.config.nintendo-switch-album.stagingName first
+    $stagingName = CleanInvalidPathChars $InputObject.Title
+    $albumStagingPath = Join-Path (Get-NintendoSwitchStagingPath -Album) $stagingName
 
     $volumePath = $InputObject.Path
     $volumeBlobPath = $InputObject.BlobPath ?? $volumePath

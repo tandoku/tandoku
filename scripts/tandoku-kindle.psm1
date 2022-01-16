@@ -18,19 +18,20 @@ function Export-TandokuVolumeToKindle {
             # Copy necessary files/folder structure to temp path
             Copy-Item $markdownPath $volumeTempPath/
             if (Test-Path $volumeBlobPath/images) {
-                New-Item $volumeTempPath/images -ItemType Directory
-                Copy-Item $volumeBlobPath/images/*.* $volumeTempPath/images/
+                $imagesTempPath = New-Item $volumeTempPath/images -ItemType Directory
+                Copy-Item $volumeBlobPath/images/*.* $imagesTempPath
             }
 
             $kindleTempPath = ConvertTo-KindleBook $volumeTempPath/$markdownFileName -TargetFormat azw3 -Title $volumeTitle
             $kindleFileName = Split-Path $kindleTempPath -Leaf
-            if (Test-Path $volumeBlobPath/export/$kindleFileName) {
-                Remove-Item $volumeBlobPath/export/$kindleFileName
+            $kindleExportPath = "$volumeBlobPath/export/$kindleFileName"
+            if (Test-Path $kindleExportPath) {
+                Remove-Item $kindleExportPath
             }
-            Move-Item $kindleTempPath $volumeBlobPath/export/
+            Move-Item $kindleTempPath $kindleExportPath
 
-            $kindleStagingPath = Get-KindleStagingPath -TandokuDocumentExport
-            Copy-Item $volumeBlobPath/export/$kindleFileName $kindleStagingPath/$kindleFileName
+            $kindleStagingPath = Join-Path (Get-KindleStagingPath -TandokuDocumentExport) $kindleFileName
+            Copy-Item $kindleExportPath $kindleStagingPath
         }
         finally {
             $tempDir.Dispose()
