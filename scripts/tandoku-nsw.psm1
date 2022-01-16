@@ -19,10 +19,8 @@ function Sync-NintendoSwitchAlbums {
     if ($SkipKindleExport) {
         $updatedVolumes | Export-TandokuVolumeToMarkdown
     } else {
-        <# TODO: finish implementing this
         $updatedVolumes | Export-TandokuVolumeToKindle
         Sync-Kindle
-        #>
     }
 
     # TODO: optionally create .cbz

@@ -1,3 +1,96 @@
+function Export-TandokuVolumeToKindle {
+    param(
+        # TODO: multiple parameter sets to allow calling this with $Path or similar
+        [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
+        $InputObject
+    )
+    process {
+        $volumeTitle = $InputObject.Title
+        $volumePath = $InputObject.Path
+        $volumeBlobPath = $InputObject.BlobPath ?? $volumePath
+
+        $markdownPath = Export-TandokuVolumeToMarkdown $InputObject
+        $markdownFileName = Split-Path $markdownPath -Leaf
+
+        $tempDir = New-TempDirectory 'tandoku'
+        $volumeTempPath = $tempDir.TempDirPath
+        try {
+            # Copy necessary files/folder structure to temp path
+            Copy-Item $markdownPath $volumeTempPath/
+            if (Test-Path $volumeBlobPath/images) {
+                New-Item $volumeTempPath/images -ItemType Directory
+                Copy-Item $volumeBlobPath/images/*.* $volumeTempPath/images/
+            }
+
+            $kindleTempPath = ConvertTo-KindleBook $volumeTempPath/$markdownFileName -TargetFormat azw3 -Title $volumeTitle
+            $kindleFileName = Split-Path $kindleTempPath -Leaf
+            if (Test-Path $volumeBlobPath/export/$kindleFileName) {
+                Remove-Item $volumeBlobPath/export/$kindleFileName
+            }
+            Move-Item $kindleTempPath $volumeBlobPath/export/
+
+            $kindleStagingPath = Get-KindleStagingPath -TandokuDocumentExport
+            Copy-Item $volumeBlobPath/export/$kindleFileName $kindleStagingPath/$kindleFileName
+        }
+        finally {
+            $tempDir.Dispose()
+        }
+    }
+}
+
+function Sync-Kindle {
+    $deviceRootPath = Get-KindleDevicePath
+    if (-not (Test-Path $deviceRootPath)) {
+        Write-Error "Kindle device not available at $deviceRootPath"
+        return
+    }
+
+    $kindleStagingPath = Get-KindleStagingPath -TandokuDocumentExport
+    $kindleDevicePath = Get-KindleDevicePath -TandokuDocuments
+    Copy-Item $kindleStagingPath/*.azw3 $kindleDevicePath/ -Force
+}
+
+function Get-KindleStagingPath {
+    param(
+        [Parameter()]
+        [Switch]
+        $TandokuDocumentExport
+    )
+
+    $lib = Get-TandokuLibrary
+    $basePath = $lib.config.kindle.stagingPath
+
+    if (-not $basePath) {
+        $extStagingPath = Get-TandokuExternalStagingPath
+        $basePath = Join-Path $extStagingPath 'kindle'
+    }
+
+    if ($TandokuDocumentExport) {
+        return Join-Path $basePath 'export/documents/tandoku'
+    }
+    return $basePath
+}
+
+function Get-KindleDevicePath {
+    param(
+        [Parameter()]
+        [Switch]
+        $TandokuDocuments
+    )
+
+    $lib = Get-TandokuLibrary
+    $basePath = $lib.config.kindle.devicePath
+
+    if (-not $basePath) {
+        throw "Kindle device path not configured"
+    }
+
+    if ($TandokuDocuments) {
+        return Join-Path $basePath 'documents/tandoku'
+    }
+    return $basePath
+}
+
 # cp 'e:\documents\My Clippings.txt' o:\Tandoku\Kindle\raw
 # cp 'e:\system\vocabulary\vocab.db' o:\Tandoku\Kindle\raw
 
@@ -66,14 +159,16 @@ function ConvertTo-KindleBook {
         $azw3 = [IO.Path]::ChangeExtension($Path, '.azw3')
 
         # NOTE: do not use --share-not-sync option as this breaks Vocabulary Builder
-        ebook-convert $Path $azw3 --language=ja --authors=tandoku --title="$title" $otherParams
+        [void] (ebook-convert $Path $azw3 --language=ja --authors=tandoku --title="$title" $otherParams)
+        return $azw3
     } else {
         $epub = [IO.Path]::ChangeExtension($Path, '.epub')
 
-        ebook-convert $Path $epub --epub-version=3 --language=ja --authors=tandoku --title="$title" $otherParams
+        [void] (ebook-convert $Path $epub --epub-version=3 --language=ja --authors=tandoku --title="$title" $otherParams)
         #pandoc $source -f commonmark+footnotes -o $epub -t epub3 --metadata title="$title" --metadata author=Tandoku --metadata lang=ja
 
-        kindlegen $epub
+        [void] (kindlegen $epub)
+        return ([IO.Path]::ChangeExtension($epub, '.mobi'))
     }
 }
 Set-Alias tokindle ConvertTo-KindleBook

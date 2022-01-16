@@ -20,7 +20,11 @@ function Initialize-TandokuLibrary {
 
         [Parameter()]
         [String]
-        $ExternalStagingPath
+        $ExternalStagingPath,
+
+        [Parameter()]
+        [String]
+        $KindleDevicePath
     )
 
     $metadataPath = (Join-Path $Path "$Name.tdkl.yaml")
@@ -33,12 +37,22 @@ function Initialize-TandokuLibrary {
         $metadataObj.blobStorePath = (Convert-Path $BlobStorePath)
     }
 
+    $metadataObj.config = @{}
+
     if ($ExternalStagingPath) {
-        $metadataObj.config = @{
-            core = @{
-               externalStagingPath = (Convert-Path $ExternalStagingPath)
-            }
+        $metadataObj.config.core = @{
+           externalStagingPath = (Convert-Path $ExternalStagingPath)
         }
+    }
+
+    if ($KindleDevicePath) {
+        $metadataObj.config.kindle = @{
+           devicePath = (Convert-Path $KindleDevicePath)
+        }
+    }
+
+    if ($metadataObj.config.count -eq 0) {
+        $metadataObj.Remove('config')
     }
 
     WriteMetadataContent $metadataPath $metadataObj
@@ -309,10 +323,14 @@ function Export-TandokuVolumeToMarkdown {
             return
         }
 
+        # TODO: export as .tdkv.md rather than .tdkc.md
         $contentFileName = Split-Path $contentPath -Leaf
         $exportFileName = [IO.Path]::ChangeExtension($contentFileName, '.md')
+        $exportPath = "$volumePath/export/$exportFileName"
 
-        tandoku export $contentPath $volumePath\export\$exportFileName --format Markdown
+        [void] (tandoku export $contentPath $exportPath --format Markdown)
+
+        return [IO.FileInfo] $exportPath
     }
 }
 
