@@ -164,24 +164,6 @@ function Get-TandokuLibraryPath {
     }
 }
 
-function ExtractRelativePath($basePath, $childPath) {
-    if ($basePath -eq $childPath) {
-        return '.'
-    }
-
-    $basePathWithSep = Join-Path $basePath /
-    $childPathWithSep = Join-Path $childPath /
-    if ($basePathWithSep -eq $childPathWithSep) {
-        return '.'
-    }
-
-    if ($childPath -like "$basePathWithSep*") {
-        return $childPath.Substring($basePathWithSep.length)
-    } else {
-        return $null
-    }
-}
-
 function Set-LocationToTandokuLibraryPath {
     param(
         [Parameter()]
@@ -197,7 +179,7 @@ function Set-LocationToTandokuLibraryPath {
         $Path = $PWD
     }
     $newPath = Get-TandokuLibraryPath $Path -Blob:$Blob
-    Set-Location $newPath
+    Set-Location (MapToPSDriveAlias $newPath)
 }
 Set-Alias gotolib Set-LocationToTandokuLibraryPath
 
