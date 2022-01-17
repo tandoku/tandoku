@@ -6,18 +6,18 @@ function Sync-NintendoSwitchAlbums {
 
         [Parameter()]
         [Switch]
-        $SkipDeviceImport,
+        $NoDeviceImport,
 
         [Parameter()]
         [Switch]
-        $SkipKindleExport,
+        $NoKindleExport,
 
         [Parameter()]
         [Switch]
-        $SkipCbzExport
+        $NoCbzExport
     )
 
-    if (-not $SkipDeviceImport) {
+    if (-not $NoDeviceImport) {
         Copy-NintendoSwitchDeviceAlbums
     }
 
@@ -25,14 +25,14 @@ function Sync-NintendoSwitchAlbums {
         Update-TandokuVolume -Force:$Force
 
     if ($updatedVolumes.Count -gt 0) {
-        if ($SkipKindleExport) {
+        if ($NoKindleExport) {
             $updatedVolumes | Export-TandokuVolumeToMarkdown
         } else {
             $updatedVolumes | Export-TandokuVolumeToKindle
             Sync-Kindle
         }
 
-        if (-not $SkipCbzExport) {
+        if (-not $NoCbzExport) {
             # TODO: use Compress-TandokuVolume (add switch to create cbz without deleting images)
             $updatedVolumes |
                 Foreach-Object {
