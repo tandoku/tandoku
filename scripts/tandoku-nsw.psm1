@@ -44,6 +44,7 @@ function Sync-NintendoSwitchAlbums {
         }
     }
 }
+New-Alias synsw Sync-NintendoSwitchAlbums
 
 function Copy-NintendoSwitchDeviceAlbums($DestinationPath) {
     if (-not $DestinationPath) {

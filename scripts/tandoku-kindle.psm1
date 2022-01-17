@@ -126,7 +126,7 @@ function Get-KindleBook {
 
 # Use kindlegen from Kindle Previewer 3 installation since kindlegen download was discontinued
 # TODO: make this configurable
-Set-Alias kindlegen "$env:LocalAppData\Amazon\Kindle Previewer 3\lib\fc\bin\kindlegen.exe"
+New-Alias kindlegen "$env:LocalAppData\Amazon\Kindle Previewer 3\lib\fc\bin\kindlegen.exe"
 
 function ConvertTo-KindleBook {
     param(
@@ -172,7 +172,7 @@ function ConvertTo-KindleBook {
         return ([IO.Path]::ChangeExtension($epub, '.mobi'))
     }
 }
-Set-Alias tokindle ConvertTo-KindleBook
+New-Alias tokindle ConvertTo-KindleBook
 
 function RemoveAllExtensions($path) {
     $result = [IO.Path]::GetFilenameWithoutExtension($path)

@@ -1,3 +1,15 @@
+function Set-LocationToTandokuScripts {
+    $repoRoot = Get-TandokuRepoRoot
+    Set-Location (MapToPSDriveAlias $repoRoot/scripts)
+}
+New-Alias tdkscripts Set-LocationToTandokuScripts
+
+function Set-LocationToTandokuSrc {
+    $repoRoot = Get-TandokuRepoRoot
+    Set-Location (MapToPSDriveAlias $repoRoot/src)
+}
+New-Alias tdksrc Set-LocationToTandokuSrc
+
 # NOTE: The output of these commands is functionally equivalent to the Markdown output currently
 
 function Get-AllTextFromTandokuContent {

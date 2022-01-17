@@ -181,7 +181,7 @@ function Set-LocationToTandokuLibraryPath {
     $newPath = Get-TandokuLibraryPath $Path -Blob:$Blob
     Set-Location (MapToPSDriveAlias $newPath)
 }
-Set-Alias gotolib Set-LocationToTandokuLibraryPath
+New-Alias gotolib Set-LocationToTandokuLibraryPath
 
 function Set-LocationToTandokuBlobPath {
     param(
@@ -191,7 +191,7 @@ function Set-LocationToTandokuBlobPath {
     )
     Set-LocationToTandokuLibraryPath $Path -Blob
 }
-Set-Alias gotoblob Set-LocationToTandokuBlobPath
+New-Alias gotoblob Set-LocationToTandokuBlobPath
 
 function New-TandokuVolume {
     param(
@@ -266,6 +266,7 @@ function New-TandokuVolume {
 
     return Get-TandokuVolume $metadataPath
 }
+New-Alias ntv New-TandokuVolume
 
 function Get-TandokuVolume {
     param(
@@ -310,6 +311,7 @@ function Get-TandokuVolume {
             return $true
         }
 }
+New-Alias gtv Get-TandokuVolume
 
 function Update-TandokuVolume {
     param(
@@ -329,6 +331,7 @@ function Update-TandokuVolume {
         }
     }
 }
+New-Alias utv Update-TandokuVolume
 
 function Export-TandokuVolumeToMarkdown {
     param(
