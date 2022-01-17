@@ -18,4 +18,8 @@ function Reset-TandokuModules {
     Get-ChildItem $tandokuSecondaryModules | Import-Module -Scope Global -Force
 }
 
+function Get-TandokuRepoRoot {
+    return $tandokuRepoRoot
+}
+
 Export-ModuleMember -Function *-* -Alias *
