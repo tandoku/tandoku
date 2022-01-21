@@ -34,6 +34,12 @@ function MapToPSDriveAlias([String] $path) {
     return $path
 }
 
+function CreateDirectoryIfNotExists([String] $path) {
+    if (-not (Test-Path $path)) {
+        [void](New-Item $path -ItemType Directory)
+    }
+}
+
 function Copy-ItemIfNewer {
     param(
         [Parameter(Mandatory=$true)]
@@ -46,15 +52,24 @@ function Copy-ItemIfNewer {
 
         [Parameter()]
         [Switch]
+        $Force,
+
+        [Parameter()]
+        [Switch]
         $PassThru
     )
 
     Get-ChildItem $Path |
         Foreach-Object {
-            $targetPath = Join-Path $Destination (Split-Path $_ -Leaf)
+            # NOTE: this won't handle $Destination with wildcards
+            if (Test-Path $Destination -PathType Container) {
+                $targetPath = Join-Path $Destination (Split-Path $_ -Leaf)
+            } else {
+                $targetPath = $Destination
+            }
             $target = (Test-Path $targetPath) ? (Get-Item -LiteralPath $targetPath) : $null
             if (-not $target -or ($target.LastWriteTime -lt $_.LastWriteTime)) {
-                Copy-Item -LiteralPath $_ -Destination $Destination -PassThru:$PassThru
+                Copy-Item -LiteralPath $_ -Destination $Destination -Force:$Force -PassThru:$PassThru
             }
         }
 }

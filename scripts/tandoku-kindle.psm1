@@ -40,22 +40,55 @@ function Export-TandokuVolumeToKindle {
 }
 
 function Sync-Kindle {
+    param(
+        [Parameter()]
+        [Switch]
+        $NoExport,
+
+        [Parameter()]
+        [Switch]
+        $NoImport
+    )
+
     $deviceRootPath = Get-KindleDevicePath
     if (-not (Test-Path $deviceRootPath)) {
         Write-Error "Kindle device not available at $deviceRootPath"
         return
     }
 
-    $kindleStagingPath = Get-KindleStagingPath -TandokuDocumentExport
-    $kindleDevicePath = Get-KindleDevicePath -TandokuDocuments
-    Copy-Item $kindleStagingPath/*.azw3 $kindleDevicePath/ -Force
+    if (-not $NoExport) {
+        $kindleExportPath = Get-KindleStagingPath -TandokuDocumentExport
+        if (Test-Path $kindleExportPath) {
+            $kindleDevicePath = Get-KindleDevicePath -TandokuDocuments
+            CreateDirectoryIfNotExists $kindleDevicePath
+            Copy-ItemIfNewer $kindleExportPath/*.azw3 $kindleDevicePath/ -Force -PassThru
+        }
+    }
+
+    if (-not $NoImport) {
+        $kindleImportPath = Get-KindleStagingPath -Import
+        $importFilePaths = @(
+            'documents/My Clippings.txt',
+            'system/vocabulary/vocab.db'
+        )
+        foreach ($filePath in $importFilePaths) {
+            $sourcePath = Join-Path $deviceRootPath $filePath
+            $targetPath = Join-Path $kindleImportPath $filePath
+            CreateDirectoryIfNotExists (Split-Path $targetPath -Parent)
+            Copy-ItemIfNewer $sourcePath $targetPath -Force -PassThru
+        }
+    }
 }
 
 function Get-KindleStagingPath {
     param(
         [Parameter()]
         [Switch]
-        $TandokuDocumentExport
+        $TandokuDocumentExport,
+
+        [Parameter()]
+        [Switch]
+        $Import
     )
 
     $lib = Get-TandokuLibrary
@@ -68,6 +101,8 @@ function Get-KindleStagingPath {
 
     if ($TandokuDocumentExport) {
         return Join-Path $basePath 'export/documents/tandoku'
+    } elseif ($Import) {
+        return Join-Path $basePath 'import'
     }
     return $basePath
 }
