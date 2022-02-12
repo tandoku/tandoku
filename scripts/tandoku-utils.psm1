@@ -20,7 +20,14 @@ function ExtractRelativePath([String] $basePath, [String] $childPath) {
     }
 }
 
-function MapToPSDriveAlias([String] $path) {
+function MapToPSDriveAlias {
+    param(
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullorEmpty()]
+        [String]
+        $Path
+    )
+
     $drives = Get-PSDrive -PSProvider FileSystem |
         Sort-Object -Property Root -Descending
 

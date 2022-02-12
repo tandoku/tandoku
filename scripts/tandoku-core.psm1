@@ -179,7 +179,9 @@ function Set-LocationToTandokuLibraryPath {
         $Path = $PWD
     }
     $newPath = Get-TandokuLibraryPath $Path -Blob:$Blob
-    Set-Location (MapToPSDriveAlias $newPath)
+    if ($newPath) {
+        Set-Location (MapToPSDriveAlias $newPath)
+    }
 }
 New-Alias gotolib Set-LocationToTandokuLibraryPath
 
