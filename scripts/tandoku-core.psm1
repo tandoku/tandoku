@@ -214,9 +214,20 @@ function New-TandokuVolume {
         $Tags,
 
         [Parameter()]
+        [ValidateSet('film')]
+        [String]
+        $Template,
+
+        [Parameter()]
         [Switch]
         $Force
     )
+
+    if ($Template -and -not $ContainerPath) {
+        switch ($Template) {
+            'film' { $ContainerPath = 'films' }
+        }
+    }
 
     $volumeFSName = (CleanInvalidPathChars $Title)
     if ($Moniker) {
