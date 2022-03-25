@@ -1,3 +1,5 @@
+using namespace System.Collections.Generic
+
 $tandokuLibraryMetadataPath = $null
 
 function Initialize-TandokuLibrary {
@@ -223,19 +225,15 @@ function New-TandokuVolume {
         $Force
     )
 
-    if ($Template -and -not $ContainerPath) {
-        switch ($Template) {
-            'film' { $ContainerPath = 'films' }
-        }
-    }
+    $props = ProcessTandokuVolumePropertyParameters $PSBoundParameters
 
-    $volumeFSName = (CleanInvalidPathChars $Title)
-    if ($Moniker) {
-        $volumeFSName = "$Moniker $volumeFSName"
+    $volumeFSName = CleanInvalidPathChars $props.Title
+    if ($props.Moniker) {
+        $volumeFSName = "$($props.Moniker) $volumeFSName"
     }
-    $volumePath = Join-Path (Get-TandokuLibraryPath $ContainerPath) $volumeFSName
+    $volumePath = Join-Path (Get-TandokuLibraryPath $props.ContainerPath) $volumeFSName
 
-    $blobContainerPath = Get-TandokuLibraryPath $ContainerPath -Blob
+    $blobContainerPath = Get-TandokuLibraryPath $props.ContainerPath -Blob
     if ($blobContainerPath) {
         $volumeBlobPath = Join-Path $blobContainerPath $volumeFSName
     } else {
@@ -261,25 +259,135 @@ function New-TandokuVolume {
     }
 
     $metadataPath = (Join-Path $volumePath "$volumeFSName.tdkv.yaml")
-
-    $metadataObj = @{
-        version = '0.1.0'
-        title = $Title
-    }
-
-    if ($Moniker) {
-        $metadataObj.moniker = $Moniker
-    }
-
-    if ($Tags) {
-        $metadataObj.tags = $Tags
-    }
-
-    WriteMetadataContent $metadataPath $metadataObj
+    SetTandokuVolumeMetadataProperties $metadataPath $props
 
     return Get-TandokuVolume $metadataPath
 }
 New-Alias ntv New-TandokuVolume
+
+function Set-TandokuVolumeProperties {
+    param(
+        [Parameter()] #TODO: mutually exclusive with $Path
+        [PSCustomObject] #TODO: TandokuVolume
+        $InputObject,
+
+        [Parameter()]
+        [String]
+        $Path,
+
+        [Parameter()]
+        [String]
+        $Title,
+
+        [Parameter()]
+        [String]
+        $ContainerPath,
+
+        [Parameter()]
+        [String]
+        $Moniker,
+
+        [Parameter()]
+        [String[]]
+        $Tags,
+
+        [Parameter()]
+        [ValidateSet('film')]
+        [String]
+        $Template
+    )
+
+    if ($Path) {
+        $InputObject = Get-TandokuVolume -Path $Path
+    }
+    if (-not $InputObject) {
+        Write-Error "No input object"
+        return
+    }
+
+    $metadataPath = $InputObject.MetadataPath
+    $props = ProcessTandokuVolumePropertyParameters $PSBoundParameters
+    SetTandokuVolumeMetadataProperties $metadataPath $props
+
+    # TODO: process changes to file system if Title/Moniker/ContainerPath changed
+    # (refactor as needed from New-TandokuVolume)
+}
+New-Alias stvp Set-TandokuVolumeProperties
+
+class TandokuVolumeProperties {
+    [String] $Title
+    [String] $ContainerPath
+    [String] $Moniker
+    [String[]] $Tags
+}
+
+function ProcessTandokuVolumePropertyParameters([Hashtable] $params) {
+    if ($params.Template) {
+        $template = $params.Template
+        $params.Remove('Template')
+    }
+
+    # TODO: remove other extraneous parameters
+
+    $props = [TandokuVolumeProperties] $params
+
+    if ($template) {
+        $templateProps = GetTandokuVolumeTemplateProperties $template
+        $props = CombineTandokuVolumeProperties $props,$templateProps
+    }
+
+    return $props
+}
+
+function SetTandokuVolumeMetadataProperties([String] $metadataPath, [TandokuVolumeProperties] $props) {
+    if (Test-Path $metadataPath) {
+        $metadataObj = ReadMetadataContent $metadataPath
+    } else {
+        $metadataObj = @{ version = '0.1.0' }
+    }
+
+    if ($props.Title) { $metadataObj.title = $props.Title }
+    if ($props.Moniker) { $metadataObj.moniker = $props.Moniker }
+    if ($props.Tags) { $metadataObj.tags = $props.Tags } #TODO: this won't clear tags if empty Tags array specified
+
+    WriteMetadataContent $metadataPath $metadataObj
+}
+
+function GetTandokuVolumeTemplateProperties([String] $Template) {
+    $props = [TandokuVolumeProperties]::new()
+    switch ($Template) {
+        'film' {
+            $props.ContainerPath = 'films'
+        }
+    }
+    return $props
+}
+
+function CombineTandokuVolumeProperties([TandokuVolumeProperties[]] $propsList) {
+    if (-not $propsList) {
+        return $null
+    }
+
+    $props = $propsList[0]
+
+    for ($i = 1; $i -lt $propsList.Count; $i++) {
+        $mergeProps = $propsList[$i]
+        
+        # NOTE: not merging Title or Moniker
+
+        if ($mergeProps.ContainerPath -and -not $props.ContainerPath) {
+            $props.ContainerPath = $mergeProps.ContainerPath
+        }
+
+        if ($mergeProps.Tags) {
+            $newTags = [HashSet[string]] $props.Tags
+            $newTags.UnionWith($mergeProps.Tags)
+            $props.Tags = $newTags.ToArray()
+        }
+    }
+
+    return $props
+}
 
 function Get-TandokuVolume {
     param(
