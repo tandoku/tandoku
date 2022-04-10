@@ -197,6 +197,16 @@ function Set-LocationToTandokuBlobPath {
 }
 New-Alias gotoblob Set-LocationToTandokuBlobPath
 
+function Set-LocationToTandokuLibraryRoot {
+    Set-LocationToTandokuLibraryPath /
+}
+New-Alias tdklib Set-LocationToTandokuLibraryRoot
+
+function Set-LocationToTandokuBlobRoot {
+    Set-LocationToTandokuBlobPath /
+}
+New-Alias tdkblob Set-LocationToTandokuBlobRoot
+
 function New-TandokuVolume {
     param(
         [Parameter(Mandatory=$true)]
