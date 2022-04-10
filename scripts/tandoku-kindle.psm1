@@ -43,26 +43,17 @@ function Sync-Kindle {
     param(
         [Parameter()]
         [Switch]
-        $NoExport,
+        $NoImport,
 
         [Parameter()]
         [Switch]
-        $NoImport
+        $NoExport
     )
 
     $deviceRootPath = Get-KindleDevicePath
     if (-not (Test-Path $deviceRootPath)) {
         Write-Error "Kindle device not available at $deviceRootPath"
         return
-    }
-
-    if (-not $NoExport) {
-        $kindleExportPath = Get-KindleStagingPath -TandokuDocumentExport
-        if (Test-Path $kindleExportPath) {
-            $kindleDevicePath = Get-KindleDevicePath -TandokuDocuments
-            CreateDirectoryIfNotExists $kindleDevicePath
-            Copy-ItemIfNewer $kindleExportPath/*.azw3 $kindleDevicePath/ -Force -PassThru
-        }
     }
 
     if (-not $NoImport) {
@@ -76,6 +67,15 @@ function Sync-Kindle {
             $targetPath = Join-Path $kindleImportPath $filePath
             CreateDirectoryIfNotExists (Split-Path $targetPath -Parent)
             Copy-ItemIfNewer $sourcePath $targetPath -Force -PassThru
+        }
+    }
+
+    if (-not $NoExport) {
+        $kindleExportPath = Get-KindleStagingPath -TandokuDocumentExport
+        if (Test-Path $kindleExportPath) {
+            $kindleDevicePath = Get-KindleDevicePath -TandokuDocuments
+            CreateDirectoryIfNotExists $kindleDevicePath
+            Copy-ItemIfNewer $kindleExportPath/*.azw3 $kindleDevicePath/ -Force -PassThru
         }
     }
 }
