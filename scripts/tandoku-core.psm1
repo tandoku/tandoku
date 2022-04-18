@@ -18,6 +18,10 @@ function Initialize-TandokuLibrary {
 
         [Parameter()]
         [String]
+        $ReferenceLanguage = 'en',
+
+        [Parameter()]
+        [String]
         $BlobStorePath,
 
         [Parameter()]
@@ -33,6 +37,7 @@ function Initialize-TandokuLibrary {
     $metadataObj = @{
         version = '0.1.0'
         language = $Language
+        referenceLanguage = $ReferenceLanguage
     }
 
     if ($BlobStorePath) {
@@ -105,6 +110,7 @@ function Get-TandokuLibrary {
         BlobPath = $m.blobStorePath
         Config = $m.config
         Language = $m.language
+        ReferenceLanguage = $m.referenceLanguage
     }
 }
 
@@ -570,7 +576,8 @@ function Get-TandokuVolume {
             [PSCustomObject] @{
                 Title = $m.title
                 Moniker = $m.moniker
-                Language = $m.Language ?? $lib.Language
+                Language = $m.language ?? $lib.Language
+                ReferenceLanguage = $m.referenceLanguage ?? $lib.ReferenceLanguage
                 Tags = $m.tags
                 FSName = Split-Path $volumePath -Leaf
                 ContainerPath = (Get-TandokuLibraryPath (Split-Path $volumePath -Parent) -Relative)
