@@ -311,7 +311,10 @@ function New-TandokuVolume {
     $metadataPath = (Join-Path $volumePath "$volumeFSName.tdkv.yaml")
     SetTandokuVolumeMetadataProperties $metadataPath $props
 
-    return Get-TandokuVolume $metadataPath
+    $v = Get-TandokuVolume $metadataPath
+    CreateTandokuVolumeDirs $v $props
+
+    return $v
 }
 New-Alias ntv New-TandokuVolume
 
@@ -378,6 +381,7 @@ function Set-TandokuVolumeProperties {
     $metadataPath = $InputObject.MetadataPath
     $props = ProcessTandokuVolumePropertyParameters $PSBoundParameters
     SetTandokuVolumeMetadataProperties $metadataPath $props
+    CreateTandokuVolumeDirs $InputObject $props
 
     # Process changes to file system if Title/Moniker/ContainerPath changed
     if ($props.Title -or $props.ContainerPath -or $props.Moniker) {
@@ -422,6 +426,9 @@ class TandokuVolumeProperties {
     [String] $ContainerPath
     [String] $Moniker
     [String[]] $Tags
+
+    [String[]] $LibDirs
+    [String[]] $BlobDirs
 
     [String] $ContentOriginProvider
     [String] $ContentOriginUrl
@@ -501,12 +508,52 @@ function SetTandokuVolumeMetadataProperties([String] $metadataPath, [TandokuVolu
     WriteMetadataContent $metadataPath $metadataObj
 }
 
+#TODO: PSCustomObject -> TandokuVolume
+function CreateTandokuVolumeDirs([PSCustomObject] $volume, [TandokuVolumeProperties] $props) {
+    $dirConfigs = @(
+        @{ Dirs = $props.LibDirs; RootPath = $volume.Path },
+        @{ Dirs = $props.BlobDirs; RootPath = ($volume.BlobPath ?? $volume.Path) })
+
+    $tokenMap = @{
+        '$lang' = $volume.Language
+        '$reflang' = $volume.ReferenceLanguage
+    }
+
+    foreach ($c in $dirConfigs) {
+        $c.Dirs | Foreach-Object {
+            $relPath = ReplaceTokensInString $_ $tokenMap
+            CreateDirectoryIfNotExists (Join-Path $c.RootPath $relPath)
+        }
+    }
+}
+
+#TODO: move to utils
+function ReplaceTokensInString([String] $s, [Hashtable] $map) {
+    #TODO: rewrite this to a single regex replace (match any of $map keys)
+    foreach ($k in $map.Keys) {
+        $kx = [Regex]::Escape($k)
+        $s = $s -replace $kx,$map[$k]
+    }
+    return $s
+}
+
 function GetTandokuVolumeTemplateProperties([String] $Template) {
     $props = [TandokuVolumeProperties]::new()
     switch ($Template) {
         'film' {
             $props.ContainerPath = 'films'
             $props.Tags = @('film')
+            $props.LibDirs = @('source')
+            $props.BlobDirs = @(
+                'source',
+                'source/$lang',
+                'source/$reflang',
+                'source/investigate',
+                'source/investigate/$lang',
+                'source/investigate/$reflang',
+                'source/unused',
+                'source/unused/$lang',
+                'source/unused/$reflang')
         }
     }
     return $props
@@ -517,8 +564,10 @@ function CombineTandokuVolumeProperties([TandokuVolumeProperties[]] $propsList) 
         return $null
     }
 
-    # NOTE: not merging Title or Moniker
+    # NOTE: not merging Title or Moniker (should never be specified by template)
     $simplePropNames = @(
+        'LibDirs',
+        'BlobDirs',
         'ContainerPath',
         'ContentOriginProvider',
         'ContentOriginUrl',
