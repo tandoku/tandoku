@@ -243,6 +243,26 @@ function New-TandokuVolume {
         $Tags,
 
         [Parameter()]
+        [String]
+        $ContentOriginProvider,
+
+        [Parameter()]
+        [String]
+        $ContentOriginUrl,
+
+        [Parameter()]
+        [String]
+        $LicenseOriginProvider,
+
+        [Parameter()]
+        [String]
+        $LicenseOriginUrl,
+
+        [Parameter()]
+        [String]
+        $OriginalMedia,
+
+        [Parameter()]
         [ValidateSet('film')]
         [String]
         $Template,
@@ -316,6 +336,26 @@ function Set-TandokuVolumeProperties {
         $Tags,
 
         [Parameter()]
+        [String]
+        $ContentOriginProvider,
+
+        [Parameter()]
+        [String]
+        $ContentOriginUrl,
+
+        [Parameter()]
+        [String]
+        $LicenseOriginProvider,
+
+        [Parameter()]
+        [String]
+        $LicenseOriginUrl,
+
+        [Parameter()]
+        [String]
+        $OriginalMedia,
+
+        [Parameter()]
         [ValidateSet('film')]
         [String]
         $Template
@@ -377,6 +417,13 @@ class TandokuVolumeProperties {
     [String] $Moniker
     [String[]] $Tags
 
+    [String] $ContentOriginProvider
+    [String] $ContentOriginUrl
+    [String] $LicenseOriginProvider
+    [String] $LicenseOriginUrl
+
+    [String] $OriginalMedia
+
     # TODO: $FSName derived property? (not sure about syntax/if PowerShell supports this)
     [string] FSName() {
         $volumeFSName = CleanInvalidPathChars $this.Title
@@ -418,6 +465,33 @@ function SetTandokuVolumeMetadataProperties([String] $metadataPath, [TandokuVolu
     if ($props.Moniker) { $metadataObj.moniker = $props.Moniker }
     if ($props.Tags) { $metadataObj.tags = $props.Tags } #TODO: this won't clear tags if empty Tags array specified
 
+    $sourceObj = $metadataObj.source ?? @{}
+
+    if ($props.ContentOriginProvider -or $props.ContentOriginUrl) {
+        if (-not $sourceObj.contentOrigin) { $sourceObj.contentOrigin = @{} }
+        if ($props.ContentOriginProvider) {
+            $sourceObj.contentOrigin.provider = $props.ContentOriginProvider
+        }
+        if ($props.ContentOriginUrl) {
+            $sourceObj.contentOrigin.url = $props.ContentOriginUrl
+        }
+    }
+    if ($props.LicenseOriginProvider -or $props.LicenseOriginUrl) {
+        if (-not $sourceObj.licenseOrigin) { $sourceObj.licenseOrigin = @{} }
+        if ($props.LicenseOriginProvider) {
+            $sourceObj.licenseOrigin.provider = $props.LicenseOriginProvider
+        }
+        if ($props.LicenseOriginUrl) {
+            $sourceObj.licenseOrigin.url = $props.LicenseOriginUrl
+        }
+    }
+
+    if ($props.OriginalMedia) { $sourceObj.originalMedia = $props.OriginalMedia }
+
+    if ($sourceObj.Count -gt 0) {
+        $metadataObj.source = $sourceObj
+    }
+
     WriteMetadataContent $metadataPath $metadataObj
 }
 
@@ -437,15 +511,25 @@ function CombineTandokuVolumeProperties([TandokuVolumeProperties[]] $propsList) 
         return $null
     }
 
+    # NOTE: not merging Title or Moniker
+    $simplePropNames = @(
+        'ContainerPath',
+        'ContentOriginProvider',
+        'ContentOriginUrl',
+        'LicenseOriginProvider',
+        'LicenseOriginUrl',
+        'OriginalMedia'
+    )
+
     $props = $propsList[0]
 
     for ($i = 1; $i -lt $propsList.Count; $i++) {
         $mergeProps = $propsList[$i]
-        
-        # NOTE: not merging Title or Moniker
 
-        if ($mergeProps.ContainerPath -and -not $props.ContainerPath) {
-            $props.ContainerPath = $mergeProps.ContainerPath
+        foreach ($p in $simplePropNames) {
+            if ($mergeProps.$p -and -not $props.$p) {
+                $props.$p = $mergeProps.$p
+            }
         }
 
         if ($mergeProps.Tags) {
