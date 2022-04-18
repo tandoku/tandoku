@@ -121,7 +121,15 @@ function Get-TandokuLibraryPath {
 
         [Parameter()]
         [Switch]
-        $Blob
+        $Blob, #TODO: mutually exclusive with $Relative
+
+        [Parameter()]
+        [Switch]
+        $Relative,
+
+        [Parameter()]
+        [Switch]
+        $NoResolve
     )
 
     $lib = Get-TandokuLibrary
@@ -160,9 +168,18 @@ function Get-TandokuLibraryPath {
             $relativePath = $LiteralPath
         }
 
-        return (Join-Path $rootPath $relativePath -Resolve)
+        if ($Relative) {
+            return $relativePath
+        } else {
+            $resolve = -not $NoResolve
+            return (Join-Path $rootPath $relativePath -Resolve:$resolve)
+        }
     } else {
-        return $rootPath
+        if ($Relative) {
+            return '.'
+        } else {
+            return $rootPath
+        }
     }
 }
 
@@ -237,10 +254,7 @@ function New-TandokuVolume {
 
     $props = ProcessTandokuVolumePropertyParameters $PSBoundParameters
 
-    $volumeFSName = CleanInvalidPathChars $props.Title
-    if ($props.Moniker) {
-        $volumeFSName = "$($props.Moniker) $volumeFSName"
-    }
+    $volumeFSName = $props.FSName()
     $volumePath = Join-Path (Get-TandokuLibraryPath $props.ContainerPath) $volumeFSName
 
     $blobContainerPath = Get-TandokuLibraryPath $props.ContainerPath -Blob
@@ -319,8 +333,41 @@ function Set-TandokuVolumeProperties {
     $props = ProcessTandokuVolumePropertyParameters $PSBoundParameters
     SetTandokuVolumeMetadataProperties $metadataPath $props
 
-    # TODO: process changes to file system if Title/Moniker/ContainerPath changed
-    # (refactor as needed from New-TandokuVolume)
+    # Process changes to file system if Title/Moniker/ContainerPath changed
+    if ($props.Title -or $props.ContainerPath -or $props.Moniker) {
+        if (-not $props.Title) { $props.Title = $InputObject.Title }
+        if (-not $props.ContainerPath) { $props.ContainerPath = $InputObject.ContainerPath }
+        if (-not $props.Moniker) { $props.Moniker = $InputObject.Moniker }
+
+        $oldFSName = $InputObject.FSName
+        $newFSName = $props.FSName()
+
+        if ($oldFSName -ne $newFSName) {
+            Get-ChildItem "$oldFSName.*" -Recurse |
+                Foreach-Object {
+                    if ($_ -match "^(.+)$oldFSName(.+)$") {
+                        $newPath = "$($Matches[1])$newFSName$($Matches[2])"
+                        Move-Item $_ $newPath
+                    } else {
+                        Write-Warning "$_ did not match pattern and was not renamed"
+                    }
+                }
+        }
+
+        $oldPath = $InputObject.Path
+        $newPath = Join-Path (Get-TandokuLibraryPath $props.ContainerPath) $newFSName
+        if ($oldPath -ne $newPath) {
+            Move-Item $oldPath $newPath
+        }
+
+        $oldBlobPath = $InputObject.BlobPath
+        if ($oldBlobPath) {
+            $newBlobPath = Join-Path (Get-TandokuLibraryPath $props.ContainerPath -Blob) $newFSName
+            if ($oldBlobPath -ne $newBlobPath) {
+                Move-Item $oldBlobPath $newBlobPath
+            }
+        }
+    }
 }
 New-Alias stvp Set-TandokuVolumeProperties
 
@@ -329,6 +376,15 @@ class TandokuVolumeProperties {
     [String] $ContainerPath
     [String] $Moniker
     [String[]] $Tags
+
+    # TODO: $FSName derived property? (not sure about syntax/if PowerShell supports this)
+    [string] FSName() {
+        $volumeFSName = CleanInvalidPathChars $this.Title
+        if ($this.Moniker) {
+            $volumeFSName = "$($this.Moniker) $volumeFSName"
+        }
+        return $volumeFSName
+    }
 }
 
 function ProcessTandokuVolumePropertyParameters([Hashtable] $params) {
@@ -338,6 +394,8 @@ function ProcessTandokuVolumePropertyParameters([Hashtable] $params) {
     }
 
     # TODO: remove other extraneous parameters
+    # (should be able to get this from Reflection on TandokuVolumeProperties)
+    if ($params.Path) { $params.Remove('Path') }
 
     $props = [TandokuVolumeProperties] $params
 
@@ -368,6 +426,7 @@ function GetTandokuVolumeTemplateProperties([String] $Template) {
     switch ($Template) {
         'film' {
             $props.ContainerPath = 'films'
+            $props.Tags = @('film')
         }
     }
     return $props
@@ -390,9 +449,13 @@ function CombineTandokuVolumeProperties([TandokuVolumeProperties[]] $propsList) 
         }
 
         if ($mergeProps.Tags) {
-            $newTags = [HashSet[string]] $props.Tags
-            $newTags.UnionWith($mergeProps.Tags)
-            $props.Tags = $newTags.ToArray()
+            if ($newTags) {
+                $newTags = [HashSet[string]] $props.Tags
+                $newTags.UnionWith($mergeProps.Tags)
+                $props.Tags = $newTags.ToArray()
+            } else {
+                $props.Tags = $mergeProps.Tags
+            }
         }
     }
 
@@ -425,6 +488,8 @@ function Get-TandokuVolume {
                 Moniker = $m.moniker
                 Language = $m.Language ?? $lib.Language
                 Tags = $m.tags
+                FSName = Split-Path $volumePath -Leaf
+                ContainerPath = (Get-TandokuLibraryPath (Split-Path $volumePath -Parent) -Relative)
                 Path = $volumePath
                 MetadataPath = [String] $_
                 BlobPath = (Get-TandokuLibraryPath $volumePath -Blob)
