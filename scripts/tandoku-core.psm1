@@ -632,6 +632,7 @@ function Get-TandokuVolume {
                 Path = $volumePath
                 MetadataPath = [String] $_
                 BlobPath = (Get-TandokuLibraryPath $volumePath -Blob)
+                Metadata = $m
             }
         } |
         Where-Object {
