@@ -437,7 +437,6 @@ class TandokuVolumeProperties {
 
     [String] $OriginalMedia
 
-    # TODO: $FSName derived property? (not sure about syntax/if PowerShell supports this)
     [string] FSName() {
         $volumeFSName = CleanInvalidPathChars $this.Title
         if ($this.Moniker) {
