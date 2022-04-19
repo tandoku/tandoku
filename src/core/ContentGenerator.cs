@@ -74,6 +74,7 @@ public sealed class ContentGenerator
             ".PNG" => ContentGeneratorInputType.ImageText,
             ".MD" => ContentGeneratorInputType.Markdown,
             ".ASS" => ContentGeneratorInputType.Subtitles,
+            ".SRT" => ContentGeneratorInputType.Subtitles,
             _ => throw new ArgumentException($"Cannot determine input type from the specified extension '{extension}'."),
         };
     }
@@ -273,16 +274,25 @@ public sealed class ContentGenerator
                     var times = (itemsEnum.Current.StartTime, itemsEnum.Current.EndTime);
 
                     string? translation = null;
-                    if (itemsEnum.MoveNext() && times == (itemsEnum.Current.StartTime, itemsEnum.Current.EndTime))
-                    {
-                        translation = GetTextFromItem(itemsEnum.Current);
-                    }
+                    // this was used for importing from subs2srs aligned subtitles; move elsewhere or delete
+                    //if (itemsEnum.MoveNext() && times == (itemsEnum.Current.StartTime, itemsEnum.Current.EndTime))
+                    //{
+                    //    translation = GetTextFromItem(itemsEnum.Current);
+                    //}
 
                     yield return new TextBlock
                     {
                         Text = text,
                         Translation = translation,
-                        Location = TimeSpan.FromMilliseconds(times.StartTime).ToString("g")
+                        Location = TimeSpan.FromMilliseconds(times.StartTime).ToString("g"),
+                        Source = new BlockSource
+                        {
+                            Timecodes = new TimecodePair
+                            {
+                                Start = TimeSpan.FromMilliseconds(times.StartTime),
+                                End = TimeSpan.FromMilliseconds(times.EndTime),
+                            },
+                        },
                     };
                 }
             }
@@ -324,7 +334,7 @@ public sealed class ContentGenerator
 
         private static List<SubtitleItem> ParseSubtitleItems(string path)
         {
-            var parser = new SubtitlesParser.Classes.Parsers.SsaParser();
+            var parser = new SubtitlesParser.Classes.Parsers.SubParser();
             using (var stream = File.OpenRead(path))
                 return parser.ParseStream(stream, Encoding.UTF8);
         }

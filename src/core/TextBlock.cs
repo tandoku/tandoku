@@ -25,6 +25,8 @@ public sealed class TextBlock
 
     // TODO: replace with Source object
     public string? Location { get; set; }
+
+    public BlockSource Source { get; set; }
 }
 
 public sealed class Image
@@ -66,4 +68,15 @@ public sealed class Token
     public string? InflectionType { get; set; }
     public string? Pronunciation { get; set; }
     public string? Reading { get; set; }
+}
+
+public sealed class BlockSource
+{
+    public TimecodePair? Timecodes { get; set; }
+}
+
+public sealed class TimecodePair
+{
+    public TimeSpan Start { get; set; }
+    public TimeSpan End { get; set; }
 }
