@@ -13,6 +13,7 @@ public static class Program
             CreateGenerateCommand(),
             CreateExportCommand(),
             CreateTokenizeCommand(),
+            CreateComputeCommand(),
 
             Demos.CreateCommand(),
         }.Invoke(args);
@@ -60,6 +61,19 @@ public static class Program
             {
                 var processor = new TextProcessor();
                 processor.Tokenize(@in.FullName);
-                Console.WriteLine($"Processed {processor.ProcessedBlocksCount} text blocks");
+                Console.WriteLine($"Processed {processor.ProcessedBlocksCount} text blocks in {@in.FullName}");
+            }));
+
+    private static Command CreateComputeCommand() =>
+        new Command("compute", "Compute statistics for content")
+        {
+            new Argument<FileSystemInfo[]>("in", "Input files or paths") { Arity = ArgumentArity.OneOrMore }.LegalFilePathsOnly(),
+            new Option<FileInfo>(new[] { "-o", "--out" }, "Output file path") { IsRequired = true }.LegalFilePathsOnly(),
+        }.WithHandler(CommandHandler.Create(
+            (FileSystemInfo[] @in, FileInfo @out) =>
+            {
+                var processor = new TextProcessor();
+                processor.ComputeStats(@in, @out.FullName);
+                Console.WriteLine($"Computed statistics written to {@out.FullName}");
             }));
 }

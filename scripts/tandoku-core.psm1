@@ -607,6 +607,10 @@ function Get-TandokuVolume {
         $Path,
 
         [Parameter()]
+        [String]
+        $Moniker,
+
+        [Parameter()]
         [String[]]
         $Tags
     )
@@ -636,6 +640,12 @@ function Get-TandokuVolume {
             }
         } |
         Where-Object {
+            if ($Moniker) {
+                if ($_.Moniker -ne $Moniker) {
+                    return $false
+                }
+            }
+
             if ($Tags) {
                 foreach ($tag in $Tags) {
                     if ($_.Tags -notcontains $tag) {

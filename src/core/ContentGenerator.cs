@@ -36,7 +36,7 @@ public sealed class ContentGenerator
     {
         var inferredInputType = inputType ?? DetectInputType(inputPaths);
         var generator = GetContentGenerator(inferredInputType);
-        var expandedInputPaths = ExpandPaths(inputPaths);
+        var expandedInputPaths = inputPaths; // TODO: FileStoreUtil.ExpandPaths(inputPaths);
         var textBlocks = generator.GenerateContent(expandedInputPaths);
 
         //TODO: implement outPath inference
@@ -75,6 +75,7 @@ public sealed class ContentGenerator
             ".MD" => ContentGeneratorInputType.Markdown,
             ".ASS" => ContentGeneratorInputType.Subtitles,
             ".SRT" => ContentGeneratorInputType.Subtitles,
+            ".VTT" => ContentGeneratorInputType.Subtitles,
             _ => throw new ArgumentException($"Cannot determine input type from the specified extension '{extension}'."),
         };
     }
@@ -88,18 +89,6 @@ public sealed class ContentGenerator
             ContentGeneratorInputType.Subtitles => new SubtitleContentGenerator(),
             _ => throw new ArgumentOutOfRangeException(nameof(inputType)),
         };
-    }
-
-    private IEnumerable<string> ExpandPaths(IEnumerable<string> inputPaths)
-    {
-        // TODO: implement this (switch to FileSystemInfo first)
-        //foreach (var path in inputPaths)
-        //{
-        //    foreach (var childPath in Directory.EnumerateFiles(path))
-        //        yield return childPath;
-        //}
-
-        return inputPaths;
     }
 
     private static bool TryGetFileNameFromDirectory(

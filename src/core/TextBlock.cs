@@ -79,4 +79,7 @@ public sealed class TimecodePair
 {
     public TimeSpan Start { get; set; }
     public TimeSpan End { get; set; }
+
+    [YamlIgnore]
+    public TimeSpan Duration => End - Start;
 }
