@@ -250,7 +250,7 @@ function New-TandokuVolume {
 
         [Parameter()]
         [String]
-        $ContentOriginProvider,
+        $ContentOrigin,
 
         [Parameter()]
         [String]
@@ -258,7 +258,7 @@ function New-TandokuVolume {
 
         [Parameter()]
         [String]
-        $LicenseOriginProvider,
+        $LicenseOrigin,
 
         [Parameter()]
         [String]
@@ -346,7 +346,7 @@ function Set-TandokuVolumeProperties {
 
         [Parameter()]
         [String]
-        $ContentOriginProvider,
+        $ContentOrigin,
 
         [Parameter()]
         [String]
@@ -354,7 +354,7 @@ function Set-TandokuVolumeProperties {
 
         [Parameter()]
         [String]
-        $LicenseOriginProvider,
+        $LicenseOrigin,
 
         [Parameter()]
         [String]
@@ -430,9 +430,9 @@ class TandokuVolumeProperties {
     [String[]] $LibDirs
     [String[]] $BlobDirs
 
-    [String] $ContentOriginProvider
+    [String] $ContentOrigin
     [String] $ContentOriginUrl
-    [String] $LicenseOriginProvider
+    [String] $LicenseOrigin
     [String] $LicenseOriginUrl
 
     [String] $OriginalMedia
@@ -479,19 +479,19 @@ function SetTandokuVolumeMetadataProperties([String] $metadataPath, [TandokuVolu
 
     $sourceObj = $metadataObj.source ?? @{}
 
-    if ($props.ContentOriginProvider -or $props.ContentOriginUrl) {
+    if ($props.ContentOrigin -or $props.ContentOriginUrl) {
         if (-not $sourceObj.contentOrigin) { $sourceObj.contentOrigin = @{} }
-        if ($props.ContentOriginProvider) {
-            $sourceObj.contentOrigin.provider = $props.ContentOriginProvider
+        if ($props.ContentOrigin) {
+            $sourceObj.contentOrigin.provider = $props.ContentOrigin
         }
         if ($props.ContentOriginUrl) {
             $sourceObj.contentOrigin.url = $props.ContentOriginUrl
         }
     }
-    if ($props.LicenseOriginProvider -or $props.LicenseOriginUrl) {
+    if ($props.LicenseOrigin -or $props.LicenseOriginUrl) {
         if (-not $sourceObj.licenseOrigin) { $sourceObj.licenseOrigin = @{} }
-        if ($props.LicenseOriginProvider) {
-            $sourceObj.licenseOrigin.provider = $props.LicenseOriginProvider
+        if ($props.LicenseOrigin) {
+            $sourceObj.licenseOrigin.provider = $props.LicenseOrigin
         }
         if ($props.LicenseOriginUrl) {
             $sourceObj.licenseOrigin.url = $props.LicenseOriginUrl
@@ -568,9 +568,9 @@ function CombineTandokuVolumeProperties([TandokuVolumeProperties[]] $propsList) 
         'LibDirs',
         'BlobDirs',
         'ContainerPath',
-        'ContentOriginProvider',
+        'ContentOrigin',
         'ContentOriginUrl',
-        'LicenseOriginProvider',
+        'LicenseOrigin',
         'LicenseOriginUrl',
         'OriginalMedia'
     )
