@@ -101,6 +101,8 @@ function Update-NintendoSwitchAlbumTandokuVolume {
     $volumePath = $InputObject.Path
     $volumeBlobPath = $InputObject.BlobPath ?? $volumePath
 
+    CreateDirectoryIfNotExists $volumeBlobPath/images
+
     $newItems = Copy-ItemIfNewer $albumStagingPath/*.jpg $volumeBlobPath/images/ -PassThru
     if ($Force -or $newItems.Count -gt 0) {
         $contentItems = Get-ChildItem $volumeBlobPath/images/*.jpg

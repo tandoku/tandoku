@@ -25,4 +25,13 @@ internal static class FileStoreUtil
             }
         }
     }
+
+    internal static StreamWriter CreateTextAndDirectoryIfNeeded(string path)
+    {
+        var dirPath = Path.GetDirectoryName(path);
+        if (dirPath != null && !Directory.Exists(dirPath))
+            Directory.CreateDirectory(dirPath);
+
+        return File.CreateText(path);
+    }
 }

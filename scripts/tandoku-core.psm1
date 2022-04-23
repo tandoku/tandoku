@@ -269,7 +269,7 @@ function New-TandokuVolume {
         $OriginalMedia,
 
         [Parameter()]
-        [ValidateSet('film')]
+        [ValidateSet('film', 'nintendo-switch-album')]
         [String]
         $Template,
 
@@ -365,7 +365,7 @@ function Set-TandokuVolumeProperties {
         $OriginalMedia,
 
         [Parameter()]
-        [ValidateSet('film')]
+        [ValidateSet('film', 'nintendo-switch-album')]
         [String]
         $Template
     )
@@ -455,6 +455,7 @@ function ProcessTandokuVolumePropertyParameters([Hashtable] $params) {
     # TODO: remove other extraneous parameters
     # (should be able to get this from Reflection on TandokuVolumeProperties)
     if ($params.Path) { $params.Remove('Path') }
+    if ($params.Force) { $params.Remove('Force') }
 
     $props = [TandokuVolumeProperties] $params
 
@@ -553,6 +554,10 @@ function GetTandokuVolumeTemplateProperties([String] $Template) {
                 'source/unused',
                 'source/unused/$lang',
                 'source/unused/$reflang')
+        }
+        'nintendo-switch-album' {
+            $props.ContainerPath = 'nintendo-switch-albums'
+            $props.Tags = @('nintendo-switch-album')
         }
     }
     return $props

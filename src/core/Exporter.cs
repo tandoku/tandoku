@@ -32,7 +32,7 @@ public sealed class Exporter
                 outPath = Path.ChangeExtension(path, ".md");
             // TODO: support for outPath as directory (share with Importer)
 
-            using var writer = File.CreateText(outPath);
+            using var writer = FileStoreUtil.CreateTextAndDirectoryIfNeeded(outPath);
 
             int footnote = 0;
             foreach (var block in blocks)

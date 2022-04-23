@@ -24,6 +24,8 @@ function Export-TandokuVolumeToKindle {
 
             $kindleTempPath = ConvertTo-KindleBook $volumeTempPath/$markdownFileName -TargetFormat azw3 -Title $volumeTitle
             $kindleFileName = Split-Path $kindleTempPath -Leaf
+
+            CreateDirectoryIfNotExists $volumeBlobPath/export
             $kindleExportPath = "$volumeBlobPath/export/$kindleFileName"
             if (Test-Path $kindleExportPath) {
                 Remove-Item $kindleExportPath
