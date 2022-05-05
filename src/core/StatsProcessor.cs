@@ -1,0 +1,218 @@
+﻿namespace Tandoku;
+
+public sealed class StatsProcessor
+{
+    public void ComputeStats(
+        IEnumerable<FileSystemInfo> inputPaths,
+        string outPath)
+    {
+        var contentSerializer = new TextBlockSerializer();
+
+        var statsAccumulator = new ContentStatsAccumulator();
+        var termfreqAccumulator = new ContentTermfreqAccumulator();
+        var accumulators = new Accumulator<TextBlock>[]
+        {
+            statsAccumulator,
+            termfreqAccumulator
+        };
+
+        foreach (var inputPath in FileStoreUtil.ExpandPaths(inputPaths))
+        {
+            foreach (var block in contentSerializer.Deserialize(inputPath.FullName))
+            {
+                foreach (var accumulator in accumulators)
+                    accumulator.Accumulate(block);
+            }
+        }
+
+        var statsDoc = new ContentStatisticsDocument
+        {
+            Stats = statsAccumulator.ComputeResult(),
+            Termfreq = termfreqAccumulator.ComputeResult(),
+        };
+
+        var statsSerializer = new SingleDocumentSerializer<ContentStatisticsDocument>();
+        statsSerializer.SerializeYaml(outPath, statsDoc);
+    }
+
+    public void ComputeAggregates(
+        IEnumerable<FileSystemInfo> inputPaths,
+        string outPath)
+    {
+        var statsSerializer = new SingleDocumentSerializer<ContentStatisticsDocument>();
+
+        var statsAccumulator = new AggregateStatsAccumulator();
+        var termfreqAccumulator = new AggregateTermfreqAccumulator();
+        var accumulators = new Accumulator<ContentStatisticsDocument>[]
+        {
+            statsAccumulator,
+            termfreqAccumulator
+        };
+
+        foreach (var inputPath in FileStoreUtil.ExpandPaths(inputPaths))
+        {
+            var statsDoc = statsSerializer.DeserializeYaml(inputPath.FullName);
+
+            foreach (var accumulator in accumulators)
+                accumulator.Accumulate(statsDoc);
+        }
+
+        var aggDoc = new ContentStatisticsDocument
+        {
+            Stats = statsAccumulator.ComputeResult(),
+            Termfreq = termfreqAccumulator.ComputeResult(),
+        };
+
+        statsSerializer.SerializeYaml(outPath, aggDoc);
+    }
+
+    public void ComputeAnalytics(
+        IEnumerable<FileSystemInfo> inputPaths,
+        string corpusAggregatesPath)
+    {
+        var statsSerializer = new SingleDocumentSerializer<ContentStatisticsDocument>();
+
+        var aggDoc = statsSerializer.DeserializeYaml(corpusAggregatesPath);
+
+        foreach (var inputPath in FileStoreUtil.ExpandPaths(inputPaths))
+        {
+            var doc = statsSerializer.DeserializeYaml(inputPath.FullName);
+
+            doc.Stats.UtilityScore = ComputeUtilityScore(doc, aggDoc);
+
+            statsSerializer.SerializeYaml(inputPath.FullName, doc);
+        }
+    }
+
+    private double ComputeUtilityScore(ContentStatisticsDocument doc, ContentStatisticsDocument aggDoc)
+    {
+        double totalCorpusItemCount = (double)aggDoc.Stats.TotalCorpusItemCount;
+        var corpusTermFreq = aggDoc.Termfreq;
+
+        double utilityNumerator = 0.0;
+        double utilityDenominator = 0.0;
+
+        foreach (var entry in doc.Termfreq)
+        {
+            var corpusEntry = corpusTermFreq[entry.Key];
+            double entryUtility = (double)corpusEntry.CorpusItemCount / totalCorpusItemCount;
+            double weight = (double)entry.Value.Count;
+            utilityNumerator += (entryUtility * weight);
+            utilityDenominator += weight;
+        }
+
+        return utilityNumerator / utilityDenominator;
+    }
+
+    private abstract class Accumulator<T>
+    {
+        public abstract void Accumulate(T block);
+    }
+
+    private sealed class ContentStatsAccumulator : Accumulator<TextBlock>
+    {
+        private long totalTokenCount = 0;
+        private long totalTimedTokenCount = 0;
+        private TimeSpan totalDuration = TimeSpan.Zero;
+
+        public override void Accumulate(TextBlock block)
+        {
+            totalTokenCount += block.Tokens.Count;
+
+            if (block.Source?.Timecodes != null)
+            {
+                totalTimedTokenCount += block.Tokens.Count;
+                totalDuration += block.Source.Timecodes.Duration;
+            }
+        }
+
+        public ContentStatistics ComputeResult()
+        {
+            return new ContentStatistics
+            {
+                TotalTokenCount = totalTokenCount,
+                TotalTimedTokenCount = totalTimedTokenCount,
+                TotalDuration = totalDuration,
+                AverageTokenDuration = totalTimedTokenCount > 0 ?
+                    totalDuration / totalTimedTokenCount :
+                    null,
+            };
+        }
+    }
+
+    private sealed class ContentTermfreqAccumulator : Accumulator<TextBlock>
+    {
+        private readonly TermfreqStatistics termfreq = new TermfreqStatistics();
+
+        public override void Accumulate(TextBlock block)
+        {
+            foreach (var token in block.Tokens)
+            {
+                var key = termfreq.GetKeyFromToken(token);
+                if (termfreq.TryGetValue(key, out var termStats))
+                {
+                    termStats.Count += 1;
+                }
+                else
+                {
+                    termfreq.Add(key, new TermStatistics { Count = 1 });
+                }
+            }
+        }
+
+        public TermfreqStatistics ComputeResult()
+        {
+            return termfreq.CloneForSerialization();
+        }
+    }
+
+    private sealed class AggregateStatsAccumulator : Accumulator<ContentStatisticsDocument>
+    {
+        private long totalCorpusItemCount = 0;
+
+        public override void Accumulate(ContentStatisticsDocument stats)
+        {
+            totalCorpusItemCount++;
+        }
+
+        public ContentStatistics ComputeResult()
+        {
+            return new ContentStatistics
+            {
+                TotalCorpusItemCount = totalCorpusItemCount,
+            };
+        }
+    }
+
+    private sealed class AggregateTermfreqAccumulator : Accumulator<ContentStatisticsDocument>
+    {
+        private readonly TermfreqStatistics termfreq = new TermfreqStatistics();
+
+        public override void Accumulate(ContentStatisticsDocument stats)
+        {
+            foreach (var entry in stats.Termfreq)
+            {
+                var key = entry.Key;
+                if (termfreq.TryGetValue(key, out var termStats))
+                {
+                    termStats.Count += entry.Value.Count;
+                    termStats.CorpusItemCount += 1;
+                }
+                else
+                {
+                    termStats = new TermStatistics
+                    {
+                        Count = entry.Value.Count,
+                        CorpusItemCount = 1,
+                    };
+                    termfreq.Add(key, termStats);
+                }
+            }
+        }
+
+        public TermfreqStatistics ComputeResult()
+        {
+            return termfreq.CloneForSerialization(sortByCorpusItemCount: true);
+        }
+    }
+}

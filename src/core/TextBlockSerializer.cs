@@ -8,7 +8,8 @@ using YamlDotNet.Core.Events;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
-public sealed class TextBlockSerializer
+// TODO: further refactor this class into a DocumentStreamSerializer<T>
+public sealed class TextBlockSerializer : DocumentSerializerBase
 {
     public IEnumerable<TextBlock> Deserialize(string path, TextBlockFormat? format = null)
     {
@@ -30,9 +31,7 @@ public sealed class TextBlockSerializer
 
     public IEnumerable<TextBlock> DeserializeYaml(string path)
     {
-        var deserializer = new YamlDotNet.Serialization.DeserializerBuilder()
-            .WithNamingConvention(CamelCaseNamingConvention.Instance)
-            .Build();
+        var deserializer = CreateDeserializerBuilder().Build();
 
         using var reader = File.OpenText(path);
         var parser = new YamlDotNet.Core.Parser(reader);
@@ -101,15 +100,7 @@ public sealed class TextBlockSerializer
         //var emitter = new YamlDotNet.Core.Emitter(writer);
         //emitter.Emit(new YamlDotNet.Core.Events.StreamStart());
 
-        var serializer = new YamlDotNet.Serialization.SerializerBuilder()
-            .WithNamingConvention(CamelCaseNamingConvention.Instance)
-            .WithEventEmitter(next => new Yaml.FlowStyleEventEmitter(next))
-            .WithEventEmitter(next => new Yaml.StringQuotingEmitter(next))
-            .ConfigureDefaultValuesHandling(
-                DefaultValuesHandling.OmitDefaults |
-                DefaultValuesHandling.OmitEmptyCollections |
-                DefaultValuesHandling.OmitNull)
-            .Build();
+        var serializer = CreateSerializerBuilder().Build();
         bool first = true;
         foreach (var block in blocks)
         {

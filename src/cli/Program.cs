@@ -65,15 +65,49 @@ public static class Program
             }));
 
     private static Command CreateComputeCommand() =>
-        new Command("compute", "Compute statistics for content")
+        new Command("compute", "Compute statistics")
+        {
+            CreateComputeContentCommand(),
+            CreateComputeAggregatesCommand(),
+            CreateComputeAnalyticsCommand(),
+        };
+
+    private static Command CreateComputeContentCommand() =>
+        new Command("content", "Compute statistics for content")
         {
             new Argument<FileSystemInfo[]>("in", "Input files or paths") { Arity = ArgumentArity.OneOrMore }.LegalFilePathsOnly(),
             new Option<FileInfo>(new[] { "-o", "--out" }, "Output file path") { IsRequired = true }.LegalFilePathsOnly(),
         }.WithHandler(CommandHandler.Create(
             (FileSystemInfo[] @in, FileInfo @out) =>
             {
-                var processor = new TextProcessor();
+                var processor = new StatsProcessor();
                 processor.ComputeStats(@in, @out.FullName);
                 Console.WriteLine($"Computed statistics written to {@out.FullName}");
+            }));
+
+    private static Command CreateComputeAggregatesCommand() =>
+        new Command("aggregates", "Compute aggregate statistics")
+        {
+            new Argument<FileSystemInfo[]>("in", "Input files or paths") { Arity = ArgumentArity.OneOrMore }.LegalFilePathsOnly(),
+            new Option<FileInfo>(new[] { "-o", "--out" }, "Output file path") { IsRequired = true }.LegalFilePathsOnly(),
+        }.WithHandler(CommandHandler.Create(
+            (FileSystemInfo[] @in, FileInfo @out) =>
+            {
+                var processor = new StatsProcessor();
+                processor.ComputeAggregates(@in, @out.FullName);
+                Console.WriteLine($"Computed aggregates written to {@out.FullName}");
+            }));
+
+    private static Command CreateComputeAnalyticsCommand() =>
+        new Command("analytics", "Compute analytics for a volume in context of corpus aggregates")
+        {
+            new Argument<FileSystemInfo[]>("in", "Input files or paths") { Arity = ArgumentArity.OneOrMore }.LegalFilePathsOnly(),
+            new Option<FileInfo>(new[] { "-c", "--corpus" }, "Corpus aggregates path") { IsRequired = true }.LegalFilePathsOnly(),
+        }.WithHandler(CommandHandler.Create(
+            (FileSystemInfo[] @in, FileInfo corpus) =>
+            {
+                var processor = new StatsProcessor();
+                processor.ComputeAnalytics(@in, corpus.FullName);
+                Console.WriteLine($"Computed analytics written to input files");
             }));
 }
