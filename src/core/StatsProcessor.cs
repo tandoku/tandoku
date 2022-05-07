@@ -78,13 +78,16 @@ public sealed class StatsProcessor
         {
             var doc = statsSerializer.DeserializeYaml(inputPath.FullName);
 
-            doc.Stats.UtilityScore = ComputeUtilityScore(doc, aggDoc);
+            (doc.Stats.UtilityScore, doc.Stats.UtilityUniqueScore) =
+                ComputeUtilityScores(doc, aggDoc);
 
             statsSerializer.SerializeYaml(inputPath.FullName, doc);
         }
     }
 
-    private double ComputeUtilityScore(ContentStatisticsDocument doc, ContentStatisticsDocument aggDoc)
+    private (double utilityScore, double utilityUniqueScore) ComputeUtilityScores(
+        ContentStatisticsDocument doc,
+        ContentStatisticsDocument aggDoc)
     {
         double totalCorpusItemCount = (double)aggDoc.Stats.TotalCorpusItemCount;
         var corpusTermFreq = aggDoc.Termfreq;
@@ -92,16 +95,25 @@ public sealed class StatsProcessor
         double utilityNumerator = 0.0;
         double utilityDenominator = 0.0;
 
+        double utilityUniqueNumerator = 0.0;
+        double utilityUniqueDenominator = 0.0;
+
         foreach (var entry in doc.Termfreq)
         {
             var corpusEntry = corpusTermFreq[entry.Key];
             double entryUtility = (double)corpusEntry.CorpusItemCount / totalCorpusItemCount;
+
             double weight = (double)entry.Value.Count;
+
             utilityNumerator += (entryUtility * weight);
             utilityDenominator += weight;
+
+            utilityUniqueNumerator += entryUtility;
+            utilityUniqueDenominator += 1;
         }
 
-        return utilityNumerator / utilityDenominator;
+        return (utilityScore: utilityNumerator / utilityDenominator,
+            utilityUniqueScore: utilityUniqueNumerator / utilityUniqueDenominator);
     }
 
     private abstract class Accumulator<T>

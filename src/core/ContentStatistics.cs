@@ -18,7 +18,8 @@ public sealed class ContentStatistics
     public long? TotalCorpusItemCount { get; set; }
 
     // TODO: move analytics into separate structures?
-    public double UtilityScore { get; set; }
+    public double? UtilityScore { get; set; }
+    public double? UtilityUniqueScore { get; set; }
 }
 
 public sealed class TermfreqStatistics : Dictionary<string, TermStatistics>
