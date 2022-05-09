@@ -13,6 +13,8 @@ public sealed class ContentStatistics
     public long? TotalTimedTokenCount { get; set; }
     public TimeSpan? TotalDuration { get; set; }
     public TimeSpan? AverageTokenDuration { get; set; }
+    
+    public long? ProperNounTokenCount { get; set; }
 
     // TODO: move corpus aggregates into separate structures?
     public long? TotalCorpusItemCount { get; set; }
@@ -48,6 +50,7 @@ public sealed class TermfreqStatistics : Dictionary<string, TermStatistics>
 
 public sealed class TermStatistics
 {
+    public string? PartOfSpeech { get; set; }
     public long? Count { get; set; }
     public long? CorpusItemCount { get; set; }
 }

@@ -95,11 +95,16 @@ public sealed class StatsProcessor
         double utilityNumerator = 0.0;
         double utilityDenominator = 0.0;
 
+        // TODO: this score is currently heavily biased by the amount of content in a volume
+        // need to reconsider what I'm trying to calculate here and how to normalize it
         double utilityUniqueNumerator = 0.0;
         double utilityUniqueDenominator = 0.0;
 
         foreach (var entry in doc.Termfreq)
         {
+            if (PartOfSpeechUtil.IsProperNoun(entry.Value.PartOfSpeech))
+                continue;
+
             var corpusEntry = corpusTermFreq[entry.Key];
             double entryUtility = (double)corpusEntry.CorpusItemCount / totalCorpusItemCount;
 
@@ -127,6 +132,8 @@ public sealed class StatsProcessor
         private long totalTimedTokenCount = 0;
         private TimeSpan totalDuration = TimeSpan.Zero;
 
+        private long properNounTokenCount = 0;
+
         public override void Accumulate(TextBlock block)
         {
             totalTokenCount += block.Tokens.Count;
@@ -136,6 +143,9 @@ public sealed class StatsProcessor
                 totalTimedTokenCount += block.Tokens.Count;
                 totalDuration += block.Source.Timecodes.Duration;
             }
+
+            properNounTokenCount += block.Tokens.Count(
+                t => PartOfSpeechUtil.IsProperNoun(t.PartOfSpeech));
         }
 
         public ContentStatistics ComputeResult()
@@ -148,6 +158,7 @@ public sealed class StatsProcessor
                 AverageTokenDuration = totalTimedTokenCount > 0 ?
                     totalDuration / totalTimedTokenCount :
                     null,
+                ProperNounTokenCount = properNounTokenCount,
             };
         }
     }
@@ -167,7 +178,12 @@ public sealed class StatsProcessor
                 }
                 else
                 {
-                    termfreq.Add(key, new TermStatistics { Count = 1 });
+                    termStats = new TermStatistics
+                    {
+                        PartOfSpeech = token.PartOfSpeech,
+                        Count = 1,
+                    };
+                    termfreq.Add(key, termStats);
                 }
             }
         }
@@ -214,6 +230,7 @@ public sealed class StatsProcessor
                 {
                     termStats = new TermStatistics
                     {
+                        PartOfSpeech = entry.Value.PartOfSpeech,
                         Count = entry.Value.Count,
                         CorpusItemCount = 1,
                     };
