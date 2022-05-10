@@ -140,6 +140,10 @@ public sealed class StatsProcessor
 
         public override void Accumulate(TextBlock block)
         {
+            // Exclude blocks without any tokens from statistics (e.g. exclude for total/average durations)
+            if (block.Tokens.Count == 0)
+                return;
+
             totalTokenCount += block.Tokens.Count;
 
             if (block.Source?.Timecodes != null)
@@ -147,11 +151,8 @@ public sealed class StatsProcessor
                 totalTimedTokenCount += block.Tokens.Count;
                 totalDuration += block.Source.Timecodes.Duration;
 
-                if (block.Tokens.Count > 0)
-                {
-                    blockAverageTokenDurations.Add(
-                        block.Source.Timecodes.Duration / block.Tokens.Count);
-                }
+                blockAverageTokenDurations.Add(
+                    block.Source.Timecodes.Duration / block.Tokens.Count);
             }
 
             properNounTokenCount += block.Tokens.Count(
