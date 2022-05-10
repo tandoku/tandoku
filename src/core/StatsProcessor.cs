@@ -1,5 +1,7 @@
 ﻿namespace Tandoku;
 
+using MathNet.Numerics.Statistics;
+
 public sealed class StatsProcessor
 {
     public void ComputeStats(
@@ -132,6 +134,8 @@ public sealed class StatsProcessor
         private long totalTimedTokenCount = 0;
         private TimeSpan totalDuration = TimeSpan.Zero;
 
+        private readonly List<TimeSpan> blockAverageTokenDurations = new List<TimeSpan>();
+
         private long properNounTokenCount = 0;
 
         public override void Accumulate(TextBlock block)
@@ -142,6 +146,12 @@ public sealed class StatsProcessor
             {
                 totalTimedTokenCount += block.Tokens.Count;
                 totalDuration += block.Source.Timecodes.Duration;
+
+                if (block.Tokens.Count > 0)
+                {
+                    blockAverageTokenDurations.Add(
+                        block.Source.Timecodes.Duration / block.Tokens.Count);
+                }
             }
 
             properNounTokenCount += block.Tokens.Count(
@@ -158,6 +168,8 @@ public sealed class StatsProcessor
                 AverageTokenDuration = totalTimedTokenCount > 0 ?
                     totalDuration / totalTimedTokenCount :
                     null,
+                MedianTokenDurationByBlock = TimeSpan.FromSeconds(
+                    blockAverageTokenDurations.Select(t => t.TotalSeconds).Median()),
                 ProperNounTokenCount = properNounTokenCount,
             };
         }

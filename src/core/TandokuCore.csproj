@@ -20,6 +20,7 @@
     <PackageReference Include="LiteDb" Version="5.0.11" />
     <PackageReference Include="Lucene.Net.Analysis.Kuromoji" Version="4.8.0-beta00014" />
     <PackageReference Include="Markdig" Version="0.28.1" />
+    <PackageReference Include="MathNet.Numerics" Version="5.0.0" />
     <PackageReference Include="SubtitlesParser" Version="1.5.1" />
     <PackageReference Include="WanaKanaSharp" Version="0.2.0" />
     <PackageReference Include="YamlDotNet" Version="11.2.1" />

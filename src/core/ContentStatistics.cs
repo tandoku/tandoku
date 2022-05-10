@@ -13,6 +13,7 @@ public sealed class ContentStatistics
     public long? TotalTimedTokenCount { get; set; }
     public TimeSpan? TotalDuration { get; set; }
     public TimeSpan? AverageTokenDuration { get; set; }
+    public TimeSpan? MedianTokenDurationByBlock { get; set; }
     
     public long? ProperNounTokenCount { get; set; }
 
