@@ -16,7 +16,7 @@ public sealed class TextBlock
     //       AnnotatedText (add/remove furigana ruby to match annotation preferences)
 
     // TODO: rename to AlternateText, change to Dictionary<string, string>
-    // OR Alternates with Image and Text under
+    // OR Alternates with Image and Text under (OR Reference?)
     public string? Translation { get; set; }
 
     // TODO: make this nullable, only populate when used? (YamlDotNet can omit empty collections
