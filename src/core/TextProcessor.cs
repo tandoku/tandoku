@@ -8,10 +8,26 @@ public sealed class TextProcessor
 
     public void Tokenize(string path)
     {
+        ApplyTransform(path, Tokenize);
+    }
+
+    public void Transform(string path, IEnumerable<ContentTransformKind> transforms)
+    {
+        var processor = new TransformProcessor();
+        ApplyTransform(path, b => processor.ApplyTransforms(transforms, b));
+    }
+
+    private void ApplyTransform(
+        string path,
+        Func<IEnumerable<TextBlock>, IEnumerable<TextBlock>> transformBlockStream)
+    {
         var serializer = new TextBlockSerializer();
         string tempPath = Path.GetTempFileName();
         var format = TextBlockFormatExtensions.FromFilePath(path);
-        serializer.Serialize(tempPath, Tokenize(serializer.Deserialize(path)), format);
+        serializer.Serialize(
+            tempPath,
+            transformBlockStream(serializer.Deserialize(path)).Select(b => { ProcessedBlocksCount++; return b; }),
+            format);
         File.Delete(path);
         File.Move(tempPath, path);
     }
@@ -27,9 +43,13 @@ public sealed class TextProcessor
                 // TODO: this changes offsets vs original markdown text, currently suppressing these from output
                 // since they aren't needed yet anyway (and just add a lot of noise).
                 var plainText = Markdown.ToPlainText(block.Text);
+
+                // TODO: generalize warnings
+                if (plainText.StartsWith('<') && (plainText.EndsWith('>') || plainText.EndsWith(">\n")))
+                    Console.WriteLine($"Warning: block plain text appears to be XML: {plainText}");
+
                 block.Tokens.AddRange(tokenizer.Tokenize(plainText).Select(ScrubToken));
             }
-            ProcessedBlocksCount++;
             yield return block;
         }
     }

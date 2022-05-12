@@ -13,6 +13,7 @@ public static class Program
             CreateGenerateCommand(),
             CreateExportCommand(),
             CreateTokenizeCommand(),
+            CreateTransformCommand(),
             CreateComputeCommand(),
 
             Demos.CreateCommand(),
@@ -61,6 +62,22 @@ public static class Program
             {
                 var processor = new TextProcessor();
                 processor.Tokenize(@in.FullName);
+                Console.WriteLine($"Processed {processor.ProcessedBlocksCount} text blocks in {@in.FullName}");
+            }));
+
+    private static Command CreateTransformCommand() =>
+        new Command("transform", "Apply transforms to text content")
+        {
+            new Argument<string>("transform-list", "Comma-separated list of transforms to apply"),
+            new Argument<FileInfo>("in", "Input file or path").ExistingOnly(),
+        }.WithHandler(CommandHandler.Create(
+            (string transformList, FileInfo @in) =>
+            {
+                var transforms = transformList.Split(',')
+                    .Select(s => Enum.Parse<ContentTransformKind>(s, ignoreCase: true));
+
+                var processor = new TextProcessor();
+                processor.Transform(@in.FullName, transforms);
                 Console.WriteLine($"Processed {processor.ProcessedBlocksCount} text blocks in {@in.FullName}");
             }));
 
