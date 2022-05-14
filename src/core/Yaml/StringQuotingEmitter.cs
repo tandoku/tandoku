@@ -27,7 +27,7 @@ public class StringQuotingEmitter : ChainedEventEmitter
     // Patterns from https://yaml.org/spec/1.2/spec.html#id2804356
     private static Regex _quotedRegex = new Regex(
         @"^(\~|null|true|false|-?(0|[0-9][0-9]*)(\.[0-9]*)?([eE][-+]?[0-9]+)?)?$",
-        RegexOptions.Compiled);
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     public StringQuotingEmitter(IEventEmitter next) : base(next) { }
 

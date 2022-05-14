@@ -22,6 +22,10 @@ public sealed class StatsProcessor
         {
             foreach (var block in contentSerializer.Deserialize(inputPath.FullName))
             {
+                // TODO: generalize filters, move this to accumulators ?
+                if (block.ContentKind != ContentKind.Primary)
+                    continue;
+
                 foreach (var accumulator in accumulators)
                     accumulator.Accumulate(block);
             }
@@ -29,8 +33,8 @@ public sealed class StatsProcessor
 
         var statsDoc = new ContentStatisticsDocument
         {
-            Stats = statsAccumulator.ComputeResult(),
-            Termfreq = termfreqAccumulator.ComputeResult(),
+            Stats = statsAccumulator.ToResult(),
+            Termfreq = termfreqAccumulator.ToResult(),
         };
 
         var statsSerializer = new SingleDocumentSerializer<ContentStatisticsDocument>();
@@ -61,8 +65,8 @@ public sealed class StatsProcessor
 
         var aggDoc = new ContentStatisticsDocument
         {
-            Stats = statsAccumulator.ComputeResult(),
-            Termfreq = termfreqAccumulator.ComputeResult(),
+            Stats = statsAccumulator.ToResult(),
+            Termfreq = termfreqAccumulator.ToResult(),
         };
 
         statsSerializer.SerializeYaml(outPath, aggDoc);
@@ -149,17 +153,17 @@ public sealed class StatsProcessor
             if (block.Source?.Timecodes != null)
             {
                 totalTimedTokenCount += block.Tokens.Count;
-                totalDuration += block.Source.Timecodes.Duration;
+                totalDuration += block.Source.Timecodes.Value.Duration;
 
                 blockAverageTokenDurations.Add(
-                    block.Source.Timecodes.Duration / block.Tokens.Count);
+                    block.Source.Timecodes.Value.Duration / block.Tokens.Count);
             }
 
             properNounTokenCount += block.Tokens.Count(
                 t => PartOfSpeechUtil.IsProperNoun(t.PartOfSpeech));
         }
 
-        public ContentStatistics ComputeResult()
+        public ContentStatistics ToResult()
         {
             return new ContentStatistics
             {
@@ -201,7 +205,7 @@ public sealed class StatsProcessor
             }
         }
 
-        public TermfreqStatistics ComputeResult()
+        public TermfreqStatistics ToResult()
         {
             return termfreq.CloneForSerialization();
         }
@@ -216,7 +220,7 @@ public sealed class StatsProcessor
             totalCorpusItemCount++;
         }
 
-        public ContentStatistics ComputeResult()
+        public ContentStatistics ToResult()
         {
             return new ContentStatistics
             {
@@ -252,7 +256,7 @@ public sealed class StatsProcessor
             }
         }
 
-        public TermfreqStatistics ComputeResult()
+        public TermfreqStatistics ToResult()
         {
             return termfreq.CloneForSerialization(sortByCorpusItemCount: true);
         }
