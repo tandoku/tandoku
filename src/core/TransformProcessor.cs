@@ -9,7 +9,7 @@ using System.Xml.Linq;
 
 public enum ContentTransformKind
 {
-    DetectSoundEffects,
+    DetectSoundEffect,
     ExtractActor,
     ExtractParentheticalRubyText,
 }
@@ -52,8 +52,8 @@ public sealed class TransformProcessor
         {
             yield return transformKind switch
             {
-                ContentTransformKind.DetectSoundEffects =>
-                    new DetectSoundEffectsTransform(),
+                ContentTransformKind.DetectSoundEffect =>
+                    new DetectSoundEffectTransform(),
 
                 ContentTransformKind.ExtractActor =>
                     new ExtractActorTransform(),
@@ -133,15 +133,14 @@ public sealed class TransformProcessor
         protected abstract void ApplyTransformCore(TextBlock block);
     }
 
-    private sealed class DetectSoundEffectsTransform : SimpleContentTransform
+    private sealed class DetectSoundEffectTransform : ContentTransform
     {
-        // TODO: handle multi-line blocks, split as needed
         private readonly IReadOnlyList<Regex> _regexes = new[]
         {
             CreateRegex(@"^(?:（.+?）|♪～|～♪)$"),
         };
 
-        protected override void ApplyTransformCore(TextBlock block)
+        /*protected override void ApplyTransformCore(TextBlock block)
         {
             var text = block.Text;
             if (string.IsNullOrEmpty(text))
@@ -155,14 +154,14 @@ public sealed class TransformProcessor
                     break;
                 }
             }
-        }
+        }*/
 
         public override IEnumerable<TextBlock> ApplyTransform(TextBlock block)
         {
             if (block.ContentKind == ContentKind.Primary && !string.IsNullOrEmpty(block.Text))
             {
                 var originalMarkdown = Markdown.Parse(block.Text);
-                foreach (var split in MarkdownDocumentSplitter.SplitConditionallyByLines(block.Text, SplitOnSoundEffect))
+                foreach (var split in MarkdownDocumentSplitter.SplitConditionallyByLines(originalMarkdown, SplitOnSoundEffect))
                 {
                     if (split.Markdown != originalMarkdown)
                     {
@@ -258,8 +257,7 @@ public sealed class TransformProcessor
     {
         private readonly IReadOnlyList<Regex> _regexes = new[]
         {
-            // TODO: remove \n when handling inlines correctly
-            CreateRegex(@"^（(.+?)）(\w(?:.|\n)+)$"),
+            CreateRegex(@"^（(.+?)）(\w.+)$"),
         };
 
         public override IEnumerable<TextBlock> ApplyTransform(TextBlock block)
@@ -267,7 +265,7 @@ public sealed class TransformProcessor
             if (block.ContentKind == ContentKind.Primary && !string.IsNullOrEmpty(block.Text))
             {
                 var originalMarkdown = Markdown.Parse(block.Text);
-                foreach (var split in MarkdownDocumentSplitter.SplitConditionallyByLines(block.Text, SplitOnActor))
+                foreach (var split in MarkdownDocumentSplitter.SplitConditionallyByLines(originalMarkdown, SplitOnActor))
                 {
                     if (split.Markdown != originalMarkdown)
                     {
@@ -290,6 +288,7 @@ public sealed class TransformProcessor
 
         private SplitResult<string> SplitOnActor(string text)
         {
+            // TODO: inline TryExtractActor here
             if (TryExtractActor(text, out var actor, out var remainingText))
             {
                 return SplitResult.Create(
