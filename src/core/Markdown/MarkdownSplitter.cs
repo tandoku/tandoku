@@ -32,7 +32,6 @@ internal static class MarkdownSplitter
         string markdown,
         Func<string, SplitResult<T>> splitterFunction)
     {
-        var currentDoc = new MarkdownDocument();
         var currentLine = new ContainerInline();
         var previousLines = new ContainerInline();
         LineBreakInline? previousLineBreak = null;
@@ -41,13 +40,16 @@ internal static class MarkdownSplitter
         bool anySplits = false;
 
         var doc = Markdown.Parse(markdown);
-        foreach (var block in doc.ToArray()) // TODO: use for loop instead...
+        var docBlocks = doc.ToArray();
+        doc.Clear();
+
+        foreach (var block in docBlocks)
         {
             if (block is ParagraphBlock para && para.Inline?.GetType() == typeof(ContainerInline))
             {
                 bool paraSplits = false;
 
-                foreach (var inline in para.Inline.ToArray()) // TODO...
+                foreach (var inline in para.Inline.ToArray()) // TODO: queue inlines, split on final line within loop
                 {
                     if (inline is LineBreakInline lineBreak && lineBreak.IsHard)
                     {
@@ -60,13 +62,13 @@ internal static class MarkdownSplitter
                             previousLineBreak = null;
 
                             // Return current document if needed
-                            if (currentDoc.Count > 0 || previousLines.FirstChild != null)
+                            if (doc.Count > 0 || previousLines.FirstChild != null)
                             {
                                 if (previousLines.FirstChild != null)
-                                    currentDoc.Add(new ParagraphBlock { Inline = previousLines });
+                                    doc.Add(new ParagraphBlock { Inline = previousLines });
 
-                                yield return (currentDoc.ToMarkdownString(), currentMetadata);
-                                currentDoc = new();
+                                yield return (doc.ToMarkdownString(), currentMetadata);
+                                doc.Clear();
                                 previousLines = new();
                                 currentMetadata = default;
                             }
@@ -90,10 +92,10 @@ internal static class MarkdownSplitter
                             }
                             else
                             {
-                                currentDoc.Add(new ParagraphBlock { Inline = currentLine });
-                                yield return (currentDoc.ToMarkdownString(), splitResult.Metadata);
+                                doc.Add(new ParagraphBlock { Inline = currentLine });
+                                yield return (doc.ToMarkdownString(), splitResult.Metadata);
 
-                                currentDoc = new();
+                                doc.Clear();
                                 currentLine = new();
                                 continue;
                             }
@@ -139,14 +141,13 @@ internal static class MarkdownSplitter
                         previousLines.AppendChild(previousLine);
                     }
                     currentLine.Clear();
-                    currentDoc.Add(new ParagraphBlock { Inline = previousLines });
+                    doc.Add(new ParagraphBlock { Inline = previousLines });
                     previousLines = new();
                 }
                 else
                 {
                     // Add original paragraph if we didn't actually do anything
-                    doc.Remove(para);
-                    currentDoc.Add(para);
+                    doc.Add(para);
                     currentLine = new();
                     previousLines = new();
                     previousLineBreak = null;
@@ -154,16 +155,15 @@ internal static class MarkdownSplitter
             }
             else
             {
-                doc.Remove(block);
-                currentDoc.Add(block);
+                doc.Add(block);
             }
         }
 
         if (anySplits)
         {
             // Return current document if needed
-            if (currentDoc.Count > 0)
-                yield return (currentDoc.ToMarkdownString(), currentMetadata);
+            if (doc.Count > 0)
+                yield return (doc.ToMarkdownString(), currentMetadata);
         }
         else
         {
