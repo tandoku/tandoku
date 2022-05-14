@@ -32,10 +32,9 @@ internal static class MarkdownSplitter
         string markdown,
         Func<string, SplitResult<T>> splitterFunction)
     {
-        var currentLine = new ContainerInline();
-        var previousLines = new ContainerInline();
+        //var previousLines = new ContainerInline();
         LineBreakInline? previousLineBreak = null;
-        T? currentMetadata = default;
+        T? metadata = default;
 
         bool anySplits = false;
 
@@ -45,71 +44,63 @@ internal static class MarkdownSplitter
 
         foreach (var block in docBlocks)
         {
-            if (block is ParagraphBlock para && para.Inline?.GetType() == typeof(ContainerInline))
+            if (block is ParagraphBlock para && para.Inline != null)
             {
-                bool paraSplits = false;
+                var originalInlines = para.Inline.ToArray();
+                
+                // para.Inline.Clear() reset parents but not siblings
+                while (para.Inline.LastChild != null)
+                    para.Inline.LastChild.Remove();
 
-                foreach (var inline in para.Inline.ToArray()) // TODO: queue inlines, split on final line within loop
+                foreach (var line in SplitIntoLines(originalInlines))
                 {
-                    if (inline is LineBreakInline lineBreak && lineBreak.IsHard)
+                    var splitResult = splitterFunction(line.Inline.ToMarkdownString());
+                    if (splitResult.Split)
                     {
-                        SplitResult<T> splitResult;
-                        if (currentLine.FirstChild != null &&
-                            (splitResult = splitterFunction(currentLine.ToMarkdownString())).Split)
+                        anySplits = true;
+                        previousLineBreak = null;
+
+                        // Return current document if needed
+                        if (doc.Count > 0 || para.Inline.FirstChild != null)
                         {
-                            anySplits = true;
-                            paraSplits = true;
-                            previousLineBreak = null;
+                            if (para.Inline.FirstChild != null)
+                                doc.Add(para);
 
-                            // Return current document if needed
-                            if (doc.Count > 0 || previousLines.FirstChild != null)
+                            yield return (doc.ToMarkdownString(), metadata);
+                            doc.Clear();
+                            para.Inline.Clear();
+                            metadata = default;
+                        }
+
+                        if (splitResult.Replacement != null)
+                        {
+                            line.Inline.Clear();
+                            line.Inline.AppendChild(new LiteralInline(splitResult.Replacement));
+                        }
+
+                        if (splitResult.ConsumeFollowingContent)
+                        {
+                            foreach (var inline in line.Inline.ToArray()) //TODO...
                             {
-                                if (previousLines.FirstChild != null)
-                                    doc.Add(new ParagraphBlock { Inline = previousLines });
-
-                                yield return (doc.ToMarkdownString(), currentMetadata);
-                                doc.Clear();
-                                previousLines = new();
-                                currentMetadata = default;
+                                inline.Remove();
+                                para.Inline.AppendChild(inline);
                             }
-
-                            if (splitResult.Replacement != null)
-                            {
-                                currentLine.Clear();
-                                currentLine.AppendChild(new LiteralInline(splitResult.Replacement));
-                            }
-
-                            if (splitResult.ConsumeFollowingContent)
-                            {
-                                foreach (var previousLine in currentLine.ToArray()) //TODO...
-                                {
-                                    previousLine.Remove();
-                                    previousLines.AppendChild(previousLine);
-                                }
-                                previousLineBreak = lineBreak;
-                                currentLine.Clear();
-                                currentMetadata = splitResult.Metadata;
-                            }
-                            else
-                            {
-                                doc.Add(new ParagraphBlock { Inline = currentLine });
-                                yield return (doc.ToMarkdownString(), splitResult.Metadata);
-
-                                doc.Clear();
-                                currentLine = new();
-                                continue;
-                            }
+                            previousLineBreak = line.LineBreak;
+                            metadata = splitResult.Metadata;
                         }
                         else
                         {
-                            // TODO: dedupe with ConsumeFollowingContent block above
-                            foreach (var previousLine in currentLine.ToArray())
+                            // TODO: swap inline instead of copying? (same above)
+                            foreach (var inline in line.Inline.ToArray()) //TODO...
                             {
-                                previousLine.Remove();
-                                previousLines.AppendChild(previousLine);
+                                inline.Remove();
+                                para.Inline.AppendChild(inline);
                             }
-                            previousLineBreak = lineBreak;
-                            currentLine.Clear();
+                            doc.Add(para);
+                            yield return (doc.ToMarkdownString(), splitResult.Metadata);
+
+                            doc.Clear();
+                            para.Inline.Clear();
                         }
                     }
                     else
@@ -117,41 +108,29 @@ internal static class MarkdownSplitter
                         if (previousLineBreak != null)
                         {
                             previousLineBreak.Remove();
-                            currentLine.AppendChild(previousLineBreak);
+                            para.Inline.AppendChild(previousLineBreak);
                             previousLineBreak = null;
                         }
 
-                        inline.Remove();
-                        currentLine.AppendChild(inline);
+                        // TODO: dedupe with ConsumeFollowingContent block above
+                        foreach (var inline in line.Inline.ToArray()) //TODO...
+                        {
+                            inline.Remove();
+                            para.Inline.AppendChild(inline);
+                        }
+                        previousLineBreak = line.LineBreak;
                     }
                 }
 
-                if (paraSplits)
+                if (previousLineBreak != null)
                 {
-                    // TODO: dedupe with blocks above
-                    if (previousLineBreak != null)
-                    {
-                        previousLineBreak.Remove();
-                        currentLine.AppendChild(previousLineBreak);
-                        previousLineBreak = null;
-                    }
-                    foreach (var previousLine in currentLine.ToArray())
-                    {
-                        previousLine.Remove();
-                        previousLines.AppendChild(previousLine);
-                    }
-                    currentLine.Clear();
-                    doc.Add(new ParagraphBlock { Inline = previousLines });
-                    previousLines = new();
-                }
-                else
-                {
-                    // Add original paragraph if we didn't actually do anything
-                    doc.Add(para);
-                    currentLine = new();
-                    previousLines = new();
+                    previousLineBreak.Remove();
+                    para.Inline.AppendChild(previousLineBreak);
                     previousLineBreak = null;
                 }
+
+                if (para.Inline.FirstChild != null)
+                    doc.Add(para);
             }
             else
             {
@@ -163,11 +142,32 @@ internal static class MarkdownSplitter
         {
             // Return current document if needed
             if (doc.Count > 0)
-                yield return (doc.ToMarkdownString(), currentMetadata);
+                yield return (doc.ToMarkdownString(), metadata);
         }
         else
         {
             yield return (markdown, default);
         }
+    }
+
+    private static IEnumerable<(ContainerInline Inline, LineBreakInline? LineBreak)> SplitIntoLines(IEnumerable<Inline> inlines)
+    {
+        var currentLine = new ContainerInline();
+
+        foreach (var inline in inlines)
+        {
+            if (inline is LineBreakInline lineBreak && lineBreak.IsHard)
+            {
+                yield return (currentLine, lineBreak);
+                currentLine.Clear(); // TODO: clear or new?
+            }
+            else
+            {
+                currentLine.AppendChild(inline);
+            }
+        }
+
+        if (currentLine.FirstChild != null)
+            yield return (currentLine, null);
     }
 }
