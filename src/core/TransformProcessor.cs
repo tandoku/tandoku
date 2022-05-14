@@ -1,10 +1,11 @@
-﻿using Markdig;
+﻿namespace Tandoku;
+
+using Markdig;
 using Markdig.Syntax;
+using Markdig.Syntax.Inlines;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
-
-namespace Tandoku;
 
 public enum ContentTransformKind
 {
@@ -84,6 +85,41 @@ public sealed class TransformProcessor
 
             return new Regex(pattern, options);
         }
+
+        /*
+        protected static IEnumerable<TextLineInfo> GetTextLines(string markdown)
+        {
+            var doc = Markdown.Parse(markdown);
+            var inlines = new ContainerInline();
+
+            foreach (var block in doc)
+            {
+                if (block is ParagraphBlock para && para.Inline != null)
+                {
+                    foreach (var inline in para.Inline)
+                    {
+                        if (inline is LineBreakInline lineBreak && lineBreak.IsHard)
+                        {
+                            yield return new(inlines.ToMarkdownString(), null, lineBreak);
+                            inlines.Clear();
+                        }
+                        else
+                        {
+                            inlines.AppendChild(inline);
+                        }
+                    }
+
+                    yield return new(inlines.ToMarkdownString(), null, null);
+                    inlines.Clear();
+                }
+                else
+                {
+                    yield return new(null, block, null);
+                }
+            }
+        }
+
+        protected record TextLineInfo(string? Text, MarkdownObject? MarkdownObj, LineBreakInline? LineBreak);*/
     }
 
     private abstract class SimpleContentTransform : ContentTransform
@@ -99,6 +135,7 @@ public sealed class TransformProcessor
 
     private sealed class DetectSoundEffectsTransform : SimpleContentTransform
     {
+        // TODO: handle multi-line blocks, split as needed
         private readonly IReadOnlyList<Regex> _regexes = new[]
         {
             CreateRegex(@"^(?:（.+?）|♪～|～♪)$"),
@@ -119,15 +156,152 @@ public sealed class TransformProcessor
                 }
             }
         }
+
+        public override IEnumerable<TextBlock> ApplyTransform(TextBlock block)
+        {
+            if (block.ContentKind == ContentKind.Primary && !string.IsNullOrEmpty(block.Text))
+            {
+                var originalMarkdown = Markdown.Parse(block.Text);
+                foreach (var split in MarkdownDocumentSplitter.SplitConditionallyByLines(block.Text, SplitOnSoundEffect))
+                {
+                    if (split.Markdown != originalMarkdown)
+                    {
+                        var newBlock = block.Clone();
+                        newBlock.Text = split.Markdown.ToMarkdownString();
+                        newBlock.ContentKind = split.Metadata;
+                        yield return newBlock;
+                    }
+                    else
+                    {
+                        yield return block;
+                    }
+                }
+            }
+            else
+            {
+                yield return block;
+            }
+        }
+
+        private SplitResult<ContentKind> SplitOnSoundEffect(string text)
+        {
+            foreach (var regex in _regexes)
+            {
+                if (regex.IsMatch(text))
+                    return SplitResult.Create(true, metadata: ContentKind.SoundEffect);
+            }
+            return SplitResult.Create(false, metadata: default(ContentKind));
+        }
+
+        /*public override IEnumerable<TextBlock> ApplyTransform(TextBlock block)
+        {
+            if (block.ContentKind != ContentKind.Primary || string.IsNullOrEmpty(block.Text))
+            {
+                yield return block;
+            }
+            else
+            {
+                var lines = GetLines(block.Text).ToList();
+                if (lines.Any(l => l.IsMatch))
+                {
+                    var newBlock = block.Clone();
+                    newBlock.Text = string.Empty;
+
+                    foreach (var line in lines)
+                    {
+                        if (line.IsMatch)
+                        {
+                            if (!string.IsNullOrEmpty(newBlock.Text))
+                            {
+                                yield return newBlock;
+                                newBlock = block.Clone();
+                            }
+                            newBlock.Text = line.LineInfo.Text;
+                            newBlock.ContentKind = ContentKind.SoundEffect;
+                        }
+                        else
+                        {
+                            // Note: each paragraph has trailing whitespace
+                            // so we can just concat the strings here
+                            newBlock.Text += line.LineInfo.Text;
+                        }
+                    }
+
+                    yield return newBlock;
+                }
+                else
+                {
+                    yield return block;
+                }
+            }
+        }
+
+        private IEnumerable<(bool IsMatch, TextLineInfo LineInfo)> GetLines(string text)
+        {
+            foreach (var line in GetTextLines(text))
+            {
+                bool matched = false;
+                foreach (var regex in _regexes)
+                {
+                    if (regex.IsMatch(text))
+                    {
+                        matched = true;
+                        break;
+                    }
+                }
+                yield return (matched, line);
+            }
+        }*/
     }
 
     private sealed class ExtractActorTransform : ContentTransform
     {
         private readonly IReadOnlyList<Regex> _regexes = new[]
         {
-            CreateRegex(@"^（(.+?)）(\w.+)$", RegexOptions.Singleline),
+            // TODO: remove \n when handling inlines correctly
+            CreateRegex(@"^（(.+?)）(\w(?:.|\n)+)$"),
         };
 
+        public override IEnumerable<TextBlock> ApplyTransform(TextBlock block)
+        {
+            if (block.ContentKind == ContentKind.Primary && !string.IsNullOrEmpty(block.Text))
+            {
+                var originalMarkdown = Markdown.Parse(block.Text);
+                foreach (var split in MarkdownDocumentSplitter.SplitConditionallyByLines(block.Text, SplitOnActor))
+                {
+                    if (split.Markdown != originalMarkdown)
+                    {
+                        var newBlock = block.Clone();
+                        newBlock.Text = split.Markdown.ToMarkdownString();
+                        newBlock.Actor = split.Metadata;
+                        yield return newBlock;
+                    }
+                    else
+                    {
+                        yield return block;
+                    }
+                }
+            }
+            else
+            {
+                yield return block;
+            }
+        }
+
+        private SplitResult<string> SplitOnActor(string text)
+        {
+            if (TryExtractActor(text, out var actor, out var remainingText))
+            {
+                return SplitResult.Create(
+                    true,
+                    replacement: remainingText,
+                    consumeFollowingContent: true,
+                    metadata: actor);
+            }
+            return SplitResult.Create(false, metadata: default(string));
+        }
+
+        /*
         public override IEnumerable<TextBlock> ApplyTransform(TextBlock block)
         {
             if (block.ContentKind != ContentKind.Primary || string.IsNullOrEmpty(block.Text))
@@ -207,7 +381,7 @@ public sealed class TransformProcessor
                 throw new InvalidOperationException(
                     $"Unexpected Markdown block: [{markdownBlock.GetType().Name}] {markdownBlock.ToMarkdownString()}");
             }
-        }
+        }*/
 
         private bool TryExtractActor(
             string text,
