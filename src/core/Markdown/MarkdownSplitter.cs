@@ -1,5 +1,6 @@
 ﻿namespace Tandoku;
 
+using Markdig;
 using Markdig.Syntax;
 using Markdig.Syntax.Inlines;
 
@@ -25,26 +26,28 @@ internal record class SplitResult<T>(
     bool ConsumeFollowingContent,
     T? Metadata);
 
-internal static class MarkdownDocumentSplitter
+internal static class MarkdownSplitter
 {
-    internal static IEnumerable<(MarkdownDocument Markdown, T? Metadata)> SplitConditionallyByLines<T>(
-        MarkdownDocument document,
+    internal static IEnumerable<(string Markdown, T? Metadata)> SplitConditionallyByLines<T>(
+        string markdown,
         Func<string, SplitResult<T>> splitterFunction)
     {
         var currentDoc = new MarkdownDocument();
         var currentLine = new ContainerInline();
         var previousLines = new ContainerInline();
+        LineBreakInline? previousLineBreak = null;
         T? currentMetadata = default;
 
         bool anySplits = false;
 
-        foreach (var block in document)
+        var doc = Markdown.Parse(markdown);
+        foreach (var block in doc.ToArray()) // TODO: use for loop instead...
         {
             if (block is ParagraphBlock para && para.Inline?.GetType() == typeof(ContainerInline))
             {
                 bool paraSplits = false;
 
-                foreach (var inline in para.Inline)
+                foreach (var inline in para.Inline.ToArray()) // TODO...
                 {
                     if (inline is LineBreakInline lineBreak && lineBreak.IsHard)
                     {
@@ -54,6 +57,7 @@ internal static class MarkdownDocumentSplitter
                         {
                             anySplits = true;
                             paraSplits = true;
+                            previousLineBreak = null;
 
                             // Return current document if needed
                             if (currentDoc.Count > 0 || previousLines.FirstChild != null)
@@ -61,7 +65,7 @@ internal static class MarkdownDocumentSplitter
                                 if (previousLines.FirstChild != null)
                                     currentDoc.Add(new ParagraphBlock { Inline = previousLines });
 
-                                yield return (currentDoc, currentMetadata);
+                                yield return (currentDoc.ToMarkdownString(), currentMetadata);
                                 currentDoc = new();
                                 previousLines = new();
                                 currentMetadata = default;
@@ -75,16 +79,19 @@ internal static class MarkdownDocumentSplitter
 
                             if (splitResult.ConsumeFollowingContent)
                             {
-                                foreach (var previousLine in currentLine)
+                                foreach (var previousLine in currentLine.ToArray()) //TODO...
+                                {
+                                    previousLine.Remove();
                                     previousLines.AppendChild(previousLine);
-                                previousLines.AppendChild(lineBreak);
+                                }
+                                previousLineBreak = lineBreak;
                                 currentLine.Clear();
                                 currentMetadata = splitResult.Metadata;
                             }
                             else
                             {
                                 currentDoc.Add(new ParagraphBlock { Inline = currentLine });
-                                yield return (currentDoc, splitResult.Metadata);
+                                yield return (currentDoc.ToMarkdownString(), splitResult.Metadata);
 
                                 currentDoc = new();
                                 currentLine = new();
@@ -94,23 +101,43 @@ internal static class MarkdownDocumentSplitter
                         else
                         {
                             // TODO: dedupe with ConsumeFollowingContent block above
-                            foreach (var previousLine in currentLine)
+                            foreach (var previousLine in currentLine.ToArray())
+                            {
+                                previousLine.Remove();
                                 previousLines.AppendChild(previousLine);
-                            previousLines.AppendChild(lineBreak);
+                            }
+                            previousLineBreak = lineBreak;
                             currentLine.Clear();
                         }
                     }
                     else
                     {
+                        if (previousLineBreak != null)
+                        {
+                            previousLineBreak.Remove();
+                            currentLine.AppendChild(previousLineBreak);
+                            previousLineBreak = null;
+                        }
+
+                        inline.Remove();
                         currentLine.AppendChild(inline);
                     }
                 }
 
                 if (paraSplits)
                 {
-                    // TODO: dedupe with ConsumeFollowingContent block above
-                    foreach (var previousLine in currentLine)
+                    // TODO: dedupe with blocks above
+                    if (previousLineBreak != null)
+                    {
+                        previousLineBreak.Remove();
+                        currentLine.AppendChild(previousLineBreak);
+                        previousLineBreak = null;
+                    }
+                    foreach (var previousLine in currentLine.ToArray())
+                    {
+                        previousLine.Remove();
                         previousLines.AppendChild(previousLine);
+                    }
                     currentLine.Clear();
                     currentDoc.Add(new ParagraphBlock { Inline = previousLines });
                     previousLines = new();
@@ -118,13 +145,16 @@ internal static class MarkdownDocumentSplitter
                 else
                 {
                     // Add original paragraph if we didn't actually do anything
+                    doc.Remove(para);
                     currentDoc.Add(para);
                     currentLine = new();
                     previousLines = new();
+                    previousLineBreak = null;
                 }
             }
             else
             {
+                doc.Remove(block);
                 currentDoc.Add(block);
             }
         }
@@ -133,11 +163,11 @@ internal static class MarkdownDocumentSplitter
         {
             // Return current document if needed
             if (currentDoc.Count > 0)
-                yield return (currentDoc, currentMetadata);
+                yield return (currentDoc.ToMarkdownString(), currentMetadata);
         }
         else
         {
-            yield return (document, default);
+            yield return (markdown, default);
         }
     }
 }

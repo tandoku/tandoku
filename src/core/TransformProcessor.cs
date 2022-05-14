@@ -1,8 +1,5 @@
 ﻿namespace Tandoku;
 
-using Markdig;
-using Markdig.Syntax;
-using Markdig.Syntax.Inlines;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
@@ -160,13 +157,12 @@ public sealed class TransformProcessor
         {
             if (block.ContentKind == ContentKind.Primary && !string.IsNullOrEmpty(block.Text))
             {
-                var originalMarkdown = Markdown.Parse(block.Text);
-                foreach (var split in MarkdownDocumentSplitter.SplitConditionallyByLines(originalMarkdown, SplitOnSoundEffect))
+                foreach (var split in MarkdownSplitter.SplitConditionallyByLines(block.Text, SplitOnSoundEffect))
                 {
-                    if (split.Markdown != originalMarkdown)
+                    if (split.Metadata != default || split.Markdown != block.Text)
                     {
                         var newBlock = block.Clone();
-                        newBlock.Text = split.Markdown.ToMarkdownString();
+                        newBlock.Text = split.Markdown;
                         newBlock.ContentKind = split.Metadata;
                         yield return newBlock;
                     }
@@ -264,13 +260,12 @@ public sealed class TransformProcessor
         {
             if (block.ContentKind == ContentKind.Primary && !string.IsNullOrEmpty(block.Text))
             {
-                var originalMarkdown = Markdown.Parse(block.Text);
-                foreach (var split in MarkdownDocumentSplitter.SplitConditionallyByLines(originalMarkdown, SplitOnActor))
+                foreach (var split in MarkdownSplitter.SplitConditionallyByLines(block.Text, SplitOnActor))
                 {
-                    if (split.Markdown != originalMarkdown)
+                    if (split.Metadata != null || split.Markdown != block.Text)
                     {
                         var newBlock = block.Clone();
-                        newBlock.Text = split.Markdown.ToMarkdownString();
+                        newBlock.Text = split.Markdown;
                         newBlock.Actor = split.Metadata;
                         yield return newBlock;
                     }

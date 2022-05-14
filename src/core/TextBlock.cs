@@ -36,6 +36,7 @@ public sealed class TextBlock
 
     public BlockSource? Source { get; set; }
 
+    // TODO: replace this with With() method
     public TextBlock Clone()
     {
         // TODO: copy additional properties... or switch to records
@@ -44,6 +45,7 @@ public sealed class TextBlock
             Text = Text,
             ContentKind = ContentKind,
             Actor = Actor,
+            Location = Location,
             Source = Source?.Clone(),
         };
     }
