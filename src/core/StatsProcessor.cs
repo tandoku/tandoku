@@ -139,9 +139,7 @@ public sealed class StatsProcessor
         private TimeSpan totalDuration = TimeSpan.Zero;
 
         // TODO: switch to using subtitle ordinals
-        private TimecodePair? lastTimecode = null;
-
-        // can use this simpler implementation when switching to composite blocks for split subtitles
+        // later could revert to this simpler implementation when switching to composite blocks for split subtitles
         //private readonly List<TimeSpan> blockAverageTokenDurations = new List<TimeSpan>();
         private readonly Dictionary<TimecodePair, int> tokenCountByTimecode = new();
 
@@ -158,9 +156,8 @@ public sealed class StatsProcessor
             if (block.Source?.Timecodes != null)
             {
                 totalTimedTokenCount += block.Tokens.Count;
-                if (block.Source.Timecodes != lastTimecode)
+                if (!tokenCountByTimecode.ContainsKey(block.Source.Timecodes.Value))
                     totalDuration += block.Source.Timecodes.Value.Duration;
-                lastTimecode = block.Source.Timecodes;
 
                 //blockAverageTokenDurations.Add(
                 //    block.Source.Timecodes.Value.Duration / block.Tokens.Count);
