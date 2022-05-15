@@ -32,7 +32,6 @@ internal static class MarkdownSplitter
         string markdown,
         Func<string, SplitResult<T>> splitterFunction)
     {
-        //var previousLines = new ContainerInline();
         LineBreakInline? previousLineBreak = null;
         T? metadata = default;
 
@@ -90,7 +89,6 @@ internal static class MarkdownSplitter
                         }
                         else
                         {
-                            // TODO: swap inline instead of copying? (same above)
                             foreach (var inline in line.Inline.ToArray()) //TODO...
                             {
                                 inline.Remove();
