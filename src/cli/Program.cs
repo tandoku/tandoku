@@ -8,6 +8,8 @@ public static class Program
     [STAThread]
     public static int Main(string[] args)
     {
+        // TODO: switch codepage to UTF-8
+
         return new RootCommand("Command-line interface for tandoku")
         {
             CreateGenerateCommand(),

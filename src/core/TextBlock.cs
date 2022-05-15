@@ -115,7 +115,7 @@ public sealed class BlockSource
     }
 }
 
-public struct TimecodePair
+public record struct TimecodePair
 {
     public TimeSpan Start { get; set; }
     public TimeSpan End { get; set; }

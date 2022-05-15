@@ -138,7 +138,12 @@ public sealed class StatsProcessor
         private long totalTimedTokenCount = 0;
         private TimeSpan totalDuration = TimeSpan.Zero;
 
-        private readonly List<TimeSpan> blockAverageTokenDurations = new List<TimeSpan>();
+        // TODO: switch to using subtitle ordinals
+        private TimecodePair? lastTimecode = null;
+
+        // can use this simpler implementation when switching to composite blocks for split subtitles
+        //private readonly List<TimeSpan> blockAverageTokenDurations = new List<TimeSpan>();
+        private readonly Dictionary<TimecodePair, int> tokenCountByTimecode = new();
 
         private long properNounTokenCount = 0;
 
@@ -153,10 +158,16 @@ public sealed class StatsProcessor
             if (block.Source?.Timecodes != null)
             {
                 totalTimedTokenCount += block.Tokens.Count;
-                totalDuration += block.Source.Timecodes.Value.Duration;
+                if (block.Source.Timecodes != lastTimecode)
+                    totalDuration += block.Source.Timecodes.Value.Duration;
+                lastTimecode = block.Source.Timecodes;
 
-                blockAverageTokenDurations.Add(
-                    block.Source.Timecodes.Value.Duration / block.Tokens.Count);
+                //blockAverageTokenDurations.Add(
+                //    block.Source.Timecodes.Value.Duration / block.Tokens.Count);
+                if (!tokenCountByTimecode.TryGetValue(block.Source.Timecodes.Value, out var tokenCount))
+                    tokenCount = 0;
+                tokenCount += block.Tokens.Count;
+                tokenCountByTimecode[block.Source.Timecodes.Value] = tokenCount;
             }
 
             properNounTokenCount += block.Tokens.Count(
@@ -174,7 +185,8 @@ public sealed class StatsProcessor
                     totalDuration / totalTimedTokenCount :
                     null,
                 MedianTokenDurationByBlock = TimeSpan.FromSeconds(
-                    blockAverageTokenDurations.Select(t => t.TotalSeconds).Median()),
+                    //blockAverageTokenDurations.Select(t => t.TotalSeconds).Median()),
+                    tokenCountByTimecode.Select(p => p.Key.Duration.TotalSeconds / p.Value).Median()),
                 ProperNounTokenCount = properNounTokenCount,
             };
         }
