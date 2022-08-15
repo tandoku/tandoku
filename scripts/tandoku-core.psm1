@@ -2,6 +2,16 @@ using namespace System.Collections.Generic
 
 $tandokuLibraryMetadataPath = $null
 
+enum SourceControlKind {
+    None
+    Git
+}
+
+enum BlobStoreKind {
+    None
+    Dvc
+}
+
 function Initialize-TandokuLibrary {
     param(
         [Parameter()]
@@ -20,6 +30,15 @@ function Initialize-TandokuLibrary {
         [String]
         $ReferenceLanguage = 'en',
 
+        [Parameter()]
+        [SourceControlKind]
+        $SourceControl = [SourceControlKind]::None,
+
+        [Parameter()]
+        [BlobStoreKind]
+        $BlobStore = [BlobStoreKind]::None,
+
+        # TODO: remove BlobStorePath (deprecated)
         [Parameter()]
         [String]
         $BlobStorePath,
@@ -45,11 +64,18 @@ function Initialize-TandokuLibrary {
     }
 
     $metadataObj.config = @{}
+    $metadataObj.config.core = @{}
+
+    if ($SourceControl) {
+        $metadataObj.config.core.sourceControl = $SourceControlKind.ToString().ToLowerInvariant()
+    }
+
+    if ($BlobStore) {
+        $metadataObj.config.core.blobStore = $BlobStoreKind.ToString().ToLowerInvariant()
+    }
 
     if ($ExternalStagingPath) {
-        $metadataObj.config.core = @{
-           externalStagingPath = (Convert-Path $ExternalStagingPath)
-        }
+        $metadataObj.config.core.externalStagingPath = (Convert-Path $ExternalStagingPath)
     }
 
     if ($KindleDevicePath) {
@@ -58,6 +84,9 @@ function Initialize-TandokuLibrary {
         }
     }
 
+    if ($metadataObj.config.core.count -eq 0) {
+        $metadataObj.config.Remove('core')
+    }
     if ($metadataObj.config.count -eq 0) {
         $metadataObj.Remove('config')
     }
@@ -112,6 +141,16 @@ function Get-TandokuLibrary {
         Language = $m.language
         ReferenceLanguage = $m.referenceLanguage
     }
+}
+
+function Get-TandokuSourceControl {
+    $lib = Get-TandokuLibrary
+    return [SourceControlKind] ($lib.config.core.sourceControl ?? [SourceControlKind]::None)
+}
+
+function Get-TandokuBlobStore {
+    $lib = Get-TandokuLibrary
+    return [BlobStoreKind] ($lib.config.core.blobStore ?? [BlobStoreKind]::None)
 }
 
 function Get-TandokuExternalStagingPath {
