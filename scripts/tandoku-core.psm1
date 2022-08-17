@@ -353,6 +353,8 @@ function New-TandokuVolume {
     $v = Get-TandokuVolume $metadataPath
     CreateTandokuVolumeDirs $v $props
 
+    Add-TandokuVolumeToSourceControl $v -Commit
+
     return $v
 }
 New-Alias ntv New-TandokuVolume
