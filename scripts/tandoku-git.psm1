@@ -1,3 +1,6 @@
+# TODO: refactor this to just Add-TandokuPathToSourceControl, move Complete-SourceControlChange call to New-TandokuVolume
+# (leave responsibility for files to calling code - this module should manage source control only and not know specifics about files/content)
+# Also, add IsSourceControlEnabled function to tandoku-core which can optionally be called before calling multiple *SourceControl cmdlets
 function Add-TandokuVolumeToSourceControl {
     param(
         [Parameter()]
@@ -23,6 +26,7 @@ function Add-TandokuVolumeToSourceControl {
     }
 }
 
+# TODO: rename to Complete-SourceControlChange
 function Commit-SourceControlChange {
     param(
         [Parameter()]
