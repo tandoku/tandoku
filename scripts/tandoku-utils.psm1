@@ -138,6 +138,27 @@ class TempDirectoryDisposable : System.IDisposable {
     }
 }
 
+function ReplaceFilesViaCommand([ScriptBlock]$cmd, $files) {
+    $tempDir = New-TempDirectory 'tandoku'
+    $tempPath = $tempDir.TempDirPath
+    try {
+        foreach ($file in $files) {
+            $fileName = Split-Path $file -Leaf
+            $target = Join-Path $tempPath $fileName
+            & $cmd -Source $file -Target $target
+            if (Test-Path $target) {
+                Remove-Item $file
+                Move-Item $target $file
+            } else {
+                Write-Warning "Skipping $file because target is missing: $target"
+            }
+        }
+    }
+    finally {
+        $tempDir.Dispose()
+    }
+}
+
 # Consider choosing another name for Sort-STNumerical since Sort is a reserved verb
 # (or try to adapt this so it is used as an argument to Sort-Object rather than doing the sorting itself)
 # Note: I added the call to .Normalize([Text.NormalizationForm]::FormKC) in order to handle full-width numbers
