@@ -687,7 +687,7 @@ function Get-TandokuVolume {
         } |
         Where-Object {
             if ($Moniker) {
-                if ($_.Moniker -ne $Moniker) {
+                if ($_.Moniker -notlike $Moniker) {
                     return $false
                 }
             }
