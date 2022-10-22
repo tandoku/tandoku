@@ -1,0 +1,35 @@
+digraph {
+    graph [fontname="Helvetica"];
+    node [fontname="Helvetica" penwidth=0.2];
+    edge [fontname="Helvetica" arrowsize="0.6"];
+
+    # processes
+    node [shape=rect style="filled" fillcolor=blue fontcolor=white];
+    tandoku_transform_film
+    tandoku_tokenize
+    tandoku_list_volume
+    tandoku_list_content
+    tandoku_export_tokens_csv
+
+    # artifacts
+    node [shape=rect style="filled,rounded" fillcolor=orange];
+    raw_content
+    transformed_content
+    tokenized_content
+    tokens_csv
+    volume
+
+    raw_content -> tandoku_transform_film
+    tandoku_transform_film -> transformed_content
+    transformed_content -> tandoku_tokenize
+    tandoku_tokenize -> tokenized_content
+
+    tandoku_list_volume -> volume
+
+    tokenized_content -> tandoku_list_content
+    volume -> tandoku_list_content
+    tandoku_list_content -> "tokenized_content[]"
+
+    "tokenized_content[]" -> tandoku_export_tokens_csv
+    tandoku_export_tokens_csv -> tokens_csv
+}
