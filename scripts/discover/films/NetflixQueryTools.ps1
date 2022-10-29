@@ -8,6 +8,19 @@ function AddIMDbTitleUrl {
     }
 }
 
+function NetflixTitlesWithSubsByRating {
+    import-csv .\netflix-ja-titles.csv|
+        AddIMDbTitleUrl|
+        where subtitles -eq ja|
+        sort imdbRating -Descending
+}
+
+function NetflixTitlesWithSubsByRatingTable {
+    NetflixTitlesWithSubsByRating|select imdbrating,imdburl,title,type,released,mylist|ft
+}
+
+# TODO: most of below is subsumed by MergeNetflixTitleInfo.ps1 or should be merged into there
+
 $netflixSubTitles = Import-Csv '.\netflix-ja-subs+audio.csv'|AddIMDbTitleUrl
 $netflixAllTitles = Import-Csv '.\netflix-ja-audio.csv'|AddIMDbTitleUrl
 

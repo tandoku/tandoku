@@ -1,0 +1,39 @@
+digraph dataflow {
+    graph [fontname="Helvetica"];
+    node [fontname="Helvetica" penwidth=0.2];
+    edge [fontname="Helvetica" arrowsize="0.6"];
+
+    # data sources
+    netflix_watchlist_manager
+    netflix_uNoGS_rapid_api
+    imdb_datasets
+
+    # processes
+    node [shape=rect style="filled" fillcolor=blue fontcolor=white];
+    export_my_list
+    download_netflix_titles
+    update_imdb_datasets
+    merge_netflix_title_info
+
+    # artifacts
+    node [shape=rect style="filled,rounded" fillcolor=orange];
+    netflix_my_list_csv
+    netflix_ja_audio_csv
+    netflix_ja_subs_csv
+    netflix_ja_titles_csv
+    imdb_titles_ratings_tsv
+
+    netflix_watchlist_manager -> export_my_list -> netflix_my_list_csv
+    netflix_uNoGS_rapid_api -> download_netflix_titles
+    download_netflix_titles -> netflix_ja_audio_csv
+    download_netflix_titles -> netflix_ja_subs_csv
+
+    imdb_datasets -> update_imdb_datasets
+    update_imdb_datasets -> imdb_titles_ratings_tsv
+
+    netflix_ja_audio_csv -> merge_netflix_title_info
+    netflix_ja_subs_csv -> merge_netflix_title_info
+    netflix_my_list_csv -> merge_netflix_title_info
+    imdb_titles_ratings_tsv -> merge_netflix_title_info
+    merge_netflix_title_info -> netflix_ja_titles_csv
+}
