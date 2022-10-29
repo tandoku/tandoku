@@ -1,3 +1,5 @@
+# TODO: add -Json option to preserve data types for PowerShell
+
 $lang = 'ja'
 
 function MergeNetflixTitles {
