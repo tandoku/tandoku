@@ -7,15 +7,22 @@ do {
     # title list
     $html.SelectNodes('//h5') |
         ForEach-Object {
-            $details = $_.NextSibling
-            [PSCustomObject] @{
+            $obj = @{
                 Title = $_.InnerText
-                Details = $details.InnerText
             }
+            foreach ($detail in $_.NextSibling.SelectNodes('table/tr/th')) {
+                $obj[$detail.InnerText] = $detail.NextSibling.InnerText
+            }
+            foreach ($link in $_.NextSibling.SelectNodes('div/a')) {
+                $obj[$link.InnerText] = $link.Attributes['href'].Value
+            }
+            [PSCustomObject] $obj
         }
 
+    # Uncomment this to break after second page
+    #if ($nextUrl -match 'offset') { break }
+
     # next page
-    if ($nextUrl -match 'offset') { break } #testing
     $nextUrl = $html.SelectNodes('//a') |
         Where-Object InnerText -eq 'Next page' |
         Select-Object -First 1 |
