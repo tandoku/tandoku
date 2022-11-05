@@ -1,3 +1,5 @@
+# TODO: support auth token so known word stats can be extracted
+
 $nextUrl = 'https://jpdb.io/anime-difficulty-list'
 
 do {
