@@ -29,6 +29,8 @@ scoop install duckdb
 ## Loading tables
 Note that .gz files are also natively supported.
 
+TODO: duckdb supports JSON lines as well (https://duckdb.org/docs/extensions/json) so consider using that instead of CSV.
+
 ```
 PRAGMA default_collation='NOCASE.NOACCENT';
 
