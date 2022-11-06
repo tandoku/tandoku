@@ -32,6 +32,7 @@ Note that .gz files are also natively supported.
 TODO: duckdb supports JSON lines as well (https://duckdb.org/docs/extensions/json) so consider using that instead of CSV.
 
 ```
+-- TODO: remove this and use upper(), strip_accents(), nfc_normalize() [needed?] to create normalized columns for matching
 PRAGMA default_collation='NOCASE.NOACCENT';
 
 CREATE TABLE title_akas AS SELECT * FROM read_csv_auto('.\imdb\title.akas.tsv', ALL_VARCHAR=TRUE, QUOTE=NULL);
@@ -61,12 +62,12 @@ order by subtitles desc, audio desc, netflixid desc;
 - IMDb titles could be limited to just JP/US/XWW rows, see sample below - also include only titles that have a JP/ja title
 - IMDb romanization may not match jpdb (e.g. Toki o vs Toki wo), normalize
 - IMDb titles may be episodes (join with main titles table to filter these out)
-- Normalize case and strip accents so duckdb default binary collation can be used (significantly faster) - do this in PowerShell if needed on duckdb export as part of below script
+- Normalize case and strip accents so duckdb default binary collation can be used (significantly faster) - see comments in script above
 - Write a script to create a filtered/condensed version of IMDb titles for matching purpose
-- Try out duckdb full text index for title matching
+- Try out duckdb full text index for title matching; also check out [Text Similarity Functions](https://duckdb.org/docs/sql/functions/char#text-similarity-functions) 
 - Matching could be improved by including release year but need to scrape this from MyAnimeList
 ## Fixed
-- duckdb is using case-sensitive matching
+- duckdb is using case-sensitive matching (but need to revisit per above)
 - IMDb titles can have diacritics (e.g. Toki o kakeru shôjo)
 
 # Sample rows from title.akas.tsv
