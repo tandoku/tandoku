@@ -58,9 +58,12 @@ order by subtitles desc, audio desc, netflixid desc;
 ```
 
 # TODOs
-- IMDb titles could be limited to just JP/US/XWW rows, see sample below
-- IMDb romanization may not match jpdb (e.g. Toki o vs Toki wo)
+- IMDb titles could be limited to just JP/US/XWW rows, see sample below - also include only titles that have a JP/ja title
+- IMDb romanization may not match jpdb (e.g. Toki o vs Toki wo), normalize
 - IMDb titles may be episodes (join with main titles table to filter these out)
+- Normalize case and strip accents so duckdb default binary collation can be used (significantly faster) - do this in PowerShell if needed on duckdb export as part of below script
+- Write a script to create a filtered/condensed version of IMDb titles for matching purpose
+- Try out duckdb full text index for title matching
 - Matching could be improved by including release year but need to scrape this from MyAnimeList
 ## Fixed
 - duckdb is using case-sensitive matching
