@@ -7,9 +7,6 @@ digraph {
     node [shape=rect style="filled" fillcolor=blue fontcolor=white];
     tandoku_new_volume
 
-    tandoku_tokenize
-    tandoku_list_volume
-    tandoku_list_content
     tandoku_export_tokens_csv
 
     ## film processes
@@ -18,6 +15,7 @@ digraph {
     tandoku_subtitles_clean
     tandoku_subtitles_align
     tandoku_subtitles_finalize
+    tandoku_subtitles_contentgen
 
     tandoku_video_import
     tandoku_video_rename
@@ -27,16 +25,34 @@ digraph {
 
     tandoku_transform_film
 
+    tandoku_subtitles_exportcia
+    tandoku_subtitles_subs2cia
+    tandoku_subtitles_importcia
+
+    ## general content processes
+    tandoku_merge
+    tandoku_tokenize
+    tandoku_finalize
+
+    ## markdown, kindle export processses
+    tandoku_export_markdown
+    tandoku_kindle_generate
+
     # artifacts
     node [shape=rect style="filled,rounded" fillcolor=orange];
     volume_tdkv
 
     raw_content
     transformed_content
+    merged_content
     tokenized_content
-    "tokenized_content[]"
+    final_content
+
+    images
+
+    audio_clips
+
     tokens_csv
-    volume
 
     ## film artifacts
     external_subtitle
@@ -55,6 +71,16 @@ digraph {
     exported_video
     exported_subtitles
 
+    cia_subtitle
+    temp_subs2cia_tsv
+    temp_audio_clips
+    temp_images
+    cia_content
+
+    ## exported markdown, kindle
+    exported_markdown
+    exported_kindle_book
+
     # user input
     node [shape=rect style="filled,rounded" fillcolor=green];
     volume_input
@@ -63,18 +89,7 @@ digraph {
     volume_input -> tandoku_new_volume
     tandoku_new_volume -> volume_tdkv
 
-    raw_content -> tandoku_transform_film
-    tandoku_transform_film -> transformed_content
-    transformed_content -> tandoku_tokenize
-    tandoku_tokenize -> tokenized_content
-
-    tandoku_list_volume -> volume
-
-    tokenized_content -> tandoku_list_content
-    volume -> tandoku_list_content
-    tandoku_list_content -> "tokenized_content[]"
-
-    "tokenized_content[]" -> tandoku_export_tokens_csv
+    tokenized_content -> tandoku_export_tokens_csv
     tandoku_export_tokens_csv -> tokens_csv
 
     ## film edges
@@ -108,4 +123,44 @@ digraph {
     final_video -> tandoku_video_export
     tandoku_video_export -> exported_video
     tandoku_video_export -> exported_subtitles
+
+    final_subtitle -> tandoku_subtitles_contentgen
+    tandoku_subtitles_contentgen -> raw_content
+
+    raw_content -> tandoku_transform_film
+    tandoku_transform_film -> transformed_content
+
+    merged_content -> tandoku_subtitles_exportcia
+    tandoku_subtitles_exportcia -> cia_subtitle
+    cia_subtitle -> tandoku_subtitles_subs2cia
+    final_video -> tandoku_subtitles_subs2cia
+    tandoku_subtitles_subs2cia -> temp_audio_clips
+    tandoku_subtitles_subs2cia -> temp_images
+    tandoku_subtitles_subs2cia -> temp_subs2cia_tsv
+    temp_audio_clips -> tandoku_subtitles_importcia
+    temp_images -> tandoku_subtitles_importcia
+    temp_subs2cia_tsv -> tandoku_subtitles_importcia
+    tandoku_subtitles_importcia -> audio_clips
+    tandoku_subtitles_importcia -> images
+    tandoku_subtitles_importcia -> cia_content
+
+    cia_content -> tandoku_finalize
+
+    ## general content edges
+    transformed_content -> tandoku_merge
+    tandoku_merge -> merged_content
+    merged_content -> tandoku_finalize
+    tandoku_finalize -> final_content
+
+    final_content -> tandoku_tokenize
+    tandoku_tokenize -> tokenized_content
+
+    ## markdown export
+    final_content -> tandoku_export_markdown
+    images -> tandoku_export_markdown
+    tandoku_export_markdown -> exported_markdown
+
+    ## kindle export
+    exported_markdown -> tandoku_kindle_generate
+    tandoku_kindle_generate -> exported_kindle_book
 }
