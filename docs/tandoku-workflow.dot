@@ -18,25 +18,25 @@ digraph {
     tandoku_subtitles_finalize
     tandoku_subtitles_contentgen
 
+    tandoku_subtitles_subs2cia_export
+    tandoku_subtitles_subs2cia_process
+    tandoku_subtitles_subs2cia_import
+
     tandoku_video_import
     tandoku_video_rename
     tandoku_video_clean
     tandoku_video_finalize
     tandoku_video_export
 
-    tandoku_transform_film
-
-    tandoku_subtitles_subs2cia_export
-    tandoku_subtitles_subs2cia_process
-    tandoku_subtitles_subs2cia_import
+    tandoku_content_transform_film
 
     ## general content processes
-    tandoku_merge
-    tandoku_tokenize
-    tandoku_finalize
+    tandoku_content_merge
+    tandoku_content_finalize
+    tandoku_content_tokenize
 
-    ## markdown, kindle export processses
-    tandoku_export_markdown
+    ## markdown, kindle processses
+    tandoku_markdown_export
     tandoku_kindle_generate
 
     # artifacts
@@ -78,7 +78,7 @@ digraph {
     temp_images
     subs2cia_content
 
-    ## exported markdown, kindle
+    ## markdown, kindle
     exported_markdown
     exported_kindle_book
 
@@ -128,8 +128,8 @@ digraph {
     final_subtitle -> tandoku_subtitles_contentgen
     tandoku_subtitles_contentgen -> raw_content
 
-    raw_content -> tandoku_transform_film
-    tandoku_transform_film -> transformed_content
+    raw_content -> tandoku_content_transform_film
+    tandoku_content_transform_film -> transformed_content
 
     merged_content -> tandoku_subtitles_subs2cia_export
     tandoku_subtitles_subs2cia_export -> subs2cia_subtitle
@@ -144,21 +144,21 @@ digraph {
     tandoku_subtitles_subs2cia_import -> audio_clips
     tandoku_subtitles_subs2cia_import -> images
     tandoku_subtitles_subs2cia_import -> subs2cia_content
-    subs2cia_content -> tandoku_finalize
+    subs2cia_content -> tandoku_content_finalize
 
     ## general content edges
-    transformed_content -> tandoku_merge
-    tandoku_merge -> merged_content
-    merged_content -> tandoku_finalize
-    tandoku_finalize -> final_content
+    transformed_content -> tandoku_content_merge
+    tandoku_content_merge -> merged_content
+    merged_content -> tandoku_content_finalize
+    tandoku_content_finalize -> final_content
 
-    final_content -> tandoku_tokenize
-    tandoku_tokenize -> tokenized_content
+    final_content -> tandoku_content_tokenize
+    tandoku_content_tokenize -> tokenized_content
 
     ## markdown export
-    final_content -> tandoku_export_markdown
-    images -> tandoku_export_markdown
-    tandoku_export_markdown -> exported_markdown
+    final_content -> tandoku_markdown_export
+    images -> tandoku_markdown_export
+    tandoku_markdown_export -> exported_markdown
 
     ## kindle export
     exported_markdown -> tandoku_kindle_generate
