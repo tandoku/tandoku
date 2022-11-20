@@ -5,19 +5,63 @@ digraph {
 
     # processes
     node [shape=rect style="filled" fillcolor=blue fontcolor=white];
-    tandoku_transform_film
+    tandoku_new_volume
+
     tandoku_tokenize
     tandoku_list_volume
     tandoku_list_content
     tandoku_export_tokens_csv
 
+    ## film processes
+    tandoku_import_subtitles_copy
+    tandoku_import_subtitles_rename
+    tandoku_clean_subtitles
+    tandoku_align_subtitles
+    tandoku_finalize_subtitles
+
+    tandoku_import_video_copy
+    tandoku_import_video_rename
+    tandoku_clean_video
+    tandoku_finalize_video
+
+    tandoku_transform_film
+
+    tandoku_export_video
+
     # artifacts
     node [shape=rect style="filled,rounded" fillcolor=orange];
+    volume_tdkv
+
     raw_content
     transformed_content
     tokenized_content
     tokens_csv
     volume
+
+    ## film artifacts
+    external_subtitle
+    raw_subtitle
+    normalized_subtitle
+    clean_subtitle
+    aligned_subtitle
+    final_subtitle
+
+    external_video
+    raw_video
+    normalized_video
+    clean_video
+    final_video
+
+    exported_video
+    exported_subtitles
+
+    # user input
+    node [shape=rect style="filled,rounded" fillcolor=green];
+    volume_input
+
+    # edges
+    volume_input -> tandoku_new_volume
+    tandoku_new_volume -> volume_tdkv
 
     raw_content -> tandoku_transform_film
     tandoku_transform_film -> transformed_content
@@ -32,4 +76,36 @@ digraph {
 
     "tokenized_content[]" -> tandoku_export_tokens_csv
     tandoku_export_tokens_csv -> tokens_csv
+
+    ## film edges
+    external_subtitle -> tandoku_import_subtitles_copy
+    volume_tdkv -> tandoku_import_subtitles_copy
+    tandoku_import_subtitles_copy -> raw_subtitle
+    raw_subtitle -> tandoku_import_subtitles_rename
+    volume_tdkv -> tandoku_import_subtitles_rename
+    tandoku_import_subtitles_rename -> normalized_subtitle
+    normalized_subtitle -> tandoku_clean_subtitles
+    tandoku_clean_subtitles -> clean_subtitle
+
+    external_video -> tandoku_import_video_copy
+    volume_tdkv -> tandoku_import_video_copy
+    tandoku_import_video_copy -> raw_video
+    raw_video -> tandoku_import_video_rename
+    volume_tdkv -> tandoku_import_video_rename
+    tandoku_import_video_rename -> normalized_video
+    normalized_video -> tandoku_clean_video
+    tandoku_clean_video -> clean_video
+    clean_video -> tandoku_finalize_video
+    tandoku_finalize_video -> final_video
+
+    clean_subtitle -> tandoku_align_subtitles
+    final_video -> tandoku_align_subtitles
+    tandoku_align_subtitles -> aligned_subtitle
+    aligned_subtitle -> tandoku_finalize_subtitles
+    tandoku_finalize_subtitles -> final_subtitle
+
+    final_subtitle -> tandoku_export_video
+    final_video -> tandoku_export_video
+    tandoku_export_video -> exported_video
+    tandoku_export_video -> exported_subtitles
 }
