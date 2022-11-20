@@ -1,3 +1,4 @@
+# TODO: consider generating this from spreadsheet data using PSGraph
 digraph {
     graph [fontname="Helvetica"];
     node [fontname="Helvetica" penwidth=0.2];
@@ -25,9 +26,9 @@ digraph {
 
     tandoku_transform_film
 
-    tandoku_subtitles_exportcia
-    tandoku_subtitles_subs2cia
-    tandoku_subtitles_importcia
+    tandoku_subtitles_subs2cia_export
+    tandoku_subtitles_subs2cia_process
+    tandoku_subtitles_subs2cia_import
 
     ## general content processes
     tandoku_merge
@@ -71,11 +72,11 @@ digraph {
     exported_video
     exported_subtitles
 
-    cia_subtitle
+    subs2cia_subtitle
     temp_subs2cia_tsv
     temp_audio_clips
     temp_images
-    cia_content
+    subs2cia_content
 
     ## exported markdown, kindle
     exported_markdown
@@ -130,21 +131,20 @@ digraph {
     raw_content -> tandoku_transform_film
     tandoku_transform_film -> transformed_content
 
-    merged_content -> tandoku_subtitles_exportcia
-    tandoku_subtitles_exportcia -> cia_subtitle
-    cia_subtitle -> tandoku_subtitles_subs2cia
-    final_video -> tandoku_subtitles_subs2cia
-    tandoku_subtitles_subs2cia -> temp_audio_clips
-    tandoku_subtitles_subs2cia -> temp_images
-    tandoku_subtitles_subs2cia -> temp_subs2cia_tsv
-    temp_audio_clips -> tandoku_subtitles_importcia
-    temp_images -> tandoku_subtitles_importcia
-    temp_subs2cia_tsv -> tandoku_subtitles_importcia
-    tandoku_subtitles_importcia -> audio_clips
-    tandoku_subtitles_importcia -> images
-    tandoku_subtitles_importcia -> cia_content
-
-    cia_content -> tandoku_finalize
+    merged_content -> tandoku_subtitles_subs2cia_export
+    tandoku_subtitles_subs2cia_export -> subs2cia_subtitle
+    subs2cia_subtitle -> tandoku_subtitles_subs2cia_process
+    final_video -> tandoku_subtitles_subs2cia_process
+    tandoku_subtitles_subs2cia_process -> temp_subs2cia_tsv
+    tandoku_subtitles_subs2cia_process -> temp_audio_clips
+    tandoku_subtitles_subs2cia_process -> temp_images
+    temp_subs2cia_tsv -> tandoku_subtitles_subs2cia_import
+    temp_audio_clips -> tandoku_subtitles_subs2cia_import
+    temp_images -> tandoku_subtitles_subs2cia_import
+    tandoku_subtitles_subs2cia_import -> audio_clips
+    tandoku_subtitles_subs2cia_import -> images
+    tandoku_subtitles_subs2cia_import -> subs2cia_content
+    subs2cia_content -> tandoku_finalize
 
     ## general content edges
     transformed_content -> tandoku_merge
