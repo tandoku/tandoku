@@ -1,0 +1,49 @@
+container: external
+template: film
+artifacts:
+  external_subtitle:
+    description: External subtitle file outside the tandoku library.
+  external_video:
+    description: External video file outside the tandoku library.
+---
+container: volume
+template: film
+artifacts:
+  src_subtitle:
+    location: source/{lang}/
+    sourceControl: binary
+    description: |-
+      Subtitle file added to volume with no changes to name or content.
+      May or may not include language in filename (e.g. subtitle.ja.srt).
+  initial_subtitle:
+    location: subtitles/initial/
+    sourceControl: text
+    description: |-
+      Subtitle file renamed according to volume slug.
+      Always includes language in filename (e.g. subtitle.ja.srt).
+  src_video:
+    location: source/
+    sourceControl: binary
+  initial_video:
+    location: video/initial/
+    sourceControl: binary
+    description: |-
+      Video file renamed according to volume slug.
+processes:
+  tandoku_source_import:
+    inputs:
+      - volume_tdkv
+      - importPath: {artifacts: [external_subtitle, external_video]}
+      - language?: [auto: {default: true}, none, lang-code]
+      - folder?: [original, investigate, unused]
+    outputs:
+      - output: {artifacts: [src_subtitle, src_video]}
+    description: |-
+      Copies files specified by importPath to volume source directory.
+      Automatically infers language from *.{lang}.{ext} filename if language is auto.
+  tandoku_subtitles_init:
+    inputs:
+      - volume_tdkv
+      - src_subtitle
+    outputs:
+      - initial_subtitle
