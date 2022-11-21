@@ -1,4 +1,5 @@
 # TODO: consider generating this from spreadsheet data using PSGraph
+# (or create workflow definition in YAML, import to spreadsheet and generate graph from YAML)
 digraph {
     graph [fontname="Helvetica"];
     node [fontname="Helvetica" penwidth=0.2];
@@ -6,13 +7,16 @@ digraph {
 
     # processes
     node [shape=rect style="filled" fillcolor=blue fontcolor=white];
+    # TODO: align to new module-based API structure
     tandoku_new_volume
 
     tandoku_export_tokens_csv
+    
+    ## source processes
+    tandoku_source_import
 
-    ## film processes
-    tandoku_subtitles_import
-    tandoku_subtitles_rename
+    ## film processes (subtitles, video)
+    tandoku_subtitles_init
     tandoku_subtitles_clean
     tandoku_subtitles_align
     tandoku_subtitles_finalize
@@ -22,15 +26,14 @@ digraph {
     tandoku_subtitles_subs2cia_process
     tandoku_subtitles_subs2cia_import
 
-    tandoku_video_import
-    tandoku_video_rename
+    tandoku_video_init
     tandoku_video_clean
     tandoku_video_finalize
     tandoku_video_export
 
     tandoku_content_transform_film
 
-    ## general content processes
+    ## content processes
     tandoku_content_merge
     tandoku_content_finalize
     tandoku_content_tokenize
@@ -43,7 +46,7 @@ digraph {
     node [shape=rect style="filled,rounded" fillcolor=orange];
     volume_tdkv
 
-    raw_content
+    initial_content
     transformed_content
     merged_content
     tokenized_content
@@ -58,14 +61,14 @@ digraph {
     ## film artifacts
     external_subtitle
     src_subtitle
-    renamed_subtitle
+    initial_subtitle
     clean_subtitle
     aligned_subtitle
     final_subtitle
 
     external_video
     src_video
-    renamed_video
+    initial_video
     clean_video
     final_video
 
@@ -93,23 +96,23 @@ digraph {
     tokenized_content -> tandoku_export_tokens_csv
     tandoku_export_tokens_csv -> tokens_csv
 
+    volume_tdkv -> tandoku_source_import
+
     ## film edges
-    external_subtitle -> tandoku_subtitles_import
-    volume_tdkv -> tandoku_subtitles_import
-    tandoku_subtitles_import -> src_subtitle
-    src_subtitle -> tandoku_subtitles_rename
-    volume_tdkv -> tandoku_subtitles_rename
-    tandoku_subtitles_rename -> renamed_subtitle
-    renamed_subtitle -> tandoku_subtitles_clean
+    external_subtitle -> tandoku_source_import
+    tandoku_source_import -> src_subtitle
+    src_subtitle -> tandoku_subtitles_init
+    volume_tdkv -> tandoku_subtitles_init
+    tandoku_subtitles_init -> initial_subtitle
+    initial_subtitle -> tandoku_subtitles_clean
     tandoku_subtitles_clean -> clean_subtitle
 
-    external_video -> tandoku_video_import
-    volume_tdkv -> tandoku_video_import
-    tandoku_video_import -> src_video
-    src_video -> tandoku_video_rename
-    volume_tdkv -> tandoku_video_rename
-    tandoku_video_rename -> renamed_video
-    renamed_video -> tandoku_video_clean
+    external_video -> tandoku_source_import
+    tandoku_source_import -> src_video
+    src_video -> tandoku_video_init
+    volume_tdkv -> tandoku_video_init
+    tandoku_video_init -> initial_video
+    initial_video -> tandoku_video_clean
     tandoku_video_clean -> clean_video
     clean_video -> tandoku_video_finalize
     tandoku_video_finalize -> final_video
@@ -126,9 +129,9 @@ digraph {
     tandoku_video_export -> exported_subtitles
 
     final_subtitle -> tandoku_subtitles_contentgen
-    tandoku_subtitles_contentgen -> raw_content
+    tandoku_subtitles_contentgen -> initial_content
 
-    raw_content -> tandoku_content_transform_film
+    initial_content -> tandoku_content_transform_film
     tandoku_content_transform_film -> transformed_content
 
     merged_content -> tandoku_subtitles_subs2cia_export
