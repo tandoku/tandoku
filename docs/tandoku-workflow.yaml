@@ -1,13 +1,15 @@
-container: external
-template: film
+artifactMeta:
+  container: external
+  template: film
 artifacts:
   external_subtitle:
     description: External subtitle file outside the tandoku library.
   external_video:
     description: External video file outside the tandoku library.
 ---
-container: volume
-template: film
+artifactMeta:
+  container: volume
+  template: film
 artifacts:
   src_subtitle:
     location: source/{lang}/
@@ -29,15 +31,32 @@ artifacts:
     sourceControl: binary
     description: |-
       Video file renamed according to volume slug.
-processes:
+values:
+  src_language:
+    description: Auto (default), None or a language code
+  src_folder:
+    description: empty (default), original, investigate, unused, ...
+operations:
+  wikipedia_lookup:
+    outputs:
+      - volume_title
+      - original_media
+  tandoku_volume_new:
+    inputs:
+      - volume_title
+      - original_media
+    outputs:
+      - volume_tdkv
   tandoku_source_import:
     inputs:
       - volume_tdkv
-      - importPath: {artifacts: [external_subtitle, external_video]}
-      - language?: [auto: {default: true}, none, lang-code]
-      - folder?: [original, investigate, unused]
+      - external_subtitle
+      - external_video
+      - src_language
+      - src_folder
     outputs:
-      - output: {artifacts: [src_subtitle, src_video]}
+      - src_subtitle
+      - src_video
     description: |-
       Copies files specified by importPath to volume source directory.
       Automatically infers language from *.{lang}.{ext} filename if language is auto.
