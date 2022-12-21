@@ -11,6 +11,8 @@ digraph {
     tandoku_new_volume
 
     tandoku_export_tokens_csv
+
+    tandoku_import
     
     ## source processes
     tandoku_source_import
@@ -95,6 +97,13 @@ digraph {
 
     tokenized_content -> tandoku_export_tokens_csv
     tandoku_export_tokens_csv -> tokens_csv
+
+    external_subtitle -> tandoku_import
+    external_video -> tandoku_import
+    volume_tdkv -> tandoku_import
+    tandoku_import -> tandoku_source_import
+    tandoku_import -> tandoku_subtitles_init
+    tandoku_import -> tandoku_video_init
 
     volume_tdkv -> tandoku_source_import
 
