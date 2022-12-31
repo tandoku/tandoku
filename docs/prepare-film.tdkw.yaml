@@ -64,18 +64,58 @@ operations:
       - src_subtitle
     outputs:
       - initial_subtitle
-  tandoku_subtitles_clean: {}
-  tandoku_subtitles_align: {}
-  tandoku_subtitles_finalize: {}
-  tandoku_subtitles_contentgen: {}
+  tandoku_subtitles_clean:
+    inputs:
+      - initial_subtitle
+    outputs:
+      - clean_subtitle
+  tandoku_subtitles_align:
+    inputs:
+      - clean_subtitle
+      - final_video
+    outputs:
+      - aligned_subtitle
+  tandoku_subtitles_finalize:
+    inputs:
+      - aligned_subtitle
+    outputs:
+      - final_subtitle
+  tandoku_subtitles_contentgen:
+    inputs:
+      - final_subtitle
+    outputs:
+      - initial_content
 
   tandoku_subtitles_subs2cia_export: {}
   tandoku_subtitles_subs2cia_process: {}
   tandoku_subtitles_subs2cia_import: {}
 
-  tandoku_video_init: {}
-  tandoku_video_clean: {}
-  tandoku_video_finalize: {}
-  tandoku_video_export: {}
+  tandoku_video_init:
+    inputs:
+      - volume_tdkv
+      - src_video
+    outputs:
+      - initial_video
+  tandoku_video_clean:
+    inputs:
+      - initial_video
+    outputs:
+      - clean_video
+  tandoku_video_finalize:
+    inputs:
+      - clean_video
+    outputs:
+      - final_video
+  tandoku_video_export:
+    inputs:
+      - final_subtitle
+      - final_video
+    outputs:
+      - exported_video
+      - exported_subtitles
 
-  tandoku_content_transform_film: {}
+  tandoku_content_transform_film:
+    inputs:
+       - initial_content
+    outputs:
+      - transformed_content

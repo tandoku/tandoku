@@ -92,45 +92,45 @@ digraph {
     volume_input
 
     # edges
-    volume_input -> tandoku_new_volume
-    tandoku_new_volume -> volume_tdkv
+    #volume_input -> tandoku_new_volume
+    #tandoku_new_volume -> volume_tdkv
 
     tokenized_content -> tandoku_export_tokens_csv
     tandoku_export_tokens_csv -> tokens_csv
 
-    external_subtitle -> tandoku_import
-    external_video -> tandoku_import
-    volume_tdkv -> tandoku_import
-    tandoku_import -> tandoku_source_import
-    tandoku_import -> tandoku_subtitles_init
-    tandoku_import -> tandoku_video_init
+    #external_subtitle -> tandoku_import
+    #external_video -> tandoku_import
+    #volume_tdkv -> tandoku_import
+    #tandoku_import -> tandoku_source_import
+    #tandoku_import -> tandoku_subtitles_init
+    #tandoku_import -> tandoku_video_init
 
-    volume_tdkv -> tandoku_source_import
+    #volume_tdkv -> tandoku_source_import
 
     ## film edges
-    external_subtitle -> tandoku_source_import
-    tandoku_source_import -> src_subtitle
-    src_subtitle -> tandoku_subtitles_init
-    volume_tdkv -> tandoku_subtitles_init
-    tandoku_subtitles_init -> initial_subtitle
-    initial_subtitle -> tandoku_subtitles_clean
-    tandoku_subtitles_clean -> clean_subtitle
+    #external_subtitle -> tandoku_source_import
+    #tandoku_source_import -> src_subtitle
+    #src_subtitle -> tandoku_subtitles_init
+    #volume_tdkv -> tandoku_subtitles_init
+    #tandoku_subtitles_init -> initial_subtitle
+    #initial_subtitle -> tandoku_subtitles_clean
+    #tandoku_subtitles_clean -> clean_subtitle
 
-    external_video -> tandoku_source_import
-    tandoku_source_import -> src_video
-    src_video -> tandoku_video_init
-    volume_tdkv -> tandoku_video_init
-    tandoku_video_init -> initial_video
-    initial_video -> tandoku_video_clean
-    tandoku_video_clean -> clean_video
-    clean_video -> tandoku_video_finalize
-    tandoku_video_finalize -> final_video
+    #external_video -> tandoku_source_import
+    #tandoku_source_import -> src_video
+    #src_video -> tandoku_video_init
+    #volume_tdkv -> tandoku_video_init
+    #tandoku_video_init -> initial_video
+    #initial_video -> tandoku_video_clean
+    #tandoku_video_clean -> clean_video
+    #clean_video -> tandoku_video_finalize
+    #tandoku_video_finalize -> final_video
 
-    clean_subtitle -> tandoku_subtitles_align
-    final_video -> tandoku_subtitles_align
-    tandoku_subtitles_align -> aligned_subtitle
-    aligned_subtitle -> tandoku_subtitles_finalize
-    tandoku_subtitles_finalize -> final_subtitle
+    #clean_subtitle -> tandoku_subtitles_align
+    #final_video -> tandoku_subtitles_align
+    #tandoku_subtitles_align -> aligned_subtitle
+    #aligned_subtitle -> tandoku_subtitles_finalize
+    #tandoku_subtitles_finalize -> final_subtitle
 
     final_subtitle -> tandoku_video_export
     final_video -> tandoku_video_export
