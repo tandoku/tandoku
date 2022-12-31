@@ -1,0 +1,18 @@
+stage: prepare
+artifacts:
+  volume_tdkv:
+    summary: Holds metadata for a single tandoku volume.
+    container: volume
+    location: "{title}.tdkv.yaml"
+    sourceControl: text
+operations:
+  wikipedia_lookup:
+    outputs:
+      - volume_title
+      - original_media
+  tandoku_volume_new:
+    inputs:
+      - volume_title
+      - original_media
+    outputs:
+      - volume_tdkv

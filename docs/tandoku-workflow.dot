@@ -8,32 +8,32 @@ digraph {
     # processes
     node [shape=rect style="filled" fillcolor=blue fontcolor=white];
     # TODO: align to new module-based API structure
-    tandoku_new_volume
+    #tandoku_new_volume
 
     tandoku_export_tokens_csv
 
-    tandoku_import
+    #tandoku_import
     
     ## source processes
-    tandoku_source_import
+    #tandoku_source_import
 
     ## film processes (subtitles, video)
-    tandoku_subtitles_init
-    tandoku_subtitles_clean
-    tandoku_subtitles_align
-    tandoku_subtitles_finalize
-    tandoku_subtitles_contentgen
+    #tandoku_subtitles_init
+    #tandoku_subtitles_clean
+    #tandoku_subtitles_align
+    #tandoku_subtitles_finalize
+    #tandoku_subtitles_contentgen
 
-    tandoku_subtitles_subs2cia_export
-    tandoku_subtitles_subs2cia_process
-    tandoku_subtitles_subs2cia_import
+    #tandoku_subtitles_subs2cia_export
+    #tandoku_subtitles_subs2cia_process
+    #tandoku_subtitles_subs2cia_import
 
-    tandoku_video_init
-    tandoku_video_clean
-    tandoku_video_finalize
-    tandoku_video_export
+    #tandoku_video_init
+    #tandoku_video_clean
+    #tandoku_video_finalize
+    #tandoku_video_export
 
-    tandoku_content_transform_film
+    #tandoku_content_transform_film
 
     ## content processes
     tandoku_content_merge
@@ -46,7 +46,7 @@ digraph {
 
     # artifacts
     node [shape=rect style="filled,rounded" fillcolor=orange];
-    volume_tdkv
+    #volume_tdkv
 
     initial_content
     transformed_content
@@ -61,18 +61,18 @@ digraph {
     tokens_csv
 
     ## film artifacts
-    external_subtitle
-    src_subtitle
-    initial_subtitle
-    clean_subtitle
-    aligned_subtitle
-    final_subtitle
+    #external_subtitle
+    #src_subtitle
+    #initial_subtitle
+    #clean_subtitle
+    #aligned_subtitle
+    #final_subtitle
 
-    external_video
-    src_video
-    initial_video
-    clean_video
-    final_video
+    #external_video
+    #src_video
+    #initial_video
+    #clean_video
+    #final_video
 
     exported_video
     exported_subtitles

@@ -15,6 +15,13 @@ artifacts:
     container: volume
     location: subtitles/initial/
     sourceControl: text
+  clean_subtitle:
+    container: volume
+  aligned_subtitle:
+    container: volume
+  final_subtitle:
+    container: volume
+
   src_video:
     container: volume
     location: source/
@@ -25,22 +32,18 @@ artifacts:
     container: volume
     location: video/initial/
     sourceControl: binary
+  clean_video:
+    container: volume
+  final_video:
+    container: volume
+
 simpleValues:
   src_language:
     summary: Auto (default), None or a language code
   src_folder:
     summary: empty (default), original, investigate, unused, ...
 operations:
-  wikipedia_lookup:
-    outputs:
-      - volume_title
-      - original_media
-  tandoku_volume_new:
-    inputs:
-      - volume_title
-      - original_media
-    outputs:
-      - volume_tdkv
+  # TODO: this should move to prepare-any
   tandoku_source_import:
     summary: |-
       Copies files specified by importPath to volume source directory.
@@ -54,9 +57,25 @@ operations:
     outputs:
       - src_subtitle
       - src_video
+
   tandoku_subtitles_init:
     inputs:
       - volume_tdkv
       - src_subtitle
     outputs:
       - initial_subtitle
+  tandoku_subtitles_clean: {}
+  tandoku_subtitles_align: {}
+  tandoku_subtitles_finalize: {}
+  tandoku_subtitles_contentgen: {}
+
+  tandoku_subtitles_subs2cia_export: {}
+  tandoku_subtitles_subs2cia_process: {}
+  tandoku_subtitles_subs2cia_import: {}
+
+  tandoku_video_init: {}
+  tandoku_video_clean: {}
+  tandoku_video_finalize: {}
+  tandoku_video_export: {}
+
+  tandoku_content_transform_film: {}
