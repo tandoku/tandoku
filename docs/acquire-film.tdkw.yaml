@@ -1,12 +1,5 @@
 stage: acquire
 media: film
-artifacts:
-  external_subtitle:
-    summary: External subtitle file outside the tandoku library
-    container: external
-  external_video:
-    summary: External video file outside the tandoku library.
-    container: external
 operations:
   anystream_download:
     summary: Download video and subtitles using RedFox AnyStream

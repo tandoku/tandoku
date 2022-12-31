@@ -1,41 +1,35 @@
-artifactMeta:
-  container: external
-  template: film
-artifacts:
-  external_subtitle:
-    description: External subtitle file outside the tandoku library.
-  external_video:
-    description: External video file outside the tandoku library.
----
-artifactMeta:
-  container: volume
-  template: film
+stage: prepare
+media: film
 artifacts:
   src_subtitle:
-    location: source/{lang}/
-    sourceControl: binary
-    description: |-
+    summary: |-
       Subtitle file added to volume with no changes to name or content.
       May or may not include language in filename (e.g. subtitle.ja.srt).
+    container: volume
+    location: source/{lang}/
+    sourceControl: binary
   initial_subtitle:
-    location: subtitles/initial/
-    sourceControl: text
-    description: |-
+    summary: |-
       Subtitle file renamed according to volume slug.
       Always includes language in filename (e.g. subtitle.ja.srt).
+    container: volume
+    location: subtitles/initial/
+    sourceControl: text
   src_video:
+    container: volume
     location: source/
     sourceControl: binary
   initial_video:
+    summary: |-
+      Video file renamed according to volume slug.
+    container: volume
     location: video/initial/
     sourceControl: binary
-    description: |-
-      Video file renamed according to volume slug.
-values:
+simpleValues:
   src_language:
-    description: Auto (default), None or a language code
+    summary: Auto (default), None or a language code
   src_folder:
-    description: empty (default), original, investigate, unused, ...
+    summary: empty (default), original, investigate, unused, ...
 operations:
   wikipedia_lookup:
     outputs:
@@ -48,6 +42,9 @@ operations:
     outputs:
       - volume_tdkv
   tandoku_source_import:
+    summary: |-
+      Copies files specified by importPath to volume source directory.
+      Automatically infers language from *.{lang}.{ext} filename if language is auto.
     inputs:
       - volume_tdkv
       - external_subtitle
@@ -57,9 +54,6 @@ operations:
     outputs:
       - src_subtitle
       - src_video
-    description: |-
-      Copies files specified by importPath to volume source directory.
-      Automatically infers language from *.{lang}.{ext} filename if language is auto.
   tandoku_subtitles_init:
     inputs:
       - volume_tdkv
