@@ -37,6 +37,22 @@ artifacts:
   final_video:
     container: volume
 
+  exported_video:
+    container: staging
+  exported_subtitles:
+    container: staging
+
+  subs2cia_subtitle:
+    container: volume
+  temp_subs2cia_tsv:
+    container: volume
+  temp_audio_clips:
+    container: volume
+  temp_images:
+    container: volume
+  subs2cia_content:
+    container: volume
+
 simpleValues:
   src_language:
     summary: Auto (default), None or a language code

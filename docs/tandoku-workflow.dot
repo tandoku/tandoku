@@ -74,14 +74,14 @@ digraph {
     #clean_video
     #final_video
 
-    exported_video
-    exported_subtitles
+    #exported_video
+    #exported_subtitles
 
-    subs2cia_subtitle
-    temp_subs2cia_tsv
-    temp_audio_clips
-    temp_images
-    subs2cia_content
+    #subs2cia_subtitle
+    #temp_subs2cia_tsv
+    #temp_audio_clips
+    #temp_images
+    #subs2cia_content
 
     ## markdown, kindle
     exported_markdown
@@ -132,16 +132,16 @@ digraph {
     #aligned_subtitle -> tandoku_subtitles_finalize
     #tandoku_subtitles_finalize -> final_subtitle
 
-    final_subtitle -> tandoku_video_export
-    final_video -> tandoku_video_export
-    tandoku_video_export -> exported_video
-    tandoku_video_export -> exported_subtitles
+    #final_subtitle -> tandoku_video_export
+    #final_video -> tandoku_video_export
+    #tandoku_video_export -> exported_video
+    #tandoku_video_export -> exported_subtitles
 
-    final_subtitle -> tandoku_subtitles_contentgen
-    tandoku_subtitles_contentgen -> initial_content
+    #final_subtitle -> tandoku_subtitles_contentgen
+    #tandoku_subtitles_contentgen -> initial_content
 
-    initial_content -> tandoku_content_transform_film
-    tandoku_content_transform_film -> transformed_content
+    #initial_content -> tandoku_content_transform_film
+    #tandoku_content_transform_film -> transformed_content
 
     merged_content -> tandoku_subtitles_subs2cia_export
     tandoku_subtitles_subs2cia_export -> subs2cia_subtitle
