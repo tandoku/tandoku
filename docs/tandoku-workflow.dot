@@ -36,9 +36,9 @@ digraph {
     #tandoku_content_transform_film
 
     ## content processes
-    tandoku_content_merge
-    tandoku_content_finalize
-    tandoku_content_tokenize
+    #tandoku_content_merge
+    #tandoku_content_finalize
+    #tandoku_content_tokenize
 
     ## markdown, kindle processses
     tandoku_markdown_export
@@ -48,15 +48,15 @@ digraph {
     node [shape=rect style="filled,rounded" fillcolor=orange];
     #volume_tdkv
 
-    initial_content
-    transformed_content
-    merged_content
-    tokenized_content
-    final_content
+    #initial_content
+    #transformed_content
+    #merged_content
+    #tokenized_content
+    #final_content
 
-    images
+    #images
 
-    audio_clips
+    #audio_clips
 
     tokens_csv
 
@@ -143,29 +143,29 @@ digraph {
     #initial_content -> tandoku_content_transform_film
     #tandoku_content_transform_film -> transformed_content
 
-    merged_content -> tandoku_subtitles_subs2cia_export
-    tandoku_subtitles_subs2cia_export -> subs2cia_subtitle
-    subs2cia_subtitle -> tandoku_subtitles_subs2cia_process
-    final_video -> tandoku_subtitles_subs2cia_process
-    tandoku_subtitles_subs2cia_process -> temp_subs2cia_tsv
-    tandoku_subtitles_subs2cia_process -> temp_audio_clips
-    tandoku_subtitles_subs2cia_process -> temp_images
-    temp_subs2cia_tsv -> tandoku_subtitles_subs2cia_import
-    temp_audio_clips -> tandoku_subtitles_subs2cia_import
-    temp_images -> tandoku_subtitles_subs2cia_import
-    tandoku_subtitles_subs2cia_import -> audio_clips
-    tandoku_subtitles_subs2cia_import -> images
-    tandoku_subtitles_subs2cia_import -> subs2cia_content
-    subs2cia_content -> tandoku_content_finalize
+    # merged_content -> tandoku_subtitles_subs2cia_export
+    # tandoku_subtitles_subs2cia_export -> subs2cia_subtitle
+    # subs2cia_subtitle -> tandoku_subtitles_subs2cia_process
+    # final_video -> tandoku_subtitles_subs2cia_process
+    # tandoku_subtitles_subs2cia_process -> temp_subs2cia_tsv
+    # tandoku_subtitles_subs2cia_process -> temp_audio_clips
+    # tandoku_subtitles_subs2cia_process -> temp_images
+    # temp_subs2cia_tsv -> tandoku_subtitles_subs2cia_import
+    # temp_audio_clips -> tandoku_subtitles_subs2cia_import
+    # temp_images -> tandoku_subtitles_subs2cia_import
+    # tandoku_subtitles_subs2cia_import -> audio_clips
+    # tandoku_subtitles_subs2cia_import -> images
+    # tandoku_subtitles_subs2cia_import -> subs2cia_content
+    # subs2cia_content -> tandoku_content_finalize
 
     ## general content edges
-    transformed_content -> tandoku_content_merge
-    tandoku_content_merge -> merged_content
-    merged_content -> tandoku_content_finalize
-    tandoku_content_finalize -> final_content
+    #transformed_content -> tandoku_content_merge
+    #tandoku_content_merge -> merged_content
+    #merged_content -> tandoku_content_finalize
+    #tandoku_content_finalize -> final_content
 
-    final_content -> tandoku_content_tokenize
-    tandoku_content_tokenize -> tokenized_content
+    #final_content -> tandoku_content_tokenize
+    #tandoku_content_tokenize -> tokenized_content
 
     ## markdown export
     final_content -> tandoku_markdown_export

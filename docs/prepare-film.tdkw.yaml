@@ -53,23 +53,14 @@ artifacts:
   subs2cia_content:
     container: volume
 
-simpleValues:
-  src_language:
-    summary: Auto (default), None or a language code
-  src_folder:
-    summary: empty (default), original, investigate, unused, ...
+  audio_clips:
+    container: volume
+
 operations:
-  # TODO: this should move to prepare-any
   tandoku_source_import:
-    summary: |-
-      Copies files specified by importPath to volume source directory.
-      Automatically infers language from *.{lang}.{ext} filename if language is auto.
     inputs:
-      - volume_tdkv
       - external_subtitle
       - external_video
-      - src_language
-      - src_folder
     outputs:
       - src_subtitle
       - src_video
@@ -102,9 +93,33 @@ operations:
     outputs:
       - initial_content
 
-  tandoku_subtitles_subs2cia_export: {}
-  tandoku_subtitles_subs2cia_process: {}
-  tandoku_subtitles_subs2cia_import: {}
+  tandoku_subtitles_subs2cia_export:
+    inputs:
+      - merged_content
+    outputs:
+      - subs2cia_subtitle
+  tandoku_subtitles_subs2cia_process:
+    inputs:
+      - subs2cia_subtitle
+      - final_video
+    outputs:
+      - temp_subs2cia_tsv
+      - temp_audio_clips
+      - temp_images
+  tandoku_subtitles_subs2cia_import:
+    inputs:
+      - temp_subs2cia_tsv
+      - temp_audio_clips
+      - temp_images
+      - merged_content
+    outputs:
+      - audio_clips
+      - images
+      - subs2cia_content
+
+  tandoku_content_finalize:
+    inputs:
+      - subs2cia_content
 
   tandoku_video_init:
     inputs:

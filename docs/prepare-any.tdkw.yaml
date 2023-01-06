@@ -5,6 +5,27 @@ artifacts:
     container: volume
     location: "{title}.tdkv.yaml"
     sourceControl: text
+
+  initial_content:
+    container: volume
+  transformed_content:
+    container: volume
+  merged_content:
+    container: volume
+  tokenized_content:
+    container: volume
+  final_content:
+    container: volume
+
+  images:
+    container: volume
+
+simpleValues:
+  src_language:
+    summary: Auto (default), None or a language code
+  src_folder:
+    summary: empty (default), original, investigate, unused, ...
+
 operations:
   wikipedia_lookup:
     outputs:
@@ -16,3 +37,29 @@ operations:
       - original_media
     outputs:
       - volume_tdkv
+
+  tandoku_source_import:
+    summary: |-
+      Copies files specified by importPath to volume source directory.
+      Automatically infers language from *.{lang}.{ext} filename if language is auto.
+    inputs:
+      - volume_tdkv
+      - src_language
+      - src_folder
+
+  tandoku_content_merge:
+    inputs:
+      - transformed_content
+    outputs:
+      - merged_content
+  tandoku_content_finalize:
+    #TODO: this is template specific, should just be defined in specific templates?
+    #inputs:
+    #  - merged_content
+    outputs:
+      - final_content
+  tandoku_content_tokenize:
+    inputs:
+      - final_content
+    outputs:
+       - tokenized_content

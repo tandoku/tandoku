@@ -29,7 +29,8 @@ function BuildTandokuWorkflowGraph($Path) {
         foreach ($wf in $wfDocs) {
             Inline "# stage: $($wf.stage), media: $($wf.media)"
 
-            subgraph {
+            # TODO: subgraphs based on different criteria ?
+            #subgraph {
                 # artifacts
                 if ($wf.artifacts) {
                     node @{shape = 'rect'; style = "filled,rounded"; fillcolor = 'orange' }
@@ -61,7 +62,7 @@ function BuildTandokuWorkflowGraph($Path) {
                         }
                     }
                 }
-            }
+            #}
         }
     }
 }
