@@ -20,6 +20,11 @@ artifacts:
   images:
     container: volume
 
+  exported_markdown:
+    container: volume
+  exported_kindle_book:
+    container: volume
+
 simpleValues:
   src_language:
     summary: Auto (default), None or a language code
@@ -63,3 +68,15 @@ operations:
       - final_content
     outputs:
        - tokenized_content
+
+  tandoku_markdown_export:
+    inputs:
+      - final_content
+      - images
+    outputs:
+      - exported_markdown
+  tandoku_kindle_generate:
+    inputs:
+      - exported_markdown
+    outputs:
+      - exported_kindle_book

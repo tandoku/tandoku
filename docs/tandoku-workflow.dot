@@ -41,8 +41,8 @@ digraph {
     #tandoku_content_tokenize
 
     ## markdown, kindle processses
-    tandoku_markdown_export
-    tandoku_kindle_generate
+    #tandoku_markdown_export
+    #tandoku_kindle_generate
 
     # artifacts
     node [shape=rect style="filled,rounded" fillcolor=orange];
@@ -84,8 +84,8 @@ digraph {
     #subs2cia_content
 
     ## markdown, kindle
-    exported_markdown
-    exported_kindle_book
+    #exported_markdown
+    #exported_kindle_book
 
     # user input
     node [shape=rect style="filled,rounded" fillcolor=green];
@@ -168,11 +168,11 @@ digraph {
     #tandoku_content_tokenize -> tokenized_content
 
     ## markdown export
-    final_content -> tandoku_markdown_export
-    images -> tandoku_markdown_export
-    tandoku_markdown_export -> exported_markdown
+    #final_content -> tandoku_markdown_export
+    #images -> tandoku_markdown_export
+    #tandoku_markdown_export -> exported_markdown
 
     ## kindle export
-    exported_markdown -> tandoku_kindle_generate
-    tandoku_kindle_generate -> exported_kindle_book
+    #exported_markdown -> tandoku_kindle_generate
+    #tandoku_kindle_generate -> exported_kindle_book
 }
