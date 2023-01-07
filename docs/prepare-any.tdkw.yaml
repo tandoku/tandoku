@@ -1,10 +1,32 @@
 stage: prepare
 artifacts:
-  volume_tdkv:
+  library_metadata:
+    summary: Holds metadata for a tandoku library.
+    container: library
+    location: library.tdkl.yaml
+    sourceControl: text
+
+  volume_metadata:
     summary: Holds metadata for a single tandoku volume.
     container: volume
-    location: "{title}.tdkv.yaml"
+    location: "{moniker} {title}.tdkv.yaml"
     sourceControl: text
+
+  src_any_original:
+    summary: Original source file in unsupported format, to be converted to supported format.
+    container: volume
+    location: source/{lang}/original
+    sourceControl: binary
+  src_any_investigate:
+    summary: Source files to investigate.
+    container: volume
+    location: source/{lang}/investigate/
+    sourceControl: binary
+  src_any_unused:
+    summary: Source files that are currently unused.
+    container: volume
+    location: source/{lang}/unused/
+    sourceControl: binary
 
   initial_content:
     container: volume
@@ -41,14 +63,14 @@ operations:
       - volume_title
       - original_media
     outputs:
-      - volume_tdkv
+      - volume_metadata
 
   tandoku_source_import:
     summary: |-
       Copies files specified by importPath to volume source directory.
       Automatically infers language from *.{lang}.{ext} filename if language is auto.
     inputs:
-      - volume_tdkv
+      - volume_metadata
       - src_language
       - src_folder
 

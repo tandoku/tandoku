@@ -5,9 +5,11 @@ artifacts:
     summary: |-
       Subtitle file added to volume with no changes to name or content.
       May or may not include language in filename (e.g. subtitle.ja.srt).
+      Should be in a supported subtitle format (.srt, .ass, .vtt).
     container: volume
     location: source/{lang}/
     sourceControl: binary
+
   initial_subtitle:
     summary: |-
       Subtitle file renamed according to volume slug.
@@ -67,7 +69,7 @@ operations:
 
   tandoku_subtitles_init:
     inputs:
-      - volume_tdkv
+      - volume_metadata
       - src_subtitle
     outputs:
       - initial_subtitle
@@ -123,7 +125,7 @@ operations:
 
   tandoku_video_init:
     inputs:
-      - volume_tdkv
+      - volume_metadata
       - src_video
     outputs:
       - initial_video

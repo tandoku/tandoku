@@ -16,12 +16,7 @@ param(
     $ShowGraph
 )
 
-function BuildTandokuWorkflowGraph($Path) {
-    $wfDocs = Get-ChildItem $Path |
-        ForEach-Object {
-            Get-Content $_ | ConvertFrom-Yaml -AllDocuments
-        }
-
+function BuildTandokuWorkflowGraph($wfDocs) {
     graph workflow @{fontname='Helvetica'} {
         node @{fontname='Helvetica'; fontcolor='white'; penwidth="0.2"}
         edge @{fontname="Helvetica"; arrowsize="0.6"}
@@ -76,11 +71,41 @@ function AddNodesFromKeys($map) {
     }
 }
 
+function BuildTandokuArtifactsTable($wfDocs) {
+    $wfDocs | ForEach-Object {
+        $wf = $_
+
+        if ($wf.artifacts) {
+            foreach ($k in $wf.artifacts.keys) {
+                $a = $wf.artifacts[$k]
+                [PSCustomObject] @{
+                    name = $k
+                    container = $a.container
+                    stage = $wf.stage
+                    media = $wf.media
+                    location = $a.location
+                    sourceControl = $a.sourceControl
+                    summary = $a.summary
+                }
+            }
+        }
+    } | Export-Csv '.\tandoku-workflow-artifacts.csv'
+}
+
+function GetTandokuWorkflowDocs($Path) {
+    return Get-ChildItem $Path |
+        ForEach-Object {
+            Get-Content $_ | ConvertFrom-Yaml -AllDocuments
+        }
+}
+
 if (-not $Path) {
     $Path = ".\*.tdkw.yaml"
 }
 
-$graph = BuildTandokuWorkflowGraph $Path
+$wfDocs = GetTandokuWorkflowDocs $Path
+
+$graph = BuildTandokuWorkflowGraph $wfDocs
 
 if ($OutFile) {
     $graph | Set-Content $OutFile
@@ -95,3 +120,6 @@ if ($ShowGraph) {
 if (-not $OutFile -and -not $ShowGraph) {
     $graph
 }
+
+# TODO: rationalize the parameters to allow building graph, tables or both
+BuildTandokuArtifactsTable $wfDocs
