@@ -15,14 +15,27 @@ artifacts:
       Subtitle file renamed according to volume slug.
       Always includes language in filename (e.g. subtitle.ja.srt).
     container: volume
-    location: subtitles/initial/
+    location: subtitles/{lang}/initial/
     sourceControl: text
   clean_subtitle:
+    summary: |-
+      TODO
     container: volume
+    location: subtitles/{lang}/clean/
+    sourceControl: text
   aligned_subtitle:
+    summary: |-
+      TODO
     container: volume
+    location: subtitles/{lang}/aligned/
+    sourceControl: text
   final_subtitle:
+    summary: |-
+      TODO
+      TBD - append /final/ subdirectory?
     container: volume
+    location: subtitles/{lang}/
+    sourceControl: text
 
   src_video:
     container: volume

@@ -15,7 +15,7 @@ artifacts:
   src_any_original:
     summary: Original source file in unsupported format, to be converted to supported format.
     container: volume
-    location: source/{lang}/original
+    location: source/{lang}/original/
     sourceControl: binary
   src_any_investigate:
     summary: Source files to investigate.
