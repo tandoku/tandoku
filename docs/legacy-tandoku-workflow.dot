@@ -5,6 +5,33 @@ digraph {
     node [fontname="Helvetica" penwidth=0.2];
     edge [fontname="Helvetica" arrowsize="0.6"];
 
+# subprocess example
+    calibre_ebook
+    calibre_ebook_metadata
+
+    tandoku_calibre_import[shape=plain style=filled fillcolor=blue fontcolor=white label=<
+<TABLE BORDER="0">
+    <TR><TD>tandoku_calibre_import</TD></TR>
+    <TR><TD BGCOLOR="skyblue" PORT="p1">tandoku_volume_new</TD></TR>
+    <TR><TD BGCOLOR="skyblue" PORT="p2">tandoku_source_import</TD></TR>
+</TABLE>
+>]
+    tandoku_volume_new
+    tandoku_source_import
+
+    src_ebook
+    src_ebook_metadata
+
+    calibre_ebook -> tandoku_calibre_import
+    calibre_ebook_metadata -> tandoku_calibre_import
+    tandoku_source_import -> src_ebook
+    tandoku_source_import -> src_ebook_metadata
+    tandoku_volume_new -> volume_metadata
+
+    tandoku_calibre_import:p1 -> tandoku_volume_new
+    tandoku_calibre_import:p2 -> tandoku_source_import
+# end subprocess example
+
     # processes
     node [shape=rect style="filled" fillcolor=blue fontcolor=white];
     # TODO: align to new module-based API structure

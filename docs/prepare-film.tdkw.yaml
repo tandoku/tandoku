@@ -18,24 +18,19 @@ artifacts:
     location: subtitles/{lang}/initial/
     sourceControl: text
   clean_subtitle:
-    summary: |-
-      TODO
     container: volume
     location: subtitles/{lang}/clean/
     sourceControl: text
   aligned_subtitle:
-    summary: |-
-      TODO
     container: volume
     location: subtitles/{lang}/aligned/
     sourceControl: text
   final_subtitle:
-    summary: |-
-      TODO
-      TBD - append /final/ subdirectory?
     container: volume
     location: subtitles/{lang}/
     sourceControl: text
+    notes: |-
+      TBD - append /final/ subdirectory?
 
   src_video:
     container: volume
@@ -49,27 +44,44 @@ artifacts:
     sourceControl: binary
   clean_video:
     container: volume
+    location: video/clean/
+    sourceControl: binary
   final_video:
     container: volume
+    location: video/
+    sourceControl: binary
+    notes: |-
+      TBD - append /final/ subdirectory?
 
   exported_video:
     container: staging
+    location: "{target-device}/export/{moniker} {title}"
   exported_subtitles:
     container: staging
+    location: "{target-device}/export/{moniker} {title}"
 
   subs2cia_subtitle:
     container: volume
+    location: subtitles/subs2cia/
+    sourceControl: text
   temp_subs2cia_tsv:
     container: volume
+    location: temp/subs2cia/
   temp_audio_clips:
     container: volume
+    location: temp/subs2cia/
   temp_images:
     container: volume
+    location: temp/subs2cia/
   subs2cia_content:
     container: volume
+    location: content/subs2cia/
+    sourceControl: text
 
   audio_clips:
     container: volume
+    location: audio/clips/
+    sourceControl: binary
 
 operations:
   tandoku_source_import:

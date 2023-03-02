@@ -1,0 +1,37 @@
+stage: acquire
+media: book
+artifacts:
+  kindlepc_ebook:
+    summary: Downloaded eBook from Kindle for PC app
+    container: external
+    location: Documents\My Kindle Content
+  calibre_ebook:
+    summary: eBook in Calibre library
+    container: external
+    location: <Calibre default library location>
+    files: [.azw3]
+  calibre_ebook_metadata:
+    summary: eBook metadata in Calibre library
+    container: external
+    location: <Calibre default library location>
+    files: [metadata.opf]
+  calibre_ebook_cover:
+    container: external
+    location: <Calibre default library location>
+    files: [cover.jpg]
+
+operations:
+  kindlepc_download:
+    summary: Download books and manga from Amazon Kindle Store using Kindle for PC app
+    outputs:
+      - kindlepc_ebook
+  calibre_import:
+    summary: Import eBook into Calibre library
+    inputs:
+      - kindlepc_ebook
+    outputs:
+      - calibre_ebook
+      - calibre_ebook_cover
+      - calibre_ebook_metadata
+    notes: |-
+      Remove DRM if needed using DeDRM plugin.

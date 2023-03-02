@@ -86,6 +86,7 @@ function BuildTandokuArtifactsTable($wfDocs) {
                     location = $a.location
                     sourceControl = $a.sourceControl
                     summary = $a.summary
+                    notes = $a.notes
                 }
             }
         }

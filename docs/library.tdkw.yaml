@@ -1,0 +1,13 @@
+stage: common
+artifacts:
+  library_metadata:
+    summary: Holds metadata for a tandoku library.
+    container: library
+    location: library.tdkl.yaml
+    sourceControl: text
+
+  volume_metadata:
+    summary: Holds metadata for a single tandoku volume.
+    container: volume
+    location: "{moniker} {title}.tdkv.yaml"
+    sourceControl: text

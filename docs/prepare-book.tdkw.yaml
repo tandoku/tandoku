@@ -1,0 +1,36 @@
+stage: prepare
+media: book
+artifacts:
+  src_ebook:
+    container: volume
+    location: source/
+    files: [.azw3]
+  src_ebook_metadata:
+    container: volume
+    location: source/
+    files: [metadata.opf]
+  src_ebook_cover:
+    container: volume
+    location: source/
+    files: [cover.jpg]
+
+operations:
+  tandoku_calibre_import:
+    inputs:
+      - calibre_ebook
+      - calibre_ebook_metadata
+      - calibre_ebook_cover
+    outputs:
+      - src_ebook
+      - src_ebook_metadata
+      - src_ebook_cover
+
+  tandoku_source_import:
+    inputs:
+      - calibre_ebook
+      - calibre_ebook_metadata
+      - calibre_ebook_cover
+    outputs:
+      - src_ebook
+      - src_ebook_metadata
+      - src_ebook_cover

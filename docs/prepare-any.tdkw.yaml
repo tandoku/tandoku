@@ -1,17 +1,5 @@
 stage: prepare
 artifacts:
-  library_metadata:
-    summary: Holds metadata for a tandoku library.
-    container: library
-    location: library.tdkl.yaml
-    sourceControl: text
-
-  volume_metadata:
-    summary: Holds metadata for a single tandoku volume.
-    container: volume
-    location: "{moniker} {title}.tdkv.yaml"
-    sourceControl: text
-
   src_any_original:
     summary: Original source file in unsupported format, to be converted to supported format.
     container: volume
@@ -30,22 +18,39 @@ artifacts:
 
   initial_content:
     container: volume
+    location: content/{lang}/initial/
+    sourceControl: text
   transformed_content:
     container: volume
+    location: content/{lang}/transformed/
+    sourceControl: text
   merged_content:
     container: volume
+    location: content/merged/
+    sourceControl: text
   tokenized_content:
     container: volume
+    location: content/tokenized/
+    sourceControl: text
   final_content:
     container: volume
+    location: content/
+    sourceControl: text
+    notes: |-
+      TBD - append /final/ subdirectory?
 
   images:
     container: volume
+    location: images/
+    sourceControl: binary
 
   exported_markdown:
     container: volume
+    location: export/
+    sourceControl: text
   exported_kindle_book:
-    container: volume
+    container: staging
+    location: kindle/export/
 
 simpleValues:
   src_language:
@@ -97,7 +102,7 @@ operations:
       - images
     outputs:
       - exported_markdown
-  tandoku_kindle_generate:
+  tandoku_kindle_export:
     inputs:
       - exported_markdown
     outputs:
