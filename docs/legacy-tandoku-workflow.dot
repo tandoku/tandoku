@@ -30,6 +30,13 @@ digraph {
 
     tandoku_calibre_import:p1 -> tandoku_volume_new
     tandoku_calibre_import:p2 -> tandoku_source_import
+
+    # duplicate inputs/outputs
+    calibre_ebook -> tandoku_source_import
+    calibre_ebook_metadata -> tandoku_source_import
+    tandoku_calibre_import -> src_ebook
+    tandoku_calibre_import -> src_ebook_metadata
+    tandoku_calibre_import -> volume_metadata
 # end subprocess example
 
     # processes
