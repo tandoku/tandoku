@@ -5,7 +5,7 @@
 param(
     [Parameter(ValueFromPipeline=$true)]
     [String[]]
-    $Path,
+    $Path = '.\*.tdkw.yaml',
 
     [Parameter()]
     [String]
@@ -98,10 +98,6 @@ function GetTandokuWorkflowDocs($Path) {
         ForEach-Object {
             Get-Content $_ | ConvertFrom-Yaml -AllDocuments
         }
-}
-
-if (-not $Path) {
-    $Path = ".\*.tdkw.yaml"
 }
 
 $wfDocs = GetTandokuWorkflowDocs $Path

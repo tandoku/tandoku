@@ -13,23 +13,29 @@ artifacts:
     container: volume
     location: source/
     files: [cover.jpg]
+  src_kindle_metadata:
+    container: volume
+    location: source/
+    files: [kindle.xml]
 
 operations:
   tandoku_calibre_import:
     inputs:
-      - calibre_ebook
-      - calibre_ebook_metadata
-      - calibre_ebook_cover
+      - external_calibre_ebook
+      - external_calibre_ebook_metadata
+      - external_calibre_ebook_cover
+      - kindlestore_metadata_cache
     outputs:
       - src_ebook
       - src_ebook_metadata
       - src_ebook_cover
+      - src_kindle_metadata
 
   tandoku_source_import:
     inputs:
-      - calibre_ebook
-      - calibre_ebook_metadata
-      - calibre_ebook_cover
+      - external_calibre_ebook
+      - external_calibre_ebook_metadata
+      - external_calibre_ebook_cover
     outputs:
       - src_ebook
       - src_ebook_metadata
