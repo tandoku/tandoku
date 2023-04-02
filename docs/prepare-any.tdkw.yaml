@@ -15,6 +15,12 @@ artifacts:
     container: volume
     location: source/{lang}/unused/
     sourceControl: binary
+  
+  volume_cover:
+    container: volume
+    location: /
+    sourceControl: binary
+    files: [cover.jpg]
 
   initial_content:
     container: volume

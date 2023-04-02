@@ -1,10 +1,6 @@
 stage: prepare
 media: book
 artifacts:
-  src_ebook:
-    container: volume
-    location: source/
-    files: [.azw3]
   src_ebook_metadata:
     container: volume
     location: source/
@@ -13,17 +9,21 @@ artifacts:
     container: volume
     location: source/
     files: [cover.jpg]
+  src_kindle_ebook:
+    container: volume
+    location: source/
+    files: [.azw3]
   src_kindle_metadata:
     container: volume
     location: source/
     files: [kindle.xml]
   
-  temp_ebook_images:
+  temp_kindle_ebook_images:
     container: volume
     location: temp/ebook/mobi7/Images/
-    files: [.jpeg]
+    files: [.jpeg, .jpg]
   
-  exported_cbz:
+  exported_comicbook:
     container: staging
     location: "{target-device}/export/{moniker} {title}"
     files: [.cbz]
@@ -55,19 +55,25 @@ operations:
       - external_calibre_ebook_metadata
       - external_calibre_ebook_cover
     outputs:
-      - src_ebook
+      - src_kindle_ebook
       - src_ebook_metadata
       - src_ebook_cover
   
-  tandoku_ebook_extract:
+  tandoku_volume_setcover:
     inputs:
-      - src_ebook
+      - src_ebook_cover
     outputs:
-      - temp_ebook_images
+      - volume_cover
+  
+  tandoku_kindle_unpack:
+    inputs:
+      - src_kindle_ebook
+    outputs:
+      - temp_kindle_ebook_images
   
   tandoku_images_import:
     inputs:
-      - temp_ebook_images
+      - temp_kindle_ebook_images
     outputs:
       - images
   
@@ -81,8 +87,8 @@ operations:
     inputs:
       - transformed_content
   
-  tandoku_cbz_export:
+  tandoku_comicbook_export:
     inputs:
       - images
     outputs:
-      - exported_cbz
+      - exported_comicbook
