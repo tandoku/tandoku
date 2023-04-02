@@ -67,10 +67,10 @@ artifacts:
   temp_subs2cia_tsv:
     container: volume
     location: temp/subs2cia/
-  temp_audio_clips:
+  temp_subs2cia_audio_clips:
     container: volume
     location: temp/subs2cia/
-  temp_images:
+  temp_subs2cia_images:
     container: volume
     location: temp/subs2cia/
   subs2cia_content:
@@ -131,13 +131,13 @@ operations:
       - final_video
     outputs:
       - temp_subs2cia_tsv
-      - temp_audio_clips
-      - temp_images
+      - temp_subs2cia_audio_clips
+      - temp_subs2cia_images
   tandoku_subtitles_subs2cia_import:
     inputs:
       - temp_subs2cia_tsv
-      - temp_audio_clips
-      - temp_images
+      - temp_subs2cia_audio_clips
+      - temp_subs2cia_images
       - merged_content
     outputs:
       - audio_clips

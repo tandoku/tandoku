@@ -43,6 +43,11 @@ artifacts:
     container: volume
     location: images/
     sourceControl: binary
+  
+  image_text:
+    container: volume
+    location: images/text/
+    sourceControl: binary
 
   exported_markdown:
     container: volume
@@ -78,6 +83,18 @@ operations:
       - volume_metadata
       - src_language
       - src_folder
+
+  tandoku_images_recognizetext:
+    inputs:
+      - images
+    outputs:
+      - image_text
+  tandoku_images_contentgen:
+    inputs:
+      - images
+      - image_text
+    outputs:
+      - initial_content
 
   tandoku_content_merge:
     inputs:
