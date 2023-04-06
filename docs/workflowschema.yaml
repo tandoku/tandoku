@@ -1,0 +1,23 @@
+stage: <common|discover|acquire|prepare|...>
+media: <film|...>
+artifacts:
+  <artifact-name>:
+    summary: text
+    container: <library|volume|staging|external|...>
+    location: path (final /, no initial / unless just / for root of container)
+    files: array of file names or extensions (.ext)
+    sourceControl: <binary|text>
+    notes: text
+simpleValues:
+  <value-name>:
+    summary: text
+operations:
+  <operation-name>:
+    summary: text
+    inputs: array of artifacts/values
+    outputs: array of artifacts/values
+    command: shell command (e.g. tandoku volume new, or another tool/executable)
+    script: tandoku script name (in tandoku/scripts, generally for prototyping before implemented as command)
+    cmdlet: PowerShell cmdlet name (from public PowerShell module, e.g. New-TandokuVolume)
+    module: PowerShell module containing cmdlet (if needed)
+    notes: text
