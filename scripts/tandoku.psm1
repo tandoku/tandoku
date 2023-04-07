@@ -15,6 +15,8 @@ if (Test-Path "$tandokuRepoRoot/src/cli/bin/Debug/net6.0/tandoku.exe") {
 Get-ChildItem $tandokuSecondaryModules | Import-Module -Scope Global
 
 function Reset-TandokuModules {
+    # TODO: use Remove-Module to first remove modules
+    # (removes nested modules & classes, which Import-Module -Force doesn't do)
     Get-ChildItem $tandokuSecondaryModules | Import-Module -Scope Global -Force
 }
 
