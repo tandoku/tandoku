@@ -11,3 +11,65 @@ artifacts:
     container: volume
     location: "{moniker} {title}.tdkv.yaml"
     sourceControl: text
+  
+  volume_cover:
+    container: volume
+    location: cover.jpg
+    sourceControl: binary
+
+simpleValues:
+  library_path:
+    summary: Library path or metadata (.tdkl.yaml) location.
+  library_info:
+    summary: Library path, metadata path and metadata/configuration values.
+  
+  volume_path:
+    summary: Volume path or metadata (.tdkv.yaml) location.
+  volume_info:
+    summary: Volume path, metadata path and metadata/configuration values. Also includes library path.
+
+operations:
+  tandoku_library_init:
+    inputs:
+      - library_path
+    outputs:
+      - library_metadata
+    cmdlet: Initialize-TandokuLibrary
+
+  tandoku_library_info:
+    inputs:
+      - library_path
+      - library_metadata
+    outputs:
+      - library_info
+    cmdlet: Get-TandokuLibrary
+
+  tandoku_volume_new:
+    inputs:
+      - library_info
+      - volume_title
+      - original_media
+    outputs:
+      - volume_metadata
+    cmdlet: New-TandokuVolume
+
+  tandoku_volume_info:
+    inputs:
+      - volume_path
+      - volume_metadata
+    outputs:
+      - volume_info
+    cmdlet: Get-TandokuVolume
+  
+  tandoku_volume_list:
+    inputs:
+      - library_info
+    outputs:
+      - volume_info
+    cmdlet: Get-TandokuVolume
+  
+  tandoku_volume_setcover:
+    inputs:
+      - volume_info
+    outputs:
+      - volume_cover

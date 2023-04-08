@@ -94,7 +94,7 @@ operations:
 
   tandoku_subtitles_init:
     inputs:
-      - volume_metadata
+      - volume_info
       - src_subtitle
     outputs:
       - initial_subtitle
@@ -150,7 +150,7 @@ operations:
 
   tandoku_video_init:
     inputs:
-      - volume_metadata
+      - volume_info
       - src_video
     outputs:
       - initial_video

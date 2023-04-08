@@ -62,8 +62,6 @@ operations:
   tandoku_volume_setcover:
     inputs:
       - src_ebook_cover
-    outputs:
-      - volume_cover
   
   tandoku_kindle_unpack:
     inputs:
