@@ -2,6 +2,7 @@
 
 using System.CommandLine;
 using System.CommandLine.Invocation;
+using Tandoku.Library;
 
 public static class Program
 {
@@ -12,6 +13,9 @@ public static class Program
 
         return new RootCommand("Command-line interface for tandoku")
         {
+            CreateLibraryCommand(),
+
+            // Legacy commands
             CreateGenerateCommand(),
             CreateExportCommand(),
             CreateTokenizeCommand(),
@@ -21,6 +25,33 @@ public static class Program
             Demos.CreateCommand(),
         }.Invoke(args);
     }
+
+    private static Command CreateLibraryCommand() =>
+        new("library", "Commands for working with tandoku libraries")
+        {
+            new Command("init", "Initializes a new tandoku library in the current or specified directory")
+            {
+                new Argument<DirectoryInfo>("path", "Directory for new tandoku library") { Arity = ArgumentArity.ZeroOrOne }.LegalFilePathsOnly(),
+            }.WithHandler(CommandHandler.Create(
+                async (DirectoryInfo? pathInfo) =>
+                {
+                    var ops = new LibraryOperations();
+                    var info = await ops.InitializeAsync(pathInfo);
+                    Console.WriteLine($"Path: {info.Path}");
+                    Console.WriteLine($"Metadata path: {info.MetadataPath}");
+                })),
+            new Command("info", "Displays information about the current or specified library")
+            {
+                new Option<FileSystemInfo>(new[] { "-l", "--library" }, "Library path or metadata (.tdkl.yaml) location").LegalFilePathsOnly(),
+            }.WithHandler(CommandHandler.Create(
+                (FileSystemInfo? path) =>
+                {
+                    var ops = new LibraryOperations();
+                    var info = ops.GetInfo(path);
+                    Console.WriteLine($"Path: {info.Path}");
+                    Console.WriteLine($"Metadata path: {info.MetadataPath}");
+                })),
+        };
 
     private static Command CreateGenerateCommand() =>
         new Command("generate", "Generate tandoku content from various input formats")
