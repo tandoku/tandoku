@@ -4,17 +4,16 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net6.0-windows</TargetFramework>
     <AssemblyName>tandoku-reader</AssemblyName>
-    <RootNamespace>Tandoku.Reader</RootNamespace>
     <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <CodeAnalysisRuleSet>..\cli\TandokuCli.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet>..\..\tandoku.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <CodeAnalysisRuleSet>..\cli\TandokuCli.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet>..\..\tandoku.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
 
   <ItemGroup>

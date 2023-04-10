@@ -13,7 +13,7 @@ public class LibraryOperationsTests
         var metadataPath = Path.Combine(libraryRootPath, "library.tdkl.yaml");
         var ops = new LibraryOperations(mockFileSystem);
 
-        var info = await ops.InitializeAsync(mockFileSystem.DirectoryInfo.New(libraryRootPath));
+        var info = await ops.InitializeAsync(libraryRootPath);
 
         info.Path.Should().Be(libraryRootPath);
         info.MetadataPath.Should().Be(metadataPath);

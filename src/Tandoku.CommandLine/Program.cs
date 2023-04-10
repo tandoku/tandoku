@@ -2,18 +2,38 @@
 
 using System.CommandLine;
 using System.CommandLine.Invocation;
+using System.CommandLine.IO;
+using System.IO.Abstractions;
 using Tandoku.Library;
 
-public static class Program
+public sealed class Program
 {
-    [STAThread]
-    public static int Main(string[] args)
-    {
-        // TODO: switch codepage to UTF-8
+    private readonly IConsole console;
+    private readonly IFileSystem fileSystem;
 
-        return new RootCommand("Command-line interface for tandoku")
+    public Program(
+        IConsole? console = null,
+        IFileSystem? fileSystem = null)
+    {
+        this.console = console ?? new SystemConsole();
+        this.fileSystem = fileSystem ?? new FileSystem();
+    }
+
+    [STAThread] // TODO: needed? should use MTAThread instead?
+    public static Task<int> Main(string[] args)
+    {
+        // TODO: switch codepage to UTF-8?
+
+        return new Program().Run(args);
+    }
+
+    public Task<int> Run(string[] args) => this.CreateRootCommand().InvokeAsync(args, this.console);
+    public Task<int> Run(string commandLine) => this.CreateRootCommand().InvokeAsync(commandLine, this.console);
+
+    private RootCommand CreateRootCommand() =>
+        new RootCommand("Command-line interface for tandoku")
         {
-            CreateLibraryCommand(),
+            this.CreateLibraryCommand(),
 
             // Legacy commands
             CreateGenerateCommand(),
@@ -23,11 +43,10 @@ public static class Program
             CreateComputeCommand(),
 
             Demos.CreateCommand(),
-        }.Invoke(args);
-    }
+        };
 
-    private static Command CreateLibraryCommand() =>
-        new("library", "Commands for working with tandoku libraries")
+    private Command CreateLibraryCommand() =>
+        new Command("library", "Commands for working with tandoku libraries")
         {
             new Command("init", "Initializes a new tandoku library in the current or specified directory")
             {
@@ -35,10 +54,9 @@ public static class Program
             }.WithHandler(CommandHandler.Create(
                 async (DirectoryInfo? pathInfo) =>
                 {
-                    var ops = new LibraryOperations();
-                    var info = await ops.InitializeAsync(pathInfo);
-                    Console.WriteLine($"Path: {info.Path}");
-                    Console.WriteLine($"Metadata path: {info.MetadataPath}");
+                    var libraryManager = this.CreateLibraryManager();
+                    var info = await libraryManager.InitializeAsync(pathInfo?.FullName);
+                    this.console.WriteLine($"Initialized new tandoku library at {info.MetadataPath}");
                 })),
             new Command("info", "Displays information about the current or specified library")
             {
@@ -46,12 +64,14 @@ public static class Program
             }.WithHandler(CommandHandler.Create(
                 (FileSystemInfo? path) =>
                 {
-                    var ops = new LibraryOperations();
-                    var info = ops.GetInfo(path);
-                    Console.WriteLine($"Path: {info.Path}");
-                    Console.WriteLine($"Metadata path: {info.MetadataPath}");
+                    var libraryManager = this.CreateLibraryManager();
+                    var info = libraryManager.GetInfo(path);
+                    this.console.WriteLine($"Path: {info.Path}");
+                    this.console.WriteLine($"Metadata path: {info.MetadataPath}");
                 })),
         };
+
+    private LibraryOperations CreateLibraryManager() => new LibraryOperations(this.fileSystem);
 
     private static Command CreateGenerateCommand() =>
         new Command("generate", "Generate tandoku content from various input formats")

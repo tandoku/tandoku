@@ -22,6 +22,8 @@ using YamlDotNet.Core;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.EventEmitters;
 
+// TODO: this has been added as opt-in feature to YamlDotNet itself so shouldn't be needed anymore
+// (need to figure out how to enable it)
 public class StringQuotingEmitter : ChainedEventEmitter
 {
     // Patterns from https://yaml.org/spec/1.2/spec.html#id2804356
