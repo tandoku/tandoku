@@ -3,7 +3,7 @@ namespace Tandoku.Tests.Library;
 using System.IO.Abstractions.TestingHelpers;
 using Tandoku.Library;
 
-public class LibraryOperationsTests
+public class LibraryManagerTests
 {
     [Fact]
     public async Task Initialize()
@@ -11,7 +11,7 @@ public class LibraryOperationsTests
         var mockFileSystem = new MockFileSystem();
         var libraryRootPath = @"c:\tandoku\library";
         var metadataPath = Path.Combine(libraryRootPath, "library.tdkl.yaml");
-        var ops = new LibraryOperations(mockFileSystem);
+        var ops = new LibraryManager(mockFileSystem);
 
         var info = await ops.InitializeAsync(libraryRootPath);
 

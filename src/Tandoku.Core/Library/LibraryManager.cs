@@ -2,14 +2,13 @@
 
 using System.IO.Abstractions;
 
-// TODO: rename to LibraryManager
-public sealed class LibraryOperations
+public sealed class LibraryManager
 {
     private readonly IFileSystem fileSystem;
 
-    public LibraryOperations() : this(new FileSystem()) { }
+    public LibraryManager() : this(new FileSystem()) { }
 
-    public LibraryOperations(IFileSystem fileSystem)
+    public LibraryManager(IFileSystem fileSystem)
     {
         this.fileSystem = fileSystem ?? throw new ArgumentNullException(nameof(fileSystem));
     }

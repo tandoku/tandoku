@@ -52,10 +52,10 @@ public sealed class Program
             {
                 new Argument<DirectoryInfo>("path", "Directory for new tandoku library") { Arity = ArgumentArity.ZeroOrOne }.LegalFilePathsOnly(),
             }.WithHandler(CommandHandler.Create(
-                async (DirectoryInfo? pathInfo) =>
+                async (DirectoryInfo? path) =>
                 {
                     var libraryManager = this.CreateLibraryManager();
-                    var info = await libraryManager.InitializeAsync(pathInfo?.FullName);
+                    var info = await libraryManager.InitializeAsync(path?.FullName);
                     this.console.WriteLine($"Initialized new tandoku library at {info.MetadataPath}");
                 })),
             new Command("info", "Displays information about the current or specified library")
@@ -71,7 +71,7 @@ public sealed class Program
                 })),
         };
 
-    private LibraryOperations CreateLibraryManager() => new LibraryOperations(this.fileSystem);
+    private LibraryManager CreateLibraryManager() => new LibraryManager(this.fileSystem);
 
     private static Command CreateGenerateCommand() =>
         new Command("generate", "Generate tandoku content from various input formats")
