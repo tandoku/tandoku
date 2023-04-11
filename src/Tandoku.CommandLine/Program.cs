@@ -1,8 +1,8 @@
 ﻿namespace Tandoku.CommandLine;
 
 using System.CommandLine;
-using System.CommandLine.Invocation;
 using System.CommandLine.IO;
+using System.CommandLine.NamingConventionBinder;
 using System.IO.Abstractions;
 using Tandoku.Library;
 

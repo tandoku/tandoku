@@ -16,15 +16,15 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="LiteDb" Version="5.0.13" />
-    <PackageReference Include="Lucene.Net.Analysis.Kuromoji" Version="4.8.0-beta00014" />
-    <PackageReference Include="Markdig" Version="0.28.1" />
+    <PackageReference Include="LiteDb" Version="5.0.16" />
+    <PackageReference Include="Lucene.Net.Analysis.Kuromoji" Version="4.8.0-beta00016" />
+    <PackageReference Include="Markdig" Version="0.31.0" />
     <PackageReference Include="MathNet.Numerics" Version="5.0.0" />
     <PackageReference Include="SubtitlesParser" Version="1.5.1" />
     <PackageReference Include="TestableIO.System.IO.Abstractions" Version="19.2.4" />
     <PackageReference Include="TestableIO.System.IO.Abstractions.Wrappers" Version="19.2.4" />
-    <PackageReference Include="WanaKanaSharp" Version="0.2.0" />
-    <PackageReference Include="YamlDotNet" Version="11.2.1" />
+    <PackageReference Include="WanaKanaSharp" Version="0.3.1-alpha" />
+    <PackageReference Include="YamlDotNet" Version="13.0.2" />
   </ItemGroup>
 
 </Project>

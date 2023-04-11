@@ -1,9 +1,7 @@
 namespace Tandoku.CommandLine.Tests;
 
-using System.CommandLine;
 using System.CommandLine.IO;
 using System.IO.Abstractions.TestingHelpers;
-using Microsoft.VisualStudio.TestPlatform.CommunicationUtilities.ObjectModel;
 
 public class LibraryCommandTests
 {
@@ -15,14 +13,14 @@ public class LibraryCommandTests
     [Fact]
     public Task InitWithPath() => RunTest(
         "library init tandoku-library",
-        @"Initialized new tandoku library at c:\temp\tandoku-library\library.tdkl.yaml");
+        @$"Initialized new tandoku library at {Path.Combine(Directory.GetCurrentDirectory(), "tandoku-library", "library.tdkl.yaml")}");
 
     private static async Task RunTest(
         string commandLine,
         string expectedOutput,
         string? expectedError = null)
     {
-        var (program, console, _) = SetUpProgram(@"c:\temp");
+        var (program, console, _) = SetUpProgram(Directory.GetCurrentDirectory());
         var result = await program.Run(commandLine);
         result.Should().Be(0);
         (console.Error.ToString()?.TrimEnd()).Should().Be(expectedError ?? string.Empty);
