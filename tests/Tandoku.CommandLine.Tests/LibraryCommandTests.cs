@@ -47,6 +47,15 @@ public class LibraryCommandTests
             expectedError: "The specified directory is not empty and force is not specified.");
     }
 
+    [Fact]
+    public async Task InitWithNonEmptyDirectoryForce()
+    {
+        this.fileSystem.AddEmptyFile(this.fileSystem.Path.Join(this.baseDir, "tandoku-library", "existing.txt"));
+        await this.RunAndAssertAsync(
+            "library init tandoku-library --force",
+            $"Initialized new tandoku library at {this.ToFullPath("tandoku-library", "library.tdkl.yaml")}");
+    }
+
     private async Task RunAndAssertAsync(
         string commandLine,
         string expectedOutput,
