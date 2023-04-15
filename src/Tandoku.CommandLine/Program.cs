@@ -44,8 +44,7 @@ public sealed class Program
 
     private Parser BuildCommandLineParser()
     {
-        // TODO: this may have broken the [debug] directive (or maybe it was removed from the newer CommandLine library)
-        // and the terminal coloring on errors isn't working
+        // TODO: the [debug] directive is missing in latest CommandLine library
 
         return new CommandLineBuilder(this.CreateRootCommand())
             .AddMiddleware(async (context, next) =>
@@ -64,7 +63,7 @@ public sealed class Program
 
         void HandleKnownException(Exception exception, InvocationContext context)
         {
-            var terminal = context.Console.GetTerminal();
+            var terminal = context.Console.GetTerminal(preferVirtualTerminal: false);
             terminal.ResetColor();
             terminal.ForegroundColor = ConsoleColor.Red;
 
