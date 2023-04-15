@@ -1,3 +1,9 @@
+function Set-LocationToTandokuRepoRoot {
+    $repoRoot = Get-TandokuRepoRoot
+    Set-Location (MapToPSDriveAlias $repoRoot)
+}
+New-Alias tdkrepo Set-LocationToTandokuRepoRoot
+
 function Set-LocationToTandokuDocs {
     $repoRoot = Get-TandokuRepoRoot
     Set-Location (MapToPSDriveAlias $repoRoot/docs)

@@ -1,8 +1,12 @@
 ﻿namespace Tandoku.CommandLine;
 
 using System.CommandLine;
+using System.CommandLine.Builder;
+using System.CommandLine.Invocation;
 using System.CommandLine.IO;
 using System.CommandLine.NamingConventionBinder; // TODO: remove when migrated to new SetHandler methods
+using System.CommandLine.Parsing;
+using System.CommandLine.Rendering;
 using System.IO.Abstractions;
 using Tandoku.Library;
 
@@ -27,10 +31,50 @@ public sealed class Program
         return new Program().RunAsync(args);
     }
 
-    public Task<int> RunAsync(string[] args) =>
-        this.CreateRootCommand().InvokeAsync(args, this.console);
-    public Task<int> RunAsync(string commandLine) =>
-        this.CreateRootCommand().InvokeAsync(commandLine, this.console);
+    public Task<int> RunAsync(string[] args)
+    {
+        var parser = this.BuildCommandLineParser();
+        return parser.InvokeAsync(args, this.console);
+    }
+    public Task<int> RunAsync(string commandLine)
+    {
+        var parser = this.BuildCommandLineParser();
+        return parser.InvokeAsync(commandLine, this.console);
+    }
+
+    private Parser BuildCommandLineParser()
+    {
+        // TODO: this may have broken the [debug] directive (or maybe it was removed from the newer CommandLine library)
+        // and the terminal coloring on errors isn't working
+
+        return new CommandLineBuilder(this.CreateRootCommand())
+            .AddMiddleware(async (context, next) =>
+            {
+                try
+                {
+                    await next(context);
+                }
+                catch (ArgumentException exception)
+                {
+                    HandleKnownException(exception, context);
+                }
+            }, MiddlewareOrder.ExceptionHandler)
+            .UseDefaults()
+            .Build();
+
+        void HandleKnownException(Exception exception, InvocationContext context)
+        {
+            var terminal = context.Console.GetTerminal();
+            terminal.ResetColor();
+            terminal.ForegroundColor = ConsoleColor.Red;
+
+            terminal.Error.WriteLine(exception.Message);
+
+            terminal.ResetColor();
+
+            context.ExitCode = 1;
+        }
+    }
 
     private RootCommand CreateRootCommand() =>
         new("Command-line interface for tandoku")
@@ -70,23 +114,25 @@ public sealed class Program
         {
             Arity = ArgumentArity.ZeroOrOne,
         }.LegalFileNamesOnly();
+        var forceOption = new Option<bool>(new[] { "--force", "-f" }, "Allow new library in non-empty directory");
 
         var command = new Command("init", "Initializes a new tandoku library in the current or specified directory")
         {
             pathArgument,
+            forceOption,
         };
 
-        command.SetHandler(async (DirectoryInfo? pathInfo) =>
+        command.SetHandler(async (DirectoryInfo? pathInfo, bool force) =>
         {
             var libraryManager = this.CreateLibraryManager();
-            var info = await libraryManager.InitializeAsync(pathInfo?.FullName);
+            var info = await libraryManager.InitializeAsync(pathInfo?.FullName, force);
             this.console.WriteLine($"Initialized new tandoku library at {info.MetadataPath}");
-        }, pathArgument);
+        }, pathArgument, forceOption);
 
         return command;
     }
 
-    private LibraryManager CreateLibraryManager() => new LibraryManager(this.fileSystem);
+    private LibraryManager CreateLibraryManager() => new(this.fileSystem);
 
     private static Command CreateGenerateCommand() =>
         new Command("generate", "Generate tandoku content from various input formats")

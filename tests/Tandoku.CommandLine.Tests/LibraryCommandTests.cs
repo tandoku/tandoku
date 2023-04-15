@@ -2,6 +2,7 @@ namespace Tandoku.CommandLine.Tests;
 
 using System.CommandLine.IO;
 using System.IO.Abstractions.TestingHelpers;
+using Markdig.Helpers;
 
 public class LibraryCommandTests
 {
@@ -27,23 +28,34 @@ public class LibraryCommandTests
     }
 
     [Fact]
-    public Task Init() => this.RunTest(
+    public Task Init() => this.RunAndAssertAsync(
         "library init",
         $"Initialized new tandoku library at {this.ToFullPath("library.tdkl.yaml")}");
 
     [Fact]
-    public Task InitWithPath() => this.RunTest(
+    public Task InitWithPath() => this.RunAndAssertAsync(
         "library init tandoku-library",
         $"Initialized new tandoku library at {this.ToFullPath("tandoku-library", "library.tdkl.yaml")}");
 
-    private async Task RunTest(
+    [Fact]
+    public async Task InitWithNonEmptyDirectory()
+    {
+        this.fileSystem.AddEmptyFile(this.fileSystem.Path.Join(this.baseDir, "tandoku-library", "existing.txt"));
+        await this.RunAndAssertAsync(
+            "library init tandoku-library",
+            expectedOutput: string.Empty,
+            expectedError: "The specified directory is not empty and force is not specified.");
+    }
+
+    private async Task RunAndAssertAsync(
         string commandLine,
         string expectedOutput,
-        string? expectedError = null)
+        string? expectedError = null,
+        int? expectedResult = null)
     {
         var result = await this.program.RunAsync(commandLine);
 
-        result.Should().Be(0);
+        result.Should().Be(expectedResult ?? (string.IsNullOrEmpty(expectedError) ? 0 : 1));
         (this.console.Error.ToString()?.TrimEnd()).Should().Be(expectedError ?? string.Empty);
         (this.console.Out.ToString()?.TrimEnd()).Should().Be(expectedOutput);
     }
