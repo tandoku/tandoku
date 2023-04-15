@@ -6,29 +6,34 @@ public sealed class LibraryManager
 {
     private readonly IFileSystem fileSystem;
 
-    public LibraryManager() : this(new FileSystem()) { }
-
-    public LibraryManager(IFileSystem fileSystem)
+    public LibraryManager(IFileSystem? fileSystem = null)
     {
-        this.fileSystem = fileSystem ?? throw new ArgumentNullException(nameof(fileSystem));
+        this.fileSystem = fileSystem ?? new FileSystem();
     }
 
-    public Task<LibraryInfo> InitializeAsync(string? path)
+    public Task<LibraryInfo> InitializeAsync(string? path, bool force = false)
     {
         var pathInfo = this.fileSystem.DirectoryInfo.New(
             !string.IsNullOrEmpty(path) ? path : this.fileSystem.Directory.GetCurrentDirectory());
         
-        return this.InitializeAsync(pathInfo);
+        return this.InitializeAsync(pathInfo, force);
     }
 
-    private async Task<LibraryInfo> InitializeAsync(IDirectoryInfo pathInfo)
+    private async Task<LibraryInfo> InitializeAsync(IDirectoryInfo pathInfo, bool force)
     {
-        if (!pathInfo.Exists)
+        if (pathInfo.Exists)
+        {
+            if (!force && pathInfo.EnumerateFileSystemInfos().Any())
+                throw new ArgumentException("The specified directory is not empty and force is not specified.");
+        }
+        else
+        {
             pathInfo.Create();
+        }
 
         // TODO: add more arguments and properly implement this
 
-        var metadataPath = this.fileSystem.Path.Combine(
+        var metadataPath = this.fileSystem.Path.Join(
             pathInfo.FullName,
             "library.tdkl.yaml");
 

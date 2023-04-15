@@ -2,7 +2,7 @@
 
 using System.CommandLine;
 using System.CommandLine.IO;
-using System.CommandLine.NamingConventionBinder;
+using System.CommandLine.NamingConventionBinder; // TODO: remove when migrated to new SetHandler methods
 using System.IO.Abstractions;
 using Tandoku.Library;
 
@@ -24,14 +24,16 @@ public sealed class Program
     {
         // TODO: switch codepage to UTF-8?
 
-        return new Program().Run(args);
+        return new Program().RunAsync(args);
     }
 
-    public Task<int> Run(string[] args) => this.CreateRootCommand().InvokeAsync(args, this.console);
-    public Task<int> Run(string commandLine) => this.CreateRootCommand().InvokeAsync(commandLine, this.console);
+    public Task<int> RunAsync(string[] args) =>
+        this.CreateRootCommand().InvokeAsync(args, this.console);
+    public Task<int> RunAsync(string commandLine) =>
+        this.CreateRootCommand().InvokeAsync(commandLine, this.console);
 
     private RootCommand CreateRootCommand() =>
-        new RootCommand("Command-line interface for tandoku")
+        new("Command-line interface for tandoku")
         {
             this.CreateLibraryCommand(),
 
@@ -46,18 +48,9 @@ public sealed class Program
         };
 
     private Command CreateLibraryCommand() =>
-        new Command("library", "Commands for working with tandoku libraries")
+        new("library", "Commands for working with tandoku libraries")
         {
-            new Command("init", "Initializes a new tandoku library in the current or specified directory")
-            {
-                new Argument<DirectoryInfo>("path", "Directory for new tandoku library") { Arity = ArgumentArity.ZeroOrOne }.LegalFilePathsOnly(),
-            }.WithHandler(CommandHandler.Create(
-                async (DirectoryInfo? path) =>
-                {
-                    var libraryManager = this.CreateLibraryManager();
-                    var info = await libraryManager.InitializeAsync(path?.FullName);
-                    this.console.WriteLine($"Initialized new tandoku library at {info.MetadataPath}");
-                })),
+            this.CreateLibraryInitCommand(),
             new Command("info", "Displays information about the current or specified library")
             {
                 new Option<FileSystemInfo>(new[] { "-l", "--library" }, "Library path or metadata (.tdkl.yaml) location").LegalFilePathsOnly(),
@@ -70,6 +63,28 @@ public sealed class Program
                     this.console.WriteLine($"Metadata path: {info.MetadataPath}");
                 })),
         };
+
+    private Command CreateLibraryInitCommand()
+    {
+        var pathArgument = new Argument<DirectoryInfo?>("path", "Directory for new tandoku library")
+        {
+            Arity = ArgumentArity.ZeroOrOne,
+        }.LegalFileNamesOnly();
+
+        var command = new Command("init", "Initializes a new tandoku library in the current or specified directory")
+        {
+            pathArgument,
+        };
+
+        command.SetHandler(async (DirectoryInfo? pathInfo) =>
+        {
+            var libraryManager = this.CreateLibraryManager();
+            var info = await libraryManager.InitializeAsync(pathInfo?.FullName);
+            this.console.WriteLine($"Initialized new tandoku library at {info.MetadataPath}");
+        }, pathArgument);
+
+        return command;
+    }
 
     private LibraryManager CreateLibraryManager() => new LibraryManager(this.fileSystem);
 

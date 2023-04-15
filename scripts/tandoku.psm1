@@ -5,10 +5,11 @@ $tandokuSecondaryModules = "$tandokuScripts/tandoku-*.psm1"
 
 $tandokuRepoRoot = (Split-Path $tandokuScripts -Parent)
 $tandokuCliTargetFramework = 'net7.0'
-if (Test-Path "$tandokuRepoRoot/src/cli/bin/Debug/$tandokuCliTargetFramework/tandoku.exe") {
-    New-Alias tandoku "$tandokuRepoRoot/src/cli/bin/Debug/$tandokuCliTargetFramework/tandoku.exe"
-} elseif (Test-Path "$tandokuRepoRoot/src/cli/bin/Release/$tandokuCliTargetFramework/tandoku.exe") {
-    New-Alias tandoku "$tandokuRepoRoot/src/cli/bin/Release/$tandokuCliTargetFramework/tandoku.exe"
+$tandokuCliBin = 'src/Tandoku.CommandLine/bin'
+if (Test-Path "$tandokuRepoRoot/$tandokuCliBin/Debug/$tandokuCliTargetFramework/tandoku.exe") {
+    New-Alias tandoku "$tandokuRepoRoot/$tandokuCliBin/Debug/$tandokuCliTargetFramework/tandoku.exe"
+} elseif (Test-Path "$tandokuRepoRoot/$tandokuCliBin/Release/$tandokuCliTargetFramework/tandoku.exe") {
+    New-Alias tandoku "$tandokuRepoRoot/$tandokuCliBin/Release/$tandokuCliTargetFramework/tandoku.exe"
 }
 
 # Consider adding the scripts directory to $env:PSModulePath rather than loading secondary modules upfront

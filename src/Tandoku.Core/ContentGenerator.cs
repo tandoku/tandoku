@@ -43,12 +43,12 @@ public sealed class ContentGenerator
         //if (outPath is null)
         //{
         //    outPath = TryGetFileNameFromDirectory(path, DefaultExtension, out var outFileName) ?
-        //        Path.Combine(path, outFileName) :
+        //        Path.Join(path, outFileName) :
         //        Path.ChangeExtension(path, DefaultExtension);
         //}
         //else if (TryGetFileNameFromDirectory(outPath, DefaultExtension, out var outFileName))
         //{
-        //    outPath = Path.Combine(outPath, outFileName);
+        //    outPath = Path.Join(outPath, outFileName);
         //}
         // TODO: outPath still could be invalid (unknown extension or directory that doesn't exist)
 
@@ -136,7 +136,7 @@ public sealed class ContentGenerator
                     Location = $"#{imageNumber} - {Path.GetFileNameWithoutExtension(imageName)}",
                 };
 
-                var imageTextPath = Path.Combine(
+                var imageTextPath = Path.Join(
                     Path.GetDirectoryName(imagePath),
                     "text",
                     Path.GetFileNameWithoutExtension(imagePath) + ".acv.json");

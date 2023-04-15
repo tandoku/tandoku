@@ -14,7 +14,7 @@ public class LibraryCommandTests
     {
         // Note: currently using the current directory on the physical file system
         // as the base dir for the mock file system so that FileSystemInfo arguments
-        // work correctly. May want to replace with an IFileSystemInfo-based implementation
+        // work correctly. May need to replace with an IFileSystemInfo-based implementation
         // later in order to allow for mock file system to properly support validation.
         this.baseDir = Directory.GetCurrentDirectory();
 
@@ -41,7 +41,7 @@ public class LibraryCommandTests
         string expectedOutput,
         string? expectedError = null)
     {
-        var result = await this.program.Run(commandLine);
+        var result = await this.program.RunAsync(commandLine);
 
         result.Should().Be(0);
         (this.console.Error.ToString()?.TrimEnd()).Should().Be(expectedError ?? string.Empty);
@@ -50,7 +50,7 @@ public class LibraryCommandTests
 
     private string ToFullPath(params string[] pathElements)
     {
-        var relativePath = this.fileSystem.Path.Combine(pathElements);
+        var relativePath = this.fileSystem.Path.Join(pathElements);
         return this.fileSystem.Path.GetFullPath(relativePath, this.baseDir);
     }
 }
