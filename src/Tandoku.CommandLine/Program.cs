@@ -8,8 +8,8 @@ using System.CommandLine.IO;
 using System.CommandLine.NamingConventionBinder; // TODO: remove when migrated to new SetHandler methods
 using System.CommandLine.Parsing;
 using System.CommandLine.Rendering;
-using System.IO.Abstractions;
 using Tandoku.Library;
+using Spectre.IO;
 
 public sealed class Program
 {
@@ -23,8 +23,8 @@ public sealed class Program
         IEnvironment? environment = null)
     {
         this.console = console ?? new SystemConsole();
-        this.fileSystem = fileSystem ?? new FileSystem();
-        this.environment = environment ?? new EnvironmentWrapper();
+        this.fileSystem = fileSystem ?? FileSystem.Shared;
+        this.environment = environment ?? Environment.Shared;
     }
 
     [STAThread] // TODO: needed? should use MTAThread instead?
@@ -118,7 +118,8 @@ public sealed class Program
         command.SetHandler(async (DirectoryInfo? pathInfo, bool force) =>
         {
             var libraryManager = this.CreateLibraryManager();
-            var info = await libraryManager.InitializeAsync(pathInfo?.FullName, force);
+            var path = pathInfo?.FullName ?? this.environment.WorkingDirectory.FullPath;
+            var info = await libraryManager.InitializeAsync(path, force);
             this.console.WriteLine($"Initialized new tandoku library at {info.DefinitionPath}");
         }, pathArgument, forceOption);
 
@@ -127,17 +128,17 @@ public sealed class Program
 
     private Command CreateLibraryInfoCommand()
 {
-        var libraryBinder = new LibraryBinder(this.fileSystem, this.environment, this.CreateLibraryManager);
+        var libraryBinder = new LibraryBinder(this.environment, this.CreateLibraryManager);
 
         var command = new Command("info", "Displays information about the current or specified library")
         {
             libraryBinder.LibraryOption,
         };
 
-        command.SetHandler(async (IFileInfo libraryDefinitionFile) =>
+        command.SetHandler(async (FilePath libraryDefinitionPath) =>
         {
             var libraryManager = this.CreateLibraryManager();
-            var info = await libraryManager.GetInfoAsync(libraryDefinitionFile.FullName);
+            var info = await libraryManager.GetInfoAsync(libraryDefinitionPath.FullPath);
             this.console.WriteLine($"Path: {info.Path}");
             this.console.WriteLine($"Definition path: {info.DefinitionPath}");
             this.console.WriteLine($"Language: {info.Definition.Language}");
@@ -149,15 +150,13 @@ public sealed class Program
 
     private LibraryManager CreateLibraryManager() => new(this.fileSystem);
 
-    private sealed class LibraryBinder : BinderBase<IFileInfo>
+    private sealed class LibraryBinder : BinderBase<FilePath>
     {
-        private readonly IFileSystem fileSystem;
         private readonly IEnvironment environment;
         private readonly Func<LibraryManager> createLibraryManager;
 
-        internal LibraryBinder(IFileSystem fileSystem, IEnvironment environment, Func<LibraryManager> createLibraryManager)
+        internal LibraryBinder(IEnvironment environment, Func<LibraryManager> createLibraryManager)
         {
-            this.fileSystem = fileSystem;
             this.environment = environment;
             this.createLibraryManager = createLibraryManager;
 
@@ -169,7 +168,7 @@ public sealed class Program
 
         internal Option<FileSystemInfo?> LibraryOption { get; }
 
-        protected override IFileInfo GetBoundValue(BindingContext bindingContext)
+        protected override FilePath GetBoundValue(BindingContext bindingContext)
         {
             var fileSysInfo = bindingContext.ParseResult.GetValueForOption(this.LibraryOption);
 
@@ -177,7 +176,7 @@ public sealed class Program
 
             var libraryDefinitionPath = fileSysInfo is not null ?
                 libraryManager.ResolveLibraryDefinitionPath(fileSysInfo.FullName) :
-                libraryManager.ResolveLibraryDefinitionPath(this.fileSystem.Directory.GetCurrentDirectory(), checkAncestors: true);
+                libraryManager.ResolveLibraryDefinitionPath(this.environment.WorkingDirectory.FullPath, checkAncestors: true);
 
             if (libraryDefinitionPath is null &&
                 this.environment.GetEnvironmentVariable("TANDOKU_LIBRARY") is string envPath)
@@ -186,7 +185,7 @@ public sealed class Program
             }
 
             return libraryDefinitionPath is not null ?
-                this.fileSystem.FileInfo.New(libraryDefinitionPath) :
+                libraryDefinitionPath :
                 throw new ArgumentException("The specified path does not contain a tandoku library.");
         }
     }

@@ -1,6 +1,6 @@
 ﻿namespace Tandoku.Library;
 
-using System.IO.Abstractions;
+using Spectre.IO;
 
 public sealed class LibraryManager
 {
@@ -14,29 +14,29 @@ public sealed class LibraryManager
 
     public LibraryManager(IFileSystem? fileSystem = null)
     {
-        this.fileSystem = fileSystem ?? new FileSystem();
+        this.fileSystem = fileSystem ?? FileSystem.Shared;
     }
 
-    public Task<LibraryInfo> InitializeAsync(string? path, bool force = false)
+    public Task<LibraryInfo> InitializeAsync(string path, bool force = false)
     {
-        // TODO: should we allow null path here? or leave path resolution to the CLI?
-        var pathInfo = this.fileSystem.DirectoryInfo.New(
-            !string.IsNullOrEmpty(path) ? path : this.fileSystem.Directory.GetCurrentDirectory());
-        
-        return this.InitializeAsync(pathInfo, force);
+        var directory = this.fileSystem.GetDirectory(path);
+        return this.InitializeAsync(directory, force);
     }
 
-    private async Task<LibraryInfo> InitializeAsync(IDirectoryInfo pathInfo, bool force)
+    private async Task<LibraryInfo> InitializeAsync(IDirectory directory, bool force)
     {
-        if (pathInfo.Exists)
+        if (directory.Exists)
         {
-            if (!force && pathInfo.EnumerateFileSystemInfos().Any())
+            if (!force && (directory.GetFiles("*", SearchScope.Current).Any() ||
+                    directory.GetDirectories("*", SearchScope.Current).Any()))
+            {
                 throw new ArgumentException("The specified directory is not empty and force is not specified.");
+            }
         }
         else
         {
             // Note: this can throw IOException if a conflicting file exists at the path
-            pathInfo.Create();
+            directory.Create();
         }
 
         var definition = new LibraryDefinition
@@ -45,28 +45,27 @@ public sealed class LibraryManager
             ReferenceLanguage = DefaultReferenceLanguage,
         };
 
-        var definitionPath = this.fileSystem.Path.Join(pathInfo.FullName, LibraryDefinitionFileName);
+        var definitionPath = directory.Path.CombineWithFilePath(LibraryDefinitionFileName);
 
-        using var definitionWriter = this.fileSystem.File.CreateText(definitionPath);
+        using var definitionWriter = new StreamWriter(this.fileSystem.File.OpenWrite(definitionPath));
         await definition.WriteYamlAsync(definitionWriter);
 
-        return new LibraryInfo(pathInfo.FullName, definitionPath, definition);
+        return new LibraryInfo(directory.Path.FullPath, definitionPath.FullPath, definition);
     }
 
     public async Task<LibraryInfo> GetInfoAsync(string definitionPath)
     {
-        var definitionFile = this.fileSystem.FileInfo.New(definitionPath);
-        if (definitionFile.DirectoryName is null)
-            throw new ArgumentOutOfRangeException(nameof(definitionPath));
+        var definitionFile = this.fileSystem.GetFile(definitionPath);
 
-        using var definitionReader = definitionFile.OpenText();
+        using var definitionReader = new StreamReader(definitionFile.OpenRead());
         var definition = await LibraryDefinition.ReadYamlAsync(definitionReader);
 
         return new LibraryInfo(
-            definitionFile.DirectoryName,
-            definitionFile.FullName,
+            definitionFile.Path.GetDirectory().FullPath,
+            definitionFile.Path.FullPath,
             definition);
     }
+
     public string? ResolveLibraryDefinitionPath(string path, bool checkAncestors = false)
     {
         if (this.fileSystem.File.Exists(path))
@@ -75,16 +74,16 @@ public sealed class LibraryManager
         }
         else if (this.fileSystem.Directory.Exists(path))
         {
-            var directory = this.fileSystem.DirectoryInfo.New(path);
-            var libraryDefinitions = directory.GetFiles(LibraryDefinitionSearchPattern);
-            return libraryDefinitions.Length switch
+            var directory = this.fileSystem.GetDirectory(path);
+            var libraryDefinitions = directory.GetFiles(LibraryDefinitionSearchPattern, SearchScope.Current).ToList();
+            return libraryDefinitions.Count switch
             {
-                0 => checkAncestors && directory.Parent is not null ?
-                    this.ResolveLibraryDefinitionPath(directory.Parent.FullName, checkAncestors) :
+                0 => checkAncestors && directory.Path.GetParent() is var parent && parent is not null ?
+                    this.ResolveLibraryDefinitionPath(parent.FullPath, checkAncestors) :
                     null,
-                1 => libraryDefinitions[0].FullName,
+                1 => libraryDefinitions[0].Path.FullPath,
                 _ => throw new ArgumentException("The specified path contains more than one tandoku library definition."),
-            }; ;
+            };
         }
         else
         {

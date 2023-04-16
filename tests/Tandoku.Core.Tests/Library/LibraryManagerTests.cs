@@ -1,7 +1,8 @@
 namespace Tandoku.Tests.Library;
 
-using System.IO.Abstractions.TestingHelpers;
 using Tandoku.Library;
+using Spectre.IO;
+using Spectre.IO.Testing;
 
 public class LibraryManagerTests
 {
@@ -9,14 +10,17 @@ public class LibraryManagerTests
     public async Task Initialize()
     {
         var (libraryManager, fileSystem, libraryRootPath) = Setup();
-        var definitionPath = Path.Join(libraryRootPath, "library.tdkl.yaml");
+        var definitionPath = libraryRootPath.CombineWithFilePath("library.tdkl.yaml");
 
-        var info = await libraryManager.InitializeAsync(libraryRootPath);
+        var info = await libraryManager.InitializeAsync(libraryRootPath.FullPath);
 
-        info.Path.Should().Be(libraryRootPath);
-        info.DefinitionPath.Should().Be(definitionPath);
-        fileSystem.AllFiles.Count().Should().Be(1);
-        fileSystem.GetFile(definitionPath).TextContents.TrimEnd().Should().Be(
+        info.Path.Should().Be(libraryRootPath.FullPath);
+        info.DefinitionPath.Should().Be(definitionPath.FullPath);
+        fileSystem.ToString().Should().Be(@"C:
+    Working
+        tandoku-library
+            library.tdkl.yaml");
+        fileSystem.GetFakeFile(definitionPath).GetTextContent().TrimEnd().Should().Be(
 @"language: ja
 referenceLanguage: en");
     }
@@ -24,25 +28,23 @@ referenceLanguage: en");
     [Fact]
     public async Task InitializeWithConflictingFile()
     {
-        // Note: with real System.IO, the ReadOnly attribute on the file isn't necessary
-        // and this would throw an IOException rather than UnauthorizedAccessException.
-        // Filed https://github.com/TestableIO/System.IO.Abstractions/issues/968
+        // TODO: Spectre.IO doesn't check for files at all when creating directories,
+        // cannot pass this test without explicitly checking for existence of file in InitializeAsync
 
         var (libraryManager, fileSystem, libraryRootPath) = Setup();
-        fileSystem.AddEmptyFile(libraryRootPath);
-        fileSystem.File.SetAttributes(libraryRootPath, FileAttributes.ReadOnly);
+        fileSystem.CreateFile(libraryRootPath.FullPath).SetTextContent("existing");
 
-        await libraryManager.Invoking(m => m.InitializeAsync(libraryRootPath))
-            .Should().ThrowAsync<UnauthorizedAccessException>();
+        await libraryManager.Invoking(m => m.InitializeAsync(libraryRootPath.FullPath))
+            .Should().ThrowAsync<IOException>();
     }
 
     [Fact]
     public async Task InitializeWithNonEmptyDirectory()
     {
         var (libraryManager, fileSystem, libraryRootPath) = Setup();
-        fileSystem.AddEmptyFile(fileSystem.Path.Join(libraryRootPath, "existing.txt"));
+        fileSystem.CreateFile(libraryRootPath.CombineWithFilePath("existing.txt"));
 
-        await libraryManager.Invoking(m => m.InitializeAsync(libraryRootPath, force: false))
+        await libraryManager.Invoking(m => m.InitializeAsync(libraryRootPath.FullPath, force: false))
             .Should().ThrowAsync<ArgumentException>();
     }
 
@@ -50,20 +52,24 @@ referenceLanguage: en");
     public async Task InitializeWithNonEmptyDirectoryForce()
     {
         var (libraryManager, fileSystem, libraryRootPath) = Setup();
-        fileSystem.AddEmptyFile(fileSystem.Path.Join(libraryRootPath, "existing.txt"));
+        fileSystem.CreateFile(libraryRootPath.CombineWithFilePath("existing.txt"));
 
-        var info = await libraryManager.InitializeAsync(libraryRootPath, force: true);
+        var info = await libraryManager.InitializeAsync(libraryRootPath.FullPath, force: true);
 
-        info.Path.Should().Be(libraryRootPath);
-        fileSystem.AllFiles.Count().Should().Be(2);
-        fileSystem.GetFile(info.DefinitionPath).TextContents.Should().NotBeNullOrEmpty();
+        info.Path.Should().Be(libraryRootPath.FullPath);
+        fileSystem.ToString().Should().Be(@"C:
+    Working
+        tandoku-library
+            existing.txt
+            library.tdkl.yaml");
+        fileSystem.GetFakeFile(info.DefinitionPath).GetTextContent().Should().NotBeNullOrEmpty();
     }
 
     [Fact]
     public async Task GetInfo()
     {
         var (libraryManager, _, libraryRootPath) = Setup();
-        var originalInfo = await libraryManager.InitializeAsync(libraryRootPath);
+        var originalInfo = await libraryManager.InitializeAsync(libraryRootPath.FullPath);
 
         var info = await libraryManager.GetInfoAsync(originalInfo.DefinitionPath);
 
@@ -72,13 +78,12 @@ referenceLanguage: en");
 
     // TODO: add tests for ResolveLibraryDefinitionPath
 
-    private static (LibraryManager, MockFileSystem, string libraryRootPath) Setup()
+    private static (LibraryManager, FakeFileSystem, DirectoryPath libraryRootPath) Setup()
     {
-        var fileSystem = new MockFileSystem();
+        var environment = new FakeEnvironment(PlatformFamily.Windows); // TODO: run separately for Linux
+        var fileSystem = new FakeFileSystem(environment);
         var libraryManager = new LibraryManager(fileSystem);
-        var libraryRootPath = fileSystem.Path.Join(
-            fileSystem.Directory.GetCurrentDirectory(),
-            "tandoku-library");
+        var libraryRootPath = environment.WorkingDirectory.Combine("tandoku-library");
 
         return (libraryManager, fileSystem, libraryRootPath);
     }

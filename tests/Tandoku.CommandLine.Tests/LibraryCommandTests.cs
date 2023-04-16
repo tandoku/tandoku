@@ -1,31 +1,31 @@
 namespace Tandoku.CommandLine.Tests;
 
 using System.CommandLine.IO;
-using System.IO.Abstractions;
-using System.IO.Abstractions.TestingHelpers;
 using Tandoku.Library;
+using Spectre.IO;
+using Spectre.IO.Testing;
 
 public class LibraryCommandTests
 {
     private readonly TestConsole console;
-    private readonly MockFileSystem fileSystem;
-    private readonly IDirectoryInfo baseDirectory;
-    private readonly MockEnvironment environment;
+    private readonly FakeEnvironment environment;
+    private readonly FakeFileSystem fileSystem;
+    private readonly DirectoryPath baseDirectory;
     private readonly Program program;
 
     public LibraryCommandTests()
     {
         this.console = new TestConsole();
-        this.fileSystem = new MockFileSystem();
-        this.environment = new MockEnvironment();
+        this.environment = new FakeEnvironment(PlatformFamily.Windows);
+        this.fileSystem = new FakeFileSystem(this.environment);
         this.program = new Program(this.console, this.fileSystem, this.environment);
 
         // Note: currently using the current directory on the physical file system
         // as the base dir for the mock file system so that FileSystemInfo arguments
         // work correctly. May need to replace with an IFileSystemInfo-based implementation
         // later in order to allow for mock file system to properly support validation.
-        this.baseDirectory = this.fileSystem.DirectoryInfo.New(Directory.GetCurrentDirectory());
-        this.fileSystem.Directory.SetCurrentDirectory(this.baseDirectory.FullName);
+        this.baseDirectory = this.fileSystem.CreateDirectory(Directory.GetCurrentDirectory()).Path;
+        this.environment.SetWorkingDirectory(this.baseDirectory);
     }
 
     [Fact]
@@ -46,7 +46,7 @@ public class LibraryCommandTests
     [Fact]
     public async Task InitWithNonEmptyDirectory()
     {
-        this.fileSystem.AddEmptyFile(this.ToFullPath("tandoku-library", "existing.txt"));
+        this.fileSystem.CreateFile(this.ToFullPath("tandoku-library", "existing.txt"));
         await this.RunAndAssertAsync(
             "library init tandoku-library",
             expectedOutput: string.Empty,
@@ -56,7 +56,7 @@ public class LibraryCommandTests
     [Fact]
     public async Task InitWithNonEmptyDirectoryForce()
     {
-        this.fileSystem.AddEmptyFile(this.ToFullPath("tandoku-library", "existing.txt"));
+        this.fileSystem.CreateFile(this.ToFullPath("tandoku-library", "existing.txt"));
         await this.RunAndAssertAsync(
             "library init tandoku-library --force",
             $"Initialized new tandoku library at {this.ToFullPath("tandoku-library", "library.tdkl.yaml")}");
@@ -66,7 +66,7 @@ public class LibraryCommandTests
     public async Task Info()
     {
         var info = await this.SetupLibrary();
-        this.fileSystem.Directory.SetCurrentDirectory(info.Path);
+        this.environment.SetWorkingDirectory(info.Path);
 
         await this.RunAndAssertAsync(
             $"library info",
@@ -77,9 +77,9 @@ public class LibraryCommandTests
     public async Task InfoInNestedPath()
     {
         var info = await this.SetupLibrary();
-        var libraryDirectory = this.fileSystem.DirectoryInfo.New(info.Path);
-        var nestedDirectory = libraryDirectory.CreateSubdirectory("nested-directory");
-        this.fileSystem.Directory.SetCurrentDirectory(nestedDirectory.FullName);
+        var libraryDirectory = this.fileSystem.GetDirectory(info.Path);
+        var nestedDirectory = this.fileSystem.CreateDirectory(libraryDirectory.Path.Combine("nested-directory"));
+        this.environment.SetWorkingDirectory(nestedDirectory.Path);
 
         await this.RunAndAssertAsync(
             $"library info",
@@ -90,8 +90,8 @@ public class LibraryCommandTests
     public async Task InfoInOtherPath()
     {
         await this.SetupLibrary();
-        var otherDirectory = this.baseDirectory.CreateSubdirectory("other-directory");
-        this.fileSystem.Directory.SetCurrentDirectory(otherDirectory.FullName);
+        var otherDirectory = this.fileSystem.CreateDirectory(this.baseDirectory.Combine("other-directory"));
+        this.environment.SetWorkingDirectory(otherDirectory.Path);
 
         await this.RunAndAssertAsync(
             $"library info",
@@ -102,8 +102,8 @@ public class LibraryCommandTests
     public async Task InfoInOtherPathWithEnvironment()
     {
         var info = await this.SetupLibrary();
-        var otherDirectory = this.baseDirectory.CreateSubdirectory("other-directory");
-        this.fileSystem.Directory.SetCurrentDirectory(otherDirectory.FullName);
+        var otherDirectory = this.fileSystem.CreateDirectory(this.baseDirectory.Combine("other-directory"));
+        this.environment.SetWorkingDirectory(otherDirectory.Path);
         this.environment.SetEnvironmentVariable("TANDOKU_LIBRARY", info.Path);
 
         await this.RunAndAssertAsync(
@@ -170,7 +170,11 @@ Reference language: {info.Definition.ReferenceLanguage}";
 
     private string ToFullPath(params string[] pathElements)
     {
-        var relativePath = this.fileSystem.Path.Join(pathElements);
-        return this.fileSystem.Path.GetFullPath(relativePath, this.baseDirectory.FullName);
+        var path = this.baseDirectory;
+        for (int i = 0; i < pathElements.Length; i++)
+        {
+            path = path.Combine(pathElements[i]);
+        }
+        return path.FullPath;
     }
 }
