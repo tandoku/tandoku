@@ -6,7 +6,7 @@ using Markdig.Helpers;
 
 public class LibraryCommandTests
 {
-    private readonly string baseDir;
+    private readonly string baseDirectory;
     private readonly TestConsole console;
     private readonly MockFileSystem fileSystem;
     private readonly Program program;
@@ -17,12 +17,12 @@ public class LibraryCommandTests
         // as the base dir for the mock file system so that FileSystemInfo arguments
         // work correctly. May need to replace with an IFileSystemInfo-based implementation
         // later in order to allow for mock file system to properly support validation.
-        this.baseDir = Directory.GetCurrentDirectory();
+        this.baseDirectory = Directory.GetCurrentDirectory();
 
         this.console = new TestConsole();
 
         this.fileSystem = new MockFileSystem();
-        this.fileSystem.Directory.SetCurrentDirectory(this.baseDir);
+        this.fileSystem.Directory.SetCurrentDirectory(this.baseDirectory);
 
         this.program = new Program(this.console, this.fileSystem);
     }
@@ -38,9 +38,14 @@ public class LibraryCommandTests
         $"Initialized new tandoku library at {this.ToFullPath("tandoku-library", "library.tdkl.yaml")}");
 
     [Fact]
+    public Task InitWithFullPath() => this.RunAndAssertAsync(
+        $"library init {this.ToFullPath("tandoku-library")}",
+        $"Initialized new tandoku library at {this.ToFullPath("tandoku-library", "library.tdkl.yaml")}");
+
+    [Fact]
     public async Task InitWithNonEmptyDirectory()
     {
-        this.fileSystem.AddEmptyFile(this.fileSystem.Path.Join(this.baseDir, "tandoku-library", "existing.txt"));
+        this.fileSystem.AddEmptyFile(this.fileSystem.Path.Join(this.baseDirectory, "tandoku-library", "existing.txt"));
         await this.RunAndAssertAsync(
             "library init tandoku-library",
             expectedOutput: string.Empty,
@@ -50,7 +55,7 @@ public class LibraryCommandTests
     [Fact]
     public async Task InitWithNonEmptyDirectoryForce()
     {
-        this.fileSystem.AddEmptyFile(this.fileSystem.Path.Join(this.baseDir, "tandoku-library", "existing.txt"));
+        this.fileSystem.AddEmptyFile(this.fileSystem.Path.Join(this.baseDirectory, "tandoku-library", "existing.txt"));
         await this.RunAndAssertAsync(
             "library init tandoku-library --force",
             $"Initialized new tandoku library at {this.ToFullPath("tandoku-library", "library.tdkl.yaml")}");
@@ -64,14 +69,15 @@ public class LibraryCommandTests
     {
         var result = await this.program.RunAsync(commandLine);
 
-        result.Should().Be(expectedResult ?? (string.IsNullOrEmpty(expectedError) ? 0 : 1));
+        // Note: check Error first (and result code last) as this is most useful if test unexpectedly fails
         (this.console.Error.ToString()?.TrimEnd()).Should().Be(expectedError ?? string.Empty);
         (this.console.Out.ToString()?.TrimEnd()).Should().Be(expectedOutput);
+        result.Should().Be(expectedResult ?? (string.IsNullOrEmpty(expectedError) ? 0 : 1));
     }
 
     private string ToFullPath(params string[] pathElements)
     {
         var relativePath = this.fileSystem.Path.Join(pathElements);
-        return this.fileSystem.Path.GetFullPath(relativePath, this.baseDir);
+        return this.fileSystem.Path.GetFullPath(relativePath, this.baseDirectory);
     }
 }

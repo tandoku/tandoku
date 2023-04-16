@@ -9,18 +9,35 @@ public class LibraryManagerTests
     public async Task Initialize()
     {
         var (libraryManager, fileSystem, libraryRootPath) = Setup();
-        var metadataPath = Path.Join(libraryRootPath, "library.tdkl.yaml");
+        var definitionPath = Path.Join(libraryRootPath, "library.tdkl.yaml");
 
         var info = await libraryManager.InitializeAsync(libraryRootPath);
 
         info.Path.Should().Be(libraryRootPath);
-        info.MetadataPath.Should().Be(metadataPath);
+        info.DefinitionPath.Should().Be(definitionPath);
         fileSystem.AllFiles.Count().Should().Be(1);
-        fileSystem.GetFile(metadataPath).TextContents.Should().Be("language: ja");
+        fileSystem.GetFile(definitionPath).TextContents.TrimEnd().Should().Be(
+@"language: ja
+referenceLanguage: en");
     }
 
     [Fact]
-    public async Task InitializeWithForceFailure()
+    public async Task InitializeWithConflictingFile()
+    {
+        // Note: with real System.IO, the ReadOnly attribute on the file isn't necessary
+        // and this would throw an IOException rather than UnauthorizedAccessException.
+        // Filed https://github.com/TestableIO/System.IO.Abstractions/issues/968
+
+        var (libraryManager, fileSystem, libraryRootPath) = Setup();
+        fileSystem.AddEmptyFile(libraryRootPath);
+        fileSystem.File.SetAttributes(libraryRootPath, FileAttributes.ReadOnly);
+
+        await libraryManager.Invoking(m => m.InitializeAsync(libraryRootPath))
+            .Should().ThrowAsync<UnauthorizedAccessException>();
+    }
+
+    [Fact]
+    public async Task InitializeWithNonEmptyDirectory()
     {
         var (libraryManager, fileSystem, libraryRootPath) = Setup();
         fileSystem.AddEmptyFile(fileSystem.Path.Join(libraryRootPath, "existing.txt"));
@@ -30,7 +47,7 @@ public class LibraryManagerTests
     }
 
     [Fact]
-    public async Task InitializeWithForceSuccess()
+    public async Task InitializeWithNonEmptyDirectoryForce()
     {
         var (libraryManager, fileSystem, libraryRootPath) = Setup();
         fileSystem.AddEmptyFile(fileSystem.Path.Join(libraryRootPath, "existing.txt"));
@@ -39,7 +56,18 @@ public class LibraryManagerTests
 
         info.Path.Should().Be(libraryRootPath);
         fileSystem.AllFiles.Count().Should().Be(2);
-        fileSystem.GetFile(info.MetadataPath).TextContents.Should().NotBeNullOrEmpty();
+        fileSystem.GetFile(info.DefinitionPath).TextContents.Should().NotBeNullOrEmpty();
+    }
+
+    [Fact]
+    public async Task GetInfo()
+    {
+        var (libraryManager, _, libraryRootPath) = Setup();
+        var originalInfo = await libraryManager.InitializeAsync(libraryRootPath);
+
+        var info = await libraryManager.GetInfoAsync(libraryRootPath);
+
+        info.Should().BeEquivalentTo(originalInfo);
     }
 
     private static (LibraryManager, MockFileSystem, string libraryRootPath) Setup()

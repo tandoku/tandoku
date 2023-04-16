@@ -1,5 +1,5 @@
 ﻿namespace Tandoku.Library;
 
-public record LibraryInfo(
+public sealed record LibraryInfo(
     string Path,
-    string MetadataPath);
+    string DefinitionPath);

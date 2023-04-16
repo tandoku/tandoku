@@ -4,6 +4,10 @@ using System.IO.Abstractions;
 
 public sealed class LibraryManager
 {
+    private const string LibraryDefinitionFileName = "library.tdkl.yaml";
+    private const string DefaultLanguage = "ja";
+    private const string DefaultReferenceLanguage = "en";
+
     private readonly IFileSystem fileSystem;
 
     public LibraryManager(IFileSystem? fileSystem = null)
@@ -28,28 +32,26 @@ public sealed class LibraryManager
         }
         else
         {
+            // Note: this can throw if a conflicting file exists at the path
             pathInfo.Create();
         }
 
-        // TODO: add more arguments and properly implement this
+        var definition = new LibraryDefinition
+        {
+            Language = DefaultLanguage,
+            ReferenceLanguage = DefaultReferenceLanguage,
+        };
 
-        var metadataPath = this.fileSystem.Path.Join(
-            pathInfo.FullName,
-            "library.tdkl.yaml");
+        var definitionPath = this.fileSystem.Path.Join(pathInfo.FullName, LibraryDefinitionFileName);
 
-        await this.fileSystem.File.WriteAllTextAsync(metadataPath, "language: ja");
+        using var definitionWriter = this.fileSystem.File.CreateText(definitionPath);
+        await definition.WriteYamlAsync(definitionWriter);
 
-        return new LibraryInfo(pathInfo.FullName, metadataPath);
+        return new LibraryInfo(pathInfo.FullName, definitionPath);
     }
 
-    public LibraryInfo GetInfo(FileSystemInfo? path)
+    public async Task<LibraryInfo> GetInfoAsync(string definitionPath)
     {
-        if (path != null)
-        {
-        }
-        else
-        {
-        }
         throw new NotImplementedException();
     }
 }

@@ -61,7 +61,7 @@ public sealed class Program
             .UseDefaults()
             .Build();
 
-        void HandleKnownException(Exception exception, InvocationContext context)
+        static void HandleKnownException(Exception exception, InvocationContext context)
         {
             var terminal = context.Console.GetTerminal(preferVirtualTerminal: false);
             terminal.ResetColor();
@@ -94,17 +94,7 @@ public sealed class Program
         new("library", "Commands for working with tandoku libraries")
         {
             this.CreateLibraryInitCommand(),
-            new Command("info", "Displays information about the current or specified library")
-            {
-                new Option<FileSystemInfo>(new[] { "-l", "--library" }, "Library path or metadata (.tdkl.yaml) location").LegalFilePathsOnly(),
-            }.WithHandler(CommandHandler.Create(
-                (FileSystemInfo? path) =>
-                {
-                    var libraryManager = this.CreateLibraryManager();
-                    var info = libraryManager.GetInfo(path);
-                    this.console.WriteLine($"Path: {info.Path}");
-                    this.console.WriteLine($"Metadata path: {info.MetadataPath}");
-                })),
+            this.CreateLibraryInfoCommand(),
         };
 
     private Command CreateLibraryInitCommand()
@@ -112,7 +102,7 @@ public sealed class Program
         var pathArgument = new Argument<DirectoryInfo?>("path", "Directory for new tandoku library")
         {
             Arity = ArgumentArity.ZeroOrOne,
-        }.LegalFileNamesOnly();
+        }.LegalFilePathsOnly();
         var forceOption = new Option<bool>(new[] { "--force", "-f" }, "Allow new library in non-empty directory");
 
         var command = new Command("init", "Initializes a new tandoku library in the current or specified directory")
@@ -125,8 +115,30 @@ public sealed class Program
         {
             var libraryManager = this.CreateLibraryManager();
             var info = await libraryManager.InitializeAsync(pathInfo?.FullName, force);
-            this.console.WriteLine($"Initialized new tandoku library at {info.MetadataPath}");
+            this.console.WriteLine($"Initialized new tandoku library at {info.DefinitionPath}");
         }, pathArgument, forceOption);
+
+        return command;
+    }
+
+    private Command CreateLibraryInfoCommand()
+{
+        var libraryOption = new Option<FileSystemInfo?>(new[] { "-l", "--library" }, "Library directory or definition (.tdkl.yaml) path")
+            .LegalFilePathsOnly();
+
+        var command = new Command("info", "Displays information about the current or specified library")
+        {
+            libraryOption
+        };
+
+        command.SetHandler(async (FileSystemInfo? pathInfo) =>
+        {
+            var libraryManager = this.CreateLibraryManager();
+            // TODO: resolve omitted or directory path to definition path
+            var info = await libraryManager.GetInfoAsync(pathInfo?.FullName);
+            this.console.WriteLine($"Path: {info.Path}");
+            this.console.WriteLine($"Definition path: {info.DefinitionPath}");
+        }, libraryOption);
 
         return command;
     }
