@@ -3,6 +3,7 @@ namespace Tandoku.CommandLine.Tests;
 using System.CommandLine.IO;
 using System.IO.Abstractions;
 using System.IO.Abstractions.TestingHelpers;
+using Tandoku.CommandLine.Tests.Abstractions;
 using Tandoku.Library;
 
 public class LibraryCommandTests
@@ -104,7 +105,7 @@ public class LibraryCommandTests
         var info = await this.SetupLibrary();
         var otherDirectory = this.baseDirectory.CreateSubdirectory("other-directory");
         this.fileSystem.Directory.SetCurrentDirectory(otherDirectory.FullName);
-        this.environment.SetEnvironmentVariable("TANDOKU_LIBRARY", info.Path);
+        this.environment.SetEnvironmentVariable(KnownEnvironmentVariables.TandokuLibrary, info.Path);
 
         await this.RunAndAssertAsync(
             $"library info",

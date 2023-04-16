@@ -1,16 +1,6 @@
-﻿namespace Tandoku.CommandLine;
+﻿namespace Tandoku.CommandLine.Tests.Abstractions;
 
-public interface IEnvironment
-{
-    string? GetEnvironmentVariable(string variable);
-    void SetEnvironmentVariable(string variable, string? value);
-}
-
-public class EnvironmentWrapper : IEnvironment
-{
-    public string? GetEnvironmentVariable(string variable) => Environment.GetEnvironmentVariable(variable);
-    public void SetEnvironmentVariable(string variable, string? value) => Environment.SetEnvironmentVariable(variable, value);
-}
+using Tandoku.CommandLine.Abstractions;
 
 public class MockEnvironment : IEnvironment
 {

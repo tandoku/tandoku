@@ -9,6 +9,7 @@ using System.CommandLine.NamingConventionBinder; // TODO: remove when migrated t
 using System.CommandLine.Parsing;
 using System.CommandLine.Rendering;
 using System.IO.Abstractions;
+using Tandoku.CommandLine.Abstractions;
 using Tandoku.Library;
 
 public sealed class Program
@@ -24,7 +25,7 @@ public sealed class Program
     {
         this.console = console ?? new SystemConsole();
         this.fileSystem = fileSystem ?? new FileSystem();
-        this.environment = environment ?? new EnvironmentWrapper();
+        this.environment = environment ?? new SystemEnvironment();
     }
 
     [STAThread] // TODO: needed? should use MTAThread instead?
@@ -180,7 +181,7 @@ public sealed class Program
                 libraryManager.ResolveLibraryDefinitionPath(this.fileSystem.Directory.GetCurrentDirectory(), checkAncestors: true);
 
             if (libraryDefinitionPath is null &&
-                this.environment.GetEnvironmentVariable("TANDOKU_LIBRARY") is string envPath)
+                this.environment.GetEnvironmentVariable(KnownEnvironmentVariables.TandokuLibrary) is string envPath)
             {
                 libraryDefinitionPath = libraryManager.ResolveLibraryDefinitionPath(envPath);
             }
