@@ -3,6 +3,7 @@ namespace Tandoku.CommandLine.Tests;
 using System.CommandLine.IO;
 using System.IO.Abstractions.TestingHelpers;
 using Markdig.Helpers;
+using Tandoku.Library;
 
 public class LibraryCommandTests
 {
@@ -59,6 +60,39 @@ public class LibraryCommandTests
         await this.RunAndAssertAsync(
             "library init tandoku-library --force",
             $"Initialized new tandoku library at {this.ToFullPath("tandoku-library", "library.tdkl.yaml")}");
+    }
+
+    [Fact]
+    public async Task Info()
+    {
+        var info = await this.SetupLibrary();
+
+        await this.RunAndAssertAsync(
+            $"library info",
+            @$"Path: {info.Path}
+Definition path: {info.DefinitionPath}
+Language: {info.Definition.Language}
+Reference language: {info.Definition.ReferenceLanguage}");
+    }
+
+    [Fact]
+    public async Task InfoWithDefinitionPath()
+    {
+        var info = await this.SetupLibrary();
+
+        await this.RunAndAssertAsync(
+            $"library info --library {info.DefinitionPath}",
+            @$"Path: {info.Path}
+Definition path: {info.DefinitionPath}
+Language: {info.Definition.Language}
+Reference language: {info.Definition.ReferenceLanguage}");
+    }
+
+    private Task<LibraryInfo> SetupLibrary()
+    {
+        var libraryManager = new LibraryManager(this.fileSystem);
+        var libraryRootPath = this.fileSystem.Path.Join(this.baseDirectory, "tandoku-library");
+        return libraryManager.InitializeAsync(libraryRootPath);
     }
 
     private async Task RunAndAssertAsync(

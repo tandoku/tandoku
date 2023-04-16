@@ -17,6 +17,7 @@ public sealed class LibraryManager
 
     public Task<LibraryInfo> InitializeAsync(string? path, bool force = false)
     {
+        // TODO: should we allow null path here? or leave path resolution to the CLI?
         var pathInfo = this.fileSystem.DirectoryInfo.New(
             !string.IsNullOrEmpty(path) ? path : this.fileSystem.Directory.GetCurrentDirectory());
         
@@ -32,7 +33,7 @@ public sealed class LibraryManager
         }
         else
         {
-            // Note: this can throw if a conflicting file exists at the path
+            // Note: this can throw IOException if a conflicting file exists at the path
             pathInfo.Create();
         }
 
@@ -47,11 +48,21 @@ public sealed class LibraryManager
         using var definitionWriter = this.fileSystem.File.CreateText(definitionPath);
         await definition.WriteYamlAsync(definitionWriter);
 
-        return new LibraryInfo(pathInfo.FullName, definitionPath);
+        return new LibraryInfo(pathInfo.FullName, definitionPath, definition);
     }
 
     public async Task<LibraryInfo> GetInfoAsync(string definitionPath)
     {
-        throw new NotImplementedException();
+        var definitionFile = this.fileSystem.FileInfo.New(definitionPath);
+        if (definitionFile.DirectoryName is null)
+            throw new ArgumentOutOfRangeException(nameof(definitionPath));
+
+        using var definitionReader = definitionFile.OpenText();
+        var definition = await LibraryDefinition.ReadYamlAsync(definitionReader);
+
+        return new LibraryInfo(
+            definitionFile.DirectoryName,
+            definitionFile.FullName,
+            definition);
     }
 }

@@ -65,7 +65,7 @@ referenceLanguage: en");
         var (libraryManager, _, libraryRootPath) = Setup();
         var originalInfo = await libraryManager.InitializeAsync(libraryRootPath);
 
-        var info = await libraryManager.GetInfoAsync(libraryRootPath);
+        var info = await libraryManager.GetInfoAsync(originalInfo.DefinitionPath);
 
         info.Should().BeEquivalentTo(originalInfo);
     }

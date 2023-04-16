@@ -138,6 +138,8 @@ public sealed class Program
             var info = await libraryManager.GetInfoAsync(pathInfo?.FullName);
             this.console.WriteLine($"Path: {info.Path}");
             this.console.WriteLine($"Definition path: {info.DefinitionPath}");
+            this.console.WriteLine($"Language: {info.Definition.Language}");
+            this.console.WriteLine($"Reference language: {info.Definition.ReferenceLanguage}");
         }, libraryOption);
 
         return command;

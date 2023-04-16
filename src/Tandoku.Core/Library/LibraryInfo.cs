@@ -2,4 +2,5 @@
 
 public sealed record LibraryInfo(
     string Path,
-    string DefinitionPath);
+    string DefinitionPath,
+    LibraryDefinition Definition);
