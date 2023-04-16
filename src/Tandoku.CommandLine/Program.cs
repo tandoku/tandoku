@@ -1,6 +1,7 @@
 ﻿namespace Tandoku.CommandLine;
 
 using System.CommandLine;
+using System.CommandLine.Binding;
 using System.CommandLine.Builder;
 using System.CommandLine.Invocation;
 using System.CommandLine.IO;
@@ -14,13 +15,16 @@ public sealed class Program
 {
     private readonly IConsole console;
     private readonly IFileSystem fileSystem;
+    private readonly IEnvironment environment;
 
     public Program(
         IConsole? console = null,
-        IFileSystem? fileSystem = null)
+        IFileSystem? fileSystem = null,
+        IEnvironment? environment = null)
     {
         this.console = console ?? new SystemConsole();
         this.fileSystem = fileSystem ?? new FileSystem();
+        this.environment = environment ?? new EnvironmentWrapper();
     }
 
     [STAThread] // TODO: needed? should use MTAThread instead?
@@ -123,29 +127,71 @@ public sealed class Program
 
     private Command CreateLibraryInfoCommand()
 {
-        var libraryOption = new Option<FileSystemInfo?>(new[] { "-l", "--library" }, "Library directory or definition (.tdkl.yaml) path")
-            .LegalFilePathsOnly();
+        var libraryBinder = new LibraryBinder(this.fileSystem, this.environment, this.CreateLibraryManager);
 
         var command = new Command("info", "Displays information about the current or specified library")
         {
-            libraryOption
+            libraryBinder.LibraryOption,
         };
 
-        command.SetHandler(async (FileSystemInfo? pathInfo) =>
+        command.SetHandler(async (IFileInfo libraryDefinitionFile) =>
         {
             var libraryManager = this.CreateLibraryManager();
-            // TODO: resolve omitted or directory path to definition path
-            var info = await libraryManager.GetInfoAsync(pathInfo?.FullName);
+            var info = await libraryManager.GetInfoAsync(libraryDefinitionFile.FullName);
             this.console.WriteLine($"Path: {info.Path}");
             this.console.WriteLine($"Definition path: {info.DefinitionPath}");
             this.console.WriteLine($"Language: {info.Definition.Language}");
             this.console.WriteLine($"Reference language: {info.Definition.ReferenceLanguage}");
-        }, libraryOption);
+        }, libraryBinder);
 
         return command;
     }
 
     private LibraryManager CreateLibraryManager() => new(this.fileSystem);
+
+    private sealed class LibraryBinder : BinderBase<IFileInfo>
+    {
+        private readonly IFileSystem fileSystem;
+        private readonly IEnvironment environment;
+        private readonly Func<LibraryManager> createLibraryManager;
+
+        internal LibraryBinder(IFileSystem fileSystem, IEnvironment environment, Func<LibraryManager> createLibraryManager)
+        {
+            this.fileSystem = fileSystem;
+            this.environment = environment;
+            this.createLibraryManager = createLibraryManager;
+
+            this.LibraryOption = new Option<FileSystemInfo?>(
+                new[] { "-l", "--library" },
+                "Library directory or definition (.tdkl.yaml) path")
+                .LegalFilePathsOnly();
+        }
+
+        internal Option<FileSystemInfo?> LibraryOption { get; }
+
+        protected override IFileInfo GetBoundValue(BindingContext bindingContext)
+        {
+            var fileSysInfo = bindingContext.ParseResult.GetValueForOption(this.LibraryOption);
+
+            var libraryManager = this.createLibraryManager();
+
+            var libraryDefinitionPath = fileSysInfo is not null ?
+                libraryManager.ResolveLibraryDefinitionPath(fileSysInfo.FullName) :
+                libraryManager.ResolveLibraryDefinitionPath(this.fileSystem.Directory.GetCurrentDirectory(), checkAncestors: true);
+
+            if (libraryDefinitionPath is null &&
+                this.environment.GetEnvironmentVariable("TANDOKU_LIBRARY") is string envPath)
+            {
+                libraryDefinitionPath = libraryManager.ResolveLibraryDefinitionPath(envPath);
+            }
+
+            return libraryDefinitionPath is not null ?
+                this.fileSystem.FileInfo.New(libraryDefinitionPath) :
+                throw new ArgumentException("The specified path does not contain a tandoku library.");
+        }
+    }
+
+    // Legacy commands
 
     private static Command CreateGenerateCommand() =>
         new Command("generate", "Generate tandoku content from various input formats")

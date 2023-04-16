@@ -4,7 +4,9 @@ using System.IO.Abstractions;
 
 public sealed class LibraryManager
 {
-    private const string LibraryDefinitionFileName = "library.tdkl.yaml";
+    private const string LibraryDefinitionFileExtension = ".tdkl.yaml";
+    private const string LibraryDefinitionFileName = "library" + LibraryDefinitionFileExtension;
+    private const string LibraryDefinitionSearchPattern = "*" + LibraryDefinitionFileExtension;
     private const string DefaultLanguage = "ja";
     private const string DefaultReferenceLanguage = "en";
 
@@ -64,5 +66,29 @@ public sealed class LibraryManager
             definitionFile.DirectoryName,
             definitionFile.FullName,
             definition);
+    }
+    public string? ResolveLibraryDefinitionPath(string path, bool checkAncestors = false)
+    {
+        if (this.fileSystem.File.Exists(path))
+        {
+            return path;
+        }
+        else if (this.fileSystem.Directory.Exists(path))
+        {
+            var directory = this.fileSystem.DirectoryInfo.New(path);
+            var libraryDefinitions = directory.GetFiles(LibraryDefinitionSearchPattern);
+            return libraryDefinitions.Length switch
+            {
+                0 => checkAncestors && directory.Parent is not null ?
+                    this.ResolveLibraryDefinitionPath(directory.Parent.FullName, checkAncestors) :
+                    null,
+                1 => libraryDefinitions[0].FullName,
+                _ => throw new ArgumentException("The specified path contains more than one tandoku library definition."),
+            }; ;
+        }
+        else
+        {
+            throw new ArgumentException("The specified path does not exist.");
+        }
     }
 }

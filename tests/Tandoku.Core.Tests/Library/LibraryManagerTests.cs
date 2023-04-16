@@ -70,6 +70,8 @@ referenceLanguage: en");
         info.Should().BeEquivalentTo(originalInfo);
     }
 
+    // TODO: add tests for ResolveLibraryDefinitionPath
+
     private static (LibraryManager, MockFileSystem, string libraryRootPath) Setup()
     {
         var fileSystem = new MockFileSystem();
