@@ -1,13 +1,13 @@
 stage: common
 artifacts:
-  library_metadata:
-    summary: Holds metadata for a tandoku library.
+  library_definition:
+    summary: Holds definition/metadata for a tandoku library.
     container: library
     location: library.tdkl.yaml
     sourceControl: text
 
-  volume_metadata:
-    summary: Holds metadata for a single tandoku volume.
+  volume_definition:
+    summary: Holds definition/metadata for a single tandoku volume.
     container: volume
     location: "{moniker} {title}.tdkv.yaml"
     sourceControl: text
@@ -19,27 +19,27 @@ artifacts:
 
 simpleValues:
   library_path:
-    summary: Library path or metadata (.tdkl.yaml) location.
+    summary: Library path or definition (.tdkl.yaml) location.
   library_info:
-    summary: Library path, metadata path and metadata/configuration values.
+    summary: Library path, definition path and metadata/configuration values.
   
   volume_path:
-    summary: Volume path or metadata (.tdkv.yaml) location.
+    summary: Volume path or definition (.tdkv.yaml) location.
   volume_info:
-    summary: Volume path, metadata path and metadata/configuration values. Also includes library path.
+    summary: Volume path, definition path and metadata/configuration values. Also includes library path.
 
 operations:
   tandoku_library_init:
     inputs:
       - library_path
     outputs:
-      - library_metadata
+      - library_definition
     cmdlet: Initialize-TandokuLibrary
 
   tandoku_library_info:
     inputs:
       - library_path
-      - library_metadata
+      - library_definition
     outputs:
       - library_info
     cmdlet: Get-TandokuLibrary
@@ -56,7 +56,7 @@ operations:
   tandoku_volume_info:
     inputs:
       - volume_path
-      - volume_metadata
+      - volume_definition
     outputs:
       - volume_info
     cmdlet: Get-TandokuVolume
