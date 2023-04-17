@@ -17,55 +17,42 @@ public sealed class LibraryManager
         this.fileSystem = fileSystem ?? new FileSystem();
     }
 
-    public Task<LibraryInfo> InitializeAsync(string? path, bool force = false)
-    {
-        // TODO: should we allow null path here? or leave path resolution to the CLI?
-        var pathInfo = this.fileSystem.DirectoryInfo.New(
-            !string.IsNullOrEmpty(path) ? path : this.fileSystem.Directory.GetCurrentDirectory());
-        
-        return this.InitializeAsync(pathInfo, force);
-    }
+    public Task<LibraryInfo> InitializeAsync(string path, bool force = false) =>
+        this.InitializeAsync(this.fileSystem.GetDirectory(path), force);
 
-    private async Task<LibraryInfo> InitializeAsync(IDirectoryInfo pathInfo, bool force)
+    private async Task<LibraryInfo> InitializeAsync(IDirectoryInfo directory, bool force)
     {
-        if (pathInfo.Exists)
+        if (directory.Exists)
         {
-            if (!force && pathInfo.EnumerateFileSystemInfos().Any())
+            if (!force && directory.EnumerateFileSystemInfos().Any())
                 throw new ArgumentException("The specified directory is not empty and force is not specified.");
         }
         else
         {
             // Note: this can throw IOException if a conflicting file exists at the path
-            pathInfo.Create();
+            directory.Create();
         }
 
+        var definitionFile = directory.GetFile(LibraryDefinitionFileName);
         var definition = new LibraryDefinition
         {
             Language = DefaultLanguage,
             ReferenceLanguage = DefaultReferenceLanguage,
         };
+        await definition.WriteYamlAsync(definitionFile);
 
-        var definitionPath = this.fileSystem.Path.Join(pathInfo.FullName, LibraryDefinitionFileName);
-
-        using var definitionWriter = this.fileSystem.File.CreateText(definitionPath);
-        await definition.WriteYamlAsync(definitionWriter);
-
-        return new LibraryInfo(pathInfo.FullName, definitionPath, definition);
+        return new LibraryInfo(directory.FullName, definitionFile.FullName, definition);
     }
 
     public async Task<LibraryInfo> GetInfoAsync(string definitionPath)
     {
-        var definitionFile = this.fileSystem.FileInfo.New(definitionPath);
+        var definitionFile = this.fileSystem.GetFile(definitionPath);
         if (definitionFile.DirectoryName is null)
             throw new ArgumentOutOfRangeException(nameof(definitionPath));
 
-        using var definitionReader = definitionFile.OpenText();
-        var definition = await LibraryDefinition.ReadYamlAsync(definitionReader);
+        var definition = await LibraryDefinition.ReadYamlAsync(definitionFile);
 
-        return new LibraryInfo(
-            definitionFile.DirectoryName,
-            definitionFile.FullName,
-            definition);
+        return new LibraryInfo(definitionFile.DirectoryName, definitionFile.FullName, definition);
     }
     public string? ResolveLibraryDefinitionPath(string path, bool checkAncestors = false)
     {
@@ -75,7 +62,7 @@ public sealed class LibraryManager
         }
         else if (this.fileSystem.Directory.Exists(path))
         {
-            var directory = this.fileSystem.DirectoryInfo.New(path);
+            var directory = this.fileSystem.GetDirectory(path);
             var libraryDefinitions = directory.GetFiles(LibraryDefinitionSearchPattern);
             return libraryDefinitions.Length switch
             {

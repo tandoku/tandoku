@@ -116,10 +116,11 @@ public sealed class Program
             forceOption,
         };
 
-        command.SetHandler(async (DirectoryInfo? pathInfo, bool force) =>
+        command.SetHandler(async (DirectoryInfo? directory, bool force) =>
         {
             var libraryManager = this.CreateLibraryManager();
-            var info = await libraryManager.InitializeAsync(pathInfo?.FullName, force);
+            var path = directory?.FullName ?? this.fileSystem.Directory.GetCurrentDirectory();
+            var info = await libraryManager.InitializeAsync(path, force);
             this.console.WriteLine($"Initialized new tandoku library at {info.DefinitionPath}");
         }, pathArgument, forceOption);
 
@@ -187,7 +188,7 @@ public sealed class Program
             }
 
             return libraryDefinitionPath is not null ?
-                this.fileSystem.FileInfo.New(libraryDefinitionPath) :
+                this.fileSystem.GetFile(libraryDefinitionPath) :
                 throw new ArgumentException("The specified path does not contain a tandoku library.");
         }
     }

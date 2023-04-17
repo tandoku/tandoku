@@ -1,5 +1,6 @@
 ﻿namespace Tandoku.Library;
 
+using System.IO.Abstractions;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
@@ -9,6 +10,12 @@ public sealed record LibraryDefinition
     public string? ReferenceLanguage { get; init;  }
 
     // TODO: refactor these into a separate interface/mixin
+    public static Task<LibraryDefinition> ReadYamlAsync(IFileInfo file)
+    {
+        using var reader = file.OpenText();
+        return ReadYamlAsync(reader);
+    }
+
     public static async Task<LibraryDefinition> ReadYamlAsync(TextReader reader)
     {
         var deserializer = new DeserializerBuilder()
@@ -24,6 +31,13 @@ public sealed record LibraryDefinition
             var s = await reader.ReadToEndAsync();
             return deserializer.Deserialize<LibraryDefinition>(s);
         }
+    }
+
+    public Task WriteYamlAsync(IFileInfo file)
+    {
+        using var writer = file.CreateText();
+        return this.WriteYamlAsync(writer);
+
     }
 
     public Task WriteYamlAsync(TextWriter writer)

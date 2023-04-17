@@ -5,11 +5,14 @@ using Tandoku.Library;
 
 public class LibraryManagerTests
 {
+    // TODO: consider rewriting path manipulation to use IDirectoryInfo/IFileInfo instead
+    // (e.g. change libraryRootPath to (default?) libraryDirectory and use .GetFile() etc.
+
     [Fact]
     public async Task Initialize()
     {
         var (libraryManager, fileSystem, libraryRootPath) = Setup();
-        var definitionPath = Path.Join(libraryRootPath, "library.tdkl.yaml");
+        var definitionPath = fileSystem.Path.Join(libraryRootPath, "library.tdkl.yaml");
 
         var info = await libraryManager.InitializeAsync(libraryRootPath);
 

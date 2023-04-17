@@ -25,7 +25,7 @@ public class LibraryCommandTests
         // as the base dir for the mock file system so that FileSystemInfo arguments
         // work correctly. May need to replace with an IFileSystemInfo-based implementation
         // later in order to allow for mock file system to properly support validation.
-        this.baseDirectory = this.fileSystem.DirectoryInfo.New(Directory.GetCurrentDirectory());
+        this.baseDirectory = this.fileSystem.GetDirectory(Directory.GetCurrentDirectory());
         this.fileSystem.Directory.SetCurrentDirectory(this.baseDirectory.FullName);
     }
 
@@ -78,7 +78,7 @@ public class LibraryCommandTests
     public async Task InfoInNestedPath()
     {
         var info = await this.SetupLibrary();
-        var libraryDirectory = this.fileSystem.DirectoryInfo.New(info.Path);
+        var libraryDirectory = this.fileSystem.GetDirectory(info.Path);
         var nestedDirectory = libraryDirectory.CreateSubdirectory("nested-directory");
         this.fileSystem.Directory.SetCurrentDirectory(nestedDirectory.FullName);
 
@@ -172,6 +172,6 @@ Reference language: {info.Definition.ReferenceLanguage}";
     private string ToFullPath(params string[] pathElements)
     {
         var relativePath = this.fileSystem.Path.Join(pathElements);
-        return this.fileSystem.Path.GetFullPath(relativePath, this.baseDirectory.FullName);
+        return this.fileSystem.Path.Join(this.baseDirectory.FullName, relativePath);
     }
 }
