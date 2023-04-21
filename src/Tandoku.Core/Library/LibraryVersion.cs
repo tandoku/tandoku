@@ -1,12 +1,13 @@
 ﻿namespace Tandoku.Library;
 
 using System.IO.Abstractions;
+using Tandoku.Packaging;
 
-public sealed record LibraryVersion
+public sealed record LibraryVersion : IPackageVersion
 {
     public static LibraryVersion Latest { get; } = new LibraryVersion(new Version(0, 1, 0));
 
-    public Version Version { get; init; }
+    public Version Version { get; }
 
     private LibraryVersion(Version version)
     {
@@ -20,17 +21,5 @@ public sealed record LibraryVersion
         return Version.TryParse(s, out var version) && version.Equals(Latest.Version) ?
             Latest :
             throw new InvalidDataException("The specified version is not recognized.");
-    }
-
-    public async Task WriteToAsync(IFileInfo file)
-    {
-        // Note: this method must be 'async' so writer is not disposed prematurely
-        using var writer = file.CreateText();
-        await writer.WriteAsync(this.ToString());
-    }
-
-    public override string ToString()
-    {
-        return this.Version.ToString();
     }
 }

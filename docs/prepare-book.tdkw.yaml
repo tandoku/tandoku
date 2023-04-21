@@ -25,7 +25,7 @@ artifacts:
   
   exported_comicbook:
     container: staging
-    location: "{target-device}/export/{moniker} {title}"
+    location: "{target-device}/export/{moniker}-{title}"
     files: [.cbz]
 
 operations:

@@ -1,14 +1,13 @@
 ﻿namespace Tandoku.Library;
 
 using System.IO.Abstractions;
+using Tandoku.Packaging;
 
 public sealed class LibraryManager
 {
     private const string LibraryMetadataDirectory = ".tandoku-library";
     private const string LibraryVersionFileName = "version";
     private const string LibraryDefinitionFileName = "library.yaml";
-    private const string DefaultLanguage = "ja";
-    private const string DefaultReferenceLanguage = "en";
 
     private readonly IFileSystem fileSystem;
 
@@ -20,36 +19,15 @@ public sealed class LibraryManager
     public async Task<LibraryInfo> InitializeAsync(string path, bool force = false)
     {
         var directory = this.fileSystem.GetDirectory(path);
-        if (directory.Exists)
-        {
-            if (!force && directory.EnumerateFileSystemInfos().Any())
-                throw new ArgumentException("The specified directory is not empty and force is not specified.");
-        }
-        else
-        {
-            // Note: this can throw IOException if a conflicting file exists at the path
-            directory.Create();
-        }
-
-        var metadataDirectory = directory.GetSubdirectory(LibraryMetadataDirectory);
-        if (metadataDirectory.Exists)
-        {
-            throw new InvalidOperationException("A tandoku library already exists in the specified directory.");
-        }
-        else
-        {
-            metadataDirectory.Create();
-        }
-
-        var versionFile = metadataDirectory.GetFile(LibraryVersionFileName);
         var version = LibraryVersion.Latest;
-        await version.WriteToAsync(versionFile);
+        var packager = CreatePackager();
+        await packager.InitializePackageAsync(directory, version, force);
 
         var definitionFile = directory.GetFile(LibraryDefinitionFileName);
         var definition = new LibraryDefinition
         {
-            Language = DefaultLanguage,
-            ReferenceLanguage = DefaultReferenceLanguage,
+            Language = LanguageConstants.DefaultLanguage,
+            ReferenceLanguage = LanguageConstants.DefaultReferenceLanguage,
         };
         await definition.WriteYamlAsync(definitionFile);
 
@@ -96,4 +74,6 @@ public sealed class LibraryManager
             throw new ArgumentException("The specified path does not exist.");
         }
     }
+
+    private static Packager<LibraryVersion> CreatePackager() => new("library");
 }

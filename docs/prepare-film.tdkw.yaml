@@ -55,10 +55,10 @@ artifacts:
 
   exported_video:
     container: staging
-    location: "{target-device}/export/{moniker} {title}"
+    location: "{target-device}/export/{moniker}-{title}"
   exported_subtitles:
     container: staging
-    location: "{target-device}/export/{moniker} {title}"
+    location: "{target-device}/export/{moniker}-{title}"
 
   subs2cia_subtitle:
     container: volume

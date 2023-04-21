@@ -69,6 +69,8 @@ operations:
       - library_info
       - container_path
       - volume_title
+      - volume_moniker
+      - volume_tags
       - original_media
     outputs:
       - volume_version

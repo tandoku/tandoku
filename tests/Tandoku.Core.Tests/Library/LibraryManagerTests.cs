@@ -21,7 +21,7 @@ public class LibraryManagerTests
         info.DefinitionPath.Should().Be(definitionPath);
         fileSystem.AllFiles.Count().Should().Be(2);
         fileSystem.GetFile(fileSystem.Path.Join(info.Path, ".tandoku-library/version")).TextContents.Should().Be(
-            LibraryVersion.Latest.ToString());
+            LibraryVersion.Latest.Version.ToString());
         fileSystem.GetFile(definitionPath).TextContents.TrimEnd().Should().Be(
 @"language: ja
 referenceLanguage: en");
