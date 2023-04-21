@@ -1,15 +1,31 @@
 stage: common
 artifacts:
+  library_version:
+    container: library
+    location: .tandoku-library/version
+    sourceControl: text
+  library_layout:
+    container: library
+    location: .tandoku-library/layout.yaml
+    sourceControl: text
   library_definition:
     summary: Holds definition/metadata for a tandoku library.
     container: library
-    location: library.tdkl.yaml
+    location: library.yaml
     sourceControl: text
 
+  volume_version:
+    container: volume
+    location: .tandoku-volume/version
+    sourceControl: text
+  volume_layout:
+    container: volume
+    location: .tandoku-volume/layout.yaml
+    sourceControl: text
   volume_definition:
     summary: Holds definition/metadata for a single tandoku volume.
     container: volume
-    location: "{moniker} {title}.tdkv.yaml"
+    location: volume.yaml
     sourceControl: text
   
   volume_cover:
@@ -33,12 +49,16 @@ operations:
     inputs:
       - library_path
     outputs:
+      - library_version
+      - library_layout
       - library_definition
     cmdlet: Initialize-TandokuLibrary
 
   tandoku_library_info:
     inputs:
       - library_path
+      - library_version
+      - library_layout
       - library_definition
     outputs:
       - library_info
@@ -47,15 +67,20 @@ operations:
   tandoku_volume_new:
     inputs:
       - library_info
+      - container_path
       - volume_title
       - original_media
     outputs:
-      - volume_metadata
+      - volume_version
+      - volume_layout
+      - volume_definition
     cmdlet: New-TandokuVolume
 
   tandoku_volume_info:
     inputs:
       - volume_path
+      - volume_version
+      - volume_layout
       - volume_definition
     outputs:
       - volume_info
@@ -64,6 +89,10 @@ operations:
   tandoku_volume_list:
     inputs:
       - library_info
+      - volume_version
+      - volume_layout
+      - volume_definition
+      - all_switch
     outputs:
       - volume_info
     cmdlet: Get-TandokuVolume
