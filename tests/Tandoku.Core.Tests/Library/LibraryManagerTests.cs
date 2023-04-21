@@ -12,13 +12,16 @@ public class LibraryManagerTests
     public async Task Initialize()
     {
         var (libraryManager, fileSystem, libraryRootPath) = Setup();
-        var definitionPath = fileSystem.Path.Join(libraryRootPath, "library.tdkl.yaml");
+        var definitionPath = fileSystem.Path.Join(libraryRootPath, "library.yaml");
 
         var info = await libraryManager.InitializeAsync(libraryRootPath);
 
         info.Path.Should().Be(libraryRootPath);
+        info.Version.Should().Be(LibraryVersion.Latest);
         info.DefinitionPath.Should().Be(definitionPath);
-        fileSystem.AllFiles.Count().Should().Be(1);
+        fileSystem.AllFiles.Count().Should().Be(2);
+        fileSystem.GetFile(fileSystem.Path.Join(info.Path, ".tandoku-library/version")).TextContents.Should().Be(
+            LibraryVersion.Latest.ToString());
         fileSystem.GetFile(definitionPath).TextContents.TrimEnd().Should().Be(
 @"language: ja
 referenceLanguage: en");
@@ -59,8 +62,18 @@ referenceLanguage: en");
         var info = await libraryManager.InitializeAsync(libraryRootPath, force: true);
 
         info.Path.Should().Be(libraryRootPath);
-        fileSystem.AllFiles.Count().Should().Be(2);
+        fileSystem.AllFiles.Count().Should().Be(3);
         fileSystem.GetFile(info.DefinitionPath).TextContents.Should().NotBeNullOrEmpty();
+    }
+
+    [Fact]
+    public async Task InitializeInExistingLibrary()
+    {
+        var (libraryManager, fileSystem, libraryRootPath) = Setup();
+        await libraryManager.InitializeAsync(libraryRootPath);
+
+        await libraryManager.Invoking(m => m.InitializeAsync(libraryRootPath, force: true))
+            .Should().ThrowAsync<InvalidOperationException>();
     }
 
     [Fact]
@@ -69,7 +82,7 @@ referenceLanguage: en");
         var (libraryManager, _, libraryRootPath) = Setup();
         var originalInfo = await libraryManager.InitializeAsync(libraryRootPath);
 
-        var info = await libraryManager.GetInfoAsync(originalInfo.DefinitionPath);
+        var info = await libraryManager.GetInfoAsync(originalInfo.Path);
 
         info.Should().BeEquivalentTo(originalInfo);
     }

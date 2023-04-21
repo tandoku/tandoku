@@ -10,10 +10,11 @@ public sealed record LibraryDefinition
     public string? ReferenceLanguage { get; init;  }
 
     // TODO: refactor these into a separate interface/mixin
-    public static Task<LibraryDefinition> ReadYamlAsync(IFileInfo file)
+    public static async Task<LibraryDefinition> ReadYamlAsync(IFileInfo file)
     {
+        // Note: this method must be 'async' so reader is not disposed prematurely
         using var reader = file.OpenText();
-        return ReadYamlAsync(reader);
+        return await ReadYamlAsync(reader);
     }
 
     public static async Task<LibraryDefinition> ReadYamlAsync(TextReader reader)
@@ -33,11 +34,11 @@ public sealed record LibraryDefinition
         }
     }
 
-    public Task WriteYamlAsync(IFileInfo file)
+    public async Task WriteYamlAsync(IFileInfo file)
     {
+        // Note: this method must be 'async' so writer is not disposed prematurely
         using var writer = file.CreateText();
-        return this.WriteYamlAsync(writer);
-
+        await this.WriteYamlAsync(writer);
     }
 
     public Task WriteYamlAsync(TextWriter writer)

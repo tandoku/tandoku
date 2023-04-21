@@ -4,9 +4,9 @@ using System.IO.Abstractions;
 
 public sealed class LibraryManager
 {
-    private const string LibraryDefinitionFileExtension = ".tdkl.yaml";
-    private const string LibraryDefinitionFileName = "library" + LibraryDefinitionFileExtension;
-    private const string LibraryDefinitionSearchPattern = "*" + LibraryDefinitionFileExtension;
+    private const string LibraryMetadataDirectory = ".tandoku-library";
+    private const string LibraryVersionFileName = "version";
+    private const string LibraryDefinitionFileName = "library.yaml";
     private const string DefaultLanguage = "ja";
     private const string DefaultReferenceLanguage = "en";
 
@@ -17,11 +17,9 @@ public sealed class LibraryManager
         this.fileSystem = fileSystem ?? new FileSystem();
     }
 
-    public Task<LibraryInfo> InitializeAsync(string path, bool force = false) =>
-        this.InitializeAsync(this.fileSystem.GetDirectory(path), force);
-
-    private async Task<LibraryInfo> InitializeAsync(IDirectoryInfo directory, bool force)
+    public async Task<LibraryInfo> InitializeAsync(string path, bool force = false)
     {
+        var directory = this.fileSystem.GetDirectory(path);
         if (directory.Exists)
         {
             if (!force && directory.EnumerateFileSystemInfos().Any())
@@ -33,6 +31,20 @@ public sealed class LibraryManager
             directory.Create();
         }
 
+        var metadataDirectory = directory.GetSubdirectory(LibraryMetadataDirectory);
+        if (metadataDirectory.Exists)
+        {
+            throw new InvalidOperationException("A tandoku library already exists in the specified directory.");
+        }
+        else
+        {
+            metadataDirectory.Create();
+        }
+
+        var versionFile = metadataDirectory.GetFile(LibraryVersionFileName);
+        var version = LibraryVersion.Latest;
+        await version.WriteToAsync(versionFile);
+
         var definitionFile = directory.GetFile(LibraryDefinitionFileName);
         var definition = new LibraryDefinition
         {
@@ -41,37 +53,43 @@ public sealed class LibraryManager
         };
         await definition.WriteYamlAsync(definitionFile);
 
-        return new LibraryInfo(directory.FullName, definitionFile.FullName, definition);
+        return new LibraryInfo(directory.FullName, version, definitionFile.FullName, definition);
     }
 
-    public async Task<LibraryInfo> GetInfoAsync(string definitionPath)
+    public async Task<LibraryInfo> GetInfoAsync(string libraryPath)
     {
-        var definitionFile = this.fileSystem.GetFile(definitionPath);
-        if (definitionFile.DirectoryName is null)
-            throw new ArgumentOutOfRangeException(nameof(definitionPath));
+        var libraryDirectory = this.fileSystem.GetDirectory(libraryPath);
+        var metadataDirectory = libraryDirectory.GetSubdirectory(LibraryMetadataDirectory);
 
-        var definition = await LibraryDefinition.ReadYamlAsync(definitionFile);
+        var versionFile = metadataDirectory.GetFile(LibraryVersionFileName);
+        var version = versionFile.Exists ?
+            await LibraryVersion.ReadFromAsync(versionFile) :
+            throw new ArgumentException("The specified directory is not a valid tandoku library");
 
-        return new LibraryInfo(definitionFile.DirectoryName, definitionFile.FullName, definition);
+        var definitionFile = libraryDirectory.GetFile(LibraryDefinitionFileName);
+        var definition = definitionFile.Exists ?
+            await LibraryDefinition.ReadYamlAsync(definitionFile) :
+            throw new ArgumentException("The specified directory does not contain a tandoku library definition");
+
+        return new LibraryInfo(libraryDirectory.FullName, version, definitionFile.FullName, definition);
     }
-    public string? ResolveLibraryDefinitionPath(string path, bool checkAncestors = false)
+
+    public string? ResolveLibraryDirectoryPath(string path, bool checkAncestors = false)
     {
-        if (this.fileSystem.File.Exists(path))
-        {
-            return path;
-        }
-        else if (this.fileSystem.Directory.Exists(path))
+        if (this.fileSystem.Directory.Exists(path))
         {
             var directory = this.fileSystem.GetDirectory(path);
-            var libraryDefinitions = directory.GetFiles(LibraryDefinitionSearchPattern);
-            return libraryDefinitions.Length switch
-            {
-                0 => checkAncestors && directory.Parent is not null ?
-                    this.ResolveLibraryDefinitionPath(directory.Parent.FullName, checkAncestors) :
-                    null,
-                1 => libraryDefinitions[0].FullName,
-                _ => throw new ArgumentException("The specified path contains more than one tandoku library definition."),
-            }; ;
+            var metadataDirectory = directory.GetSubdirectory(LibraryMetadataDirectory);
+            if (metadataDirectory.Exists)
+                return directory.FullName;
+
+            return checkAncestors && directory.Parent is not null ?
+                this.ResolveLibraryDirectoryPath(directory.Parent.FullName, checkAncestors) :
+                null;
+        }
+        else if (this.fileSystem.File.Exists(path))
+        {
+            throw new ArgumentOutOfRangeException(nameof(path), "The specified path refers to a file where a directory is expected.");
         }
         else
         {

@@ -62,6 +62,10 @@ public sealed class Program
                 {
                     HandleKnownException(exception, context);
                 }
+                catch (InvalidOperationException exception)
+                {
+                    HandleKnownException(exception, context);
+                }
             }, MiddlewareOrder.ExceptionHandler)
             .UseDefaults()
             .Build();
@@ -121,7 +125,7 @@ public sealed class Program
             var libraryManager = this.CreateLibraryManager();
             var path = directory?.FullName ?? this.fileSystem.Directory.GetCurrentDirectory();
             var info = await libraryManager.InitializeAsync(path, force);
-            this.console.WriteLine($"Initialized new tandoku library at {info.DefinitionPath}");
+            this.console.WriteLine($"Initialized new tandoku library at {info.Path}");
         }, pathArgument, forceOption);
 
         return command;
@@ -136,11 +140,12 @@ public sealed class Program
             libraryBinder.LibraryOption,
         };
 
-        command.SetHandler(async (IFileInfo libraryDefinitionFile) =>
+        command.SetHandler(async (IDirectoryInfo libraryDirectory) =>
         {
             var libraryManager = this.CreateLibraryManager();
-            var info = await libraryManager.GetInfoAsync(libraryDefinitionFile.FullName);
+            var info = await libraryManager.GetInfoAsync(libraryDirectory.FullName);
             this.console.WriteLine($"Path: {info.Path}");
+            this.console.WriteLine($"Version: {info.Version}");
             this.console.WriteLine($"Definition path: {info.DefinitionPath}");
             this.console.WriteLine($"Language: {info.Definition.Language}");
             this.console.WriteLine($"Reference language: {info.Definition.ReferenceLanguage}");
@@ -151,7 +156,7 @@ public sealed class Program
 
     private LibraryManager CreateLibraryManager() => new(this.fileSystem);
 
-    private sealed class LibraryBinder : BinderBase<IFileInfo>
+    private sealed class LibraryBinder : BinderBase<IDirectoryInfo>
     {
         private readonly IFileSystem fileSystem;
         private readonly IEnvironment environment;
@@ -163,32 +168,32 @@ public sealed class Program
             this.environment = environment;
             this.createLibraryManager = createLibraryManager;
 
-            this.LibraryOption = new Option<FileSystemInfo?>(
+            this.LibraryOption = new Option<DirectoryInfo?>(
                 new[] { "-l", "--library" },
-                "Library directory or definition (.tdkl.yaml) path")
+                "Library directory path")
                 .LegalFilePathsOnly();
         }
 
-        internal Option<FileSystemInfo?> LibraryOption { get; }
+        internal Option<DirectoryInfo?> LibraryOption { get; }
 
-        protected override IFileInfo GetBoundValue(BindingContext bindingContext)
+        protected override IDirectoryInfo GetBoundValue(BindingContext bindingContext)
         {
-            var fileSysInfo = bindingContext.ParseResult.GetValueForOption(this.LibraryOption);
+            var directoryInfo = bindingContext.ParseResult.GetValueForOption(this.LibraryOption);
 
             var libraryManager = this.createLibraryManager();
 
-            var libraryDefinitionPath = fileSysInfo is not null ?
-                libraryManager.ResolveLibraryDefinitionPath(fileSysInfo.FullName) :
-                libraryManager.ResolveLibraryDefinitionPath(this.fileSystem.Directory.GetCurrentDirectory(), checkAncestors: true);
+            var libraryDirectoryPath = directoryInfo is not null ?
+                libraryManager.ResolveLibraryDirectoryPath(directoryInfo.FullName) :
+                libraryManager.ResolveLibraryDirectoryPath(this.fileSystem.Directory.GetCurrentDirectory(), checkAncestors: true);
 
-            if (libraryDefinitionPath is null &&
+            if (libraryDirectoryPath is null &&
                 this.environment.GetEnvironmentVariable(KnownEnvironmentVariables.TandokuLibrary) is string envPath)
             {
-                libraryDefinitionPath = libraryManager.ResolveLibraryDefinitionPath(envPath);
+                libraryDirectoryPath = libraryManager.ResolveLibraryDirectoryPath(envPath);
             }
 
-            return libraryDefinitionPath is not null ?
-                this.fileSystem.GetFile(libraryDefinitionPath) :
+            return libraryDirectoryPath is not null ?
+                this.fileSystem.GetDirectory(libraryDirectoryPath) :
                 throw new ArgumentException("The specified path does not contain a tandoku library.");
         }
     }

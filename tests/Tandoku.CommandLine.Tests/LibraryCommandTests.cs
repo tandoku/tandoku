@@ -32,17 +32,17 @@ public class LibraryCommandTests
     [Fact]
     public Task Init() => this.RunAndAssertAsync(
         "library init",
-        $"Initialized new tandoku library at {this.ToFullPath("library.tdkl.yaml")}");
+        $"Initialized new tandoku library at {this.baseDirectory.FullName}");
 
     [Fact]
     public Task InitWithPath() => this.RunAndAssertAsync(
         "library init tandoku-library",
-        $"Initialized new tandoku library at {this.ToFullPath("tandoku-library", "library.tdkl.yaml")}");
+        $"Initialized new tandoku library at {this.ToFullPath("tandoku-library")}");
 
     [Fact]
     public Task InitWithFullPath() => this.RunAndAssertAsync(
         $"library init {this.ToFullPath("tandoku-library")}",
-        $"Initialized new tandoku library at {this.ToFullPath("tandoku-library", "library.tdkl.yaml")}");
+        $"Initialized new tandoku library at {this.ToFullPath("tandoku-library")}");
 
     [Fact]
     public async Task InitWithNonEmptyDirectory()
@@ -60,7 +60,7 @@ public class LibraryCommandTests
         this.fileSystem.AddEmptyFile(this.ToFullPath("tandoku-library", "existing.txt"));
         await this.RunAndAssertAsync(
             "library init tandoku-library --force",
-            $"Initialized new tandoku library at {this.ToFullPath("tandoku-library", "library.tdkl.yaml")}");
+            $"Initialized new tandoku library at {this.ToFullPath("tandoku-library")}");
     }
 
     [Fact]
@@ -129,7 +129,7 @@ public class LibraryCommandTests
 
         await this.RunAndAssertAsync(
             $"library info --library {info.DefinitionPath}",
-            GetExpectedInfoOutput(info));
+            expectedError: "The specified path refers to a file where a directory is expected. (Parameter 'path')");
     }
 
     [Fact]
@@ -151,6 +151,7 @@ public class LibraryCommandTests
 
     private static string GetExpectedInfoOutput(LibraryInfo info) =>
 @$"Path: {info.Path}
+Version: {info.Version}
 Definition path: {info.DefinitionPath}
 Language: {info.Definition.Language}
 Reference language: {info.Definition.ReferenceLanguage}";
