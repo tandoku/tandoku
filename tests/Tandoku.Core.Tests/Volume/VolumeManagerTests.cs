@@ -36,7 +36,27 @@ language: ja
 referenceLanguage: en");
     }
 
-    // TODO: add tests for moniker
+    [Fact]
+    public async Task CreateNew2()
+    {
+        var title = "sample volume/2";
+        var containerPath = this.fileSystem.Directory.GetCurrentDirectory();
+
+        var info = await this.volumeManager.CreateNewAsync(
+            title,
+            containerPath,
+            moniker: "sv-2",
+            tags: new[] { "tag-1", "tag-2" });
+
+        info.Path.Should().Be(this.fileSystem.Path.Join(containerPath, "sv-2-sample volume_2"));
+        this.fileSystem.AllFiles.Count().Should().Be(2);
+        this.fileSystem.GetFile(info.DefinitionPath).TextContents.TrimEnd().Should().Be(
+@"title: sample volume/2
+moniker: sv-2
+language: ja
+referenceLanguage: en
+tags: [tag-1, tag-2]");
+    }
 
     [Fact]
     public async Task GetInfo()
@@ -48,9 +68,22 @@ referenceLanguage: en");
         info.Should().BeEquivalentTo(originalInfo);
     }
 
-    private Task<VolumeInfo> SetupVolume(string title = "sample volume")
+    [Fact]
+    public async Task GetInfo2()
+    {
+        var originalInfo = await this.SetupVolume(moniker: "v1", tags: new[] { "tag1", "tag2" });
+
+        var info = await this.volumeManager.GetInfoAsync(originalInfo.Path);
+
+        info.Should().BeEquivalentTo(originalInfo);
+    }
+
+    private Task<VolumeInfo> SetupVolume(
+        string title = "sample volume",
+        string? moniker = null,
+        IEnumerable<string>? tags = null)
     {
         var containerPath = this.fileSystem.Directory.GetCurrentDirectory();
-        return this.volumeManager.CreateNewAsync(title, containerPath);
+        return this.volumeManager.CreateNewAsync(title, containerPath, moniker, tags);
     }
 }

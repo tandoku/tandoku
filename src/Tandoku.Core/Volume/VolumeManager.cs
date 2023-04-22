@@ -1,5 +1,6 @@
 ﻿namespace Tandoku.Volume;
 
+using System.Collections.Immutable;
 using System.IO.Abstractions;
 using Tandoku.Packaging;
 
@@ -18,6 +19,7 @@ public sealed class VolumeManager
         string title,
         string path,
         string? moniker = null,
+        IEnumerable<string>? tags = null,
         bool force = false)
     {
         // TODO: check that moniker does not have invalid chars
@@ -36,6 +38,10 @@ public sealed class VolumeManager
             Language = LanguageConstants.DefaultLanguage,
             ReferenceLanguage = LanguageConstants.DefaultReferenceLanguage,
         };
+        if (tags is not null)
+        {
+            definition = definition with { Tags = definition.Tags.Union(tags) };
+        }
         var definitionFile = await packager.WritePackagePart(volumeDirectory, VolumeDefinitionFileName, definition);
 
         return new VolumeInfo(volumeDirectory.FullName, version, definitionFile.FullName, definition);
