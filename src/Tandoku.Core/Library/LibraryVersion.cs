@@ -14,6 +14,11 @@ public sealed record LibraryVersion : IPackageVersion<LibraryVersion>
         this.Version = version;
     }
 
+    public override string ToString()
+    {
+        return this.Version.ToString();
+    }
+
     public static bool TryGet(Version version, [NotNullWhen(true)] out LibraryVersion? resolvedVersion)
     {
         if (version.Equals(Latest.Version))

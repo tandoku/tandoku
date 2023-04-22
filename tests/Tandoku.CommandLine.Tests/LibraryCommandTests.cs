@@ -126,7 +126,7 @@ public class LibraryCommandTests : CliTestBase
 
     private static string GetExpectedInfoOutput(LibraryInfo info) =>
 @$"Path: {info.Path}
-Version: {info.Version}
+Version: {info.Version.Version.ToString()}
 Definition path: {info.DefinitionPath}
 Language: {info.Definition.Language}";
 //Reference language: {info.Definition.ReferenceLanguage}";

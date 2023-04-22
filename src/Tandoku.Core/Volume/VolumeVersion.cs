@@ -15,6 +15,11 @@ public sealed record VolumeVersion : IPackageVersion<VolumeVersion>
         this.Version = version;
     }
 
+    public override string ToString()
+    {
+        return this.Version.ToString();
+    }
+
     public static bool TryGet(Version version, [NotNullWhen(true)] out VolumeVersion? resolvedVersion)
     {
         if (version.Equals(Latest.Version))
