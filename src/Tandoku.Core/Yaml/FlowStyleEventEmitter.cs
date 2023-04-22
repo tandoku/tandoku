@@ -1,5 +1,6 @@
 ﻿namespace Tandoku.Yaml;
 
+using System.Collections.Immutable;
 using YamlDotNet.Core;
 using YamlDotNet.Core.Events;
 using YamlDotNet.Serialization;
@@ -31,7 +32,8 @@ internal sealed class FlowStyleEventEmitter : ChainedEventEmitter
     private static bool UseFlowStyle(object? o)
     {
         // TODO: generalize this
-        return o is int[] ||
+        return o is IImmutableSet<string> ||
+            o is int[] ||
             o is ImageMapWord ||
             o is Token;
     }

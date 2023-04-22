@@ -1,6 +1,7 @@
 ﻿namespace Tandoku.Serialization;
 
 using System.IO.Abstractions;
+using Tandoku.Yaml;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
@@ -18,6 +19,7 @@ internal interface IYamlSerializable<TSelf>
     {
         var deserializer = new DeserializerBuilder()
             .WithNamingConvention(CamelCaseNamingConvention.Instance)
+            .WithNodeDeserializer(new ImmutableSetNodeDeserializer<string>())
             .Build();
 
         if (reader is StringReader)
@@ -46,6 +48,7 @@ internal interface IYamlSerializable<TSelf>
                 DefaultValuesHandling.OmitNull |
                 DefaultValuesHandling.OmitDefaults |
                 DefaultValuesHandling.OmitEmptyCollections)
+            .WithEventEmitter(next => new FlowStyleEventEmitter(next))
             .Build();
 
         if (writer is StringWriter)
