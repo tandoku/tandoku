@@ -56,6 +56,28 @@ internal sealed class Packager<TVersion>
         return version;
     }
 
+    internal string? ResolvePackageDirectoryPath(IDirectoryInfo directory, bool checkAncestors = false)
+    {
+        if (directory.Exists)
+        {
+            var metadataDirectory = directory.GetSubdirectory(this.metadataDirectoryName);
+            if (metadataDirectory.Exists)
+                return directory.FullName;
+
+            return checkAncestors && directory.Parent is not null ?
+                this.ResolvePackageDirectoryPath(directory.Parent, checkAncestors) :
+                null;
+        }
+        else if (directory.FileSystem.File.Exists(directory.FullName))
+        {
+            throw new ArgumentOutOfRangeException(nameof(directory), "The specified path refers to a file where a directory is expected.");
+        }
+        else
+        {
+            throw new ArgumentException("The specified path does not exist.");
+        }
+    }
+
     internal async Task<(IFileInfo PartFile, TPart PartContents)> ReadPackagePart<TPart>(
         IDirectoryInfo packageDirectory,
         string relativePath,

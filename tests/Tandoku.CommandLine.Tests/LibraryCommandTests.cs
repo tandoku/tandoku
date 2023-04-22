@@ -104,7 +104,7 @@ public class LibraryCommandTests : CliTestBase
 
         await this.RunAndAssertAsync(
             $"library info --library {info.DefinitionPath}",
-            expectedError: "The specified path refers to a file where a directory is expected. (Parameter 'path')");
+            expectedError: "The specified path refers to a file where a directory is expected. (Parameter 'directory')");
     }
 
     [Fact]
@@ -126,7 +126,7 @@ public class LibraryCommandTests : CliTestBase
 
     private static string GetExpectedInfoOutput(LibraryInfo info) =>
 @$"Path: {info.Path}
-Version: {info.Version.Version.ToString()}
+Version: {info.Version.Version}
 Definition path: {info.DefinitionPath}
 Language: {info.Definition.Language}";
 //Reference language: {info.Definition.ReferenceLanguage}";

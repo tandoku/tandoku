@@ -49,7 +49,7 @@ public sealed partial class Program
             libraryBinder.LibraryOption,
         };
 
-        command.SetHandler(async (IDirectoryInfo libraryDirectory) =>
+        command.SetHandler(async (libraryDirectory) =>
         {
             var libraryManager = this.CreateLibraryManager();
             var info = await libraryManager.GetInfoAsync(libraryDirectory.FullName);
@@ -57,7 +57,7 @@ public sealed partial class Program
             this.console.WriteLine($"Version: {info.Version}");
             this.console.WriteLine($"Definition path: {info.DefinitionPath}");
             this.console.WriteLine($"Language: {info.Definition.Language}");
-            //this.console.WriteLine($"Reference language: {info.Definition.ReferenceLanguage}");
+            //this.console.WriteLine($"Reference language: {info.Definition.ReferenceLanguage.ToOutputString()}");
         }, libraryBinder);
 
         return command;

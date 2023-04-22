@@ -5,7 +5,6 @@ using Tandoku.Packaging;
 
 public sealed class LibraryManager
 {
-    private const string LibraryMetadataDirectory = ".tandoku-library";
     private const string LibraryDefinitionFileName = "library.yaml";
 
     private readonly IFileSystem fileSystem;
@@ -48,25 +47,8 @@ public sealed class LibraryManager
 
     public string? ResolveLibraryDirectoryPath(string path, bool checkAncestors = false)
     {
-        if (this.fileSystem.Directory.Exists(path))
-        {
-            var directory = this.fileSystem.GetDirectory(path);
-            var metadataDirectory = directory.GetSubdirectory(LibraryMetadataDirectory);
-            if (metadataDirectory.Exists)
-                return directory.FullName;
-
-            return checkAncestors && directory.Parent is not null ?
-                this.ResolveLibraryDirectoryPath(directory.Parent.FullName, checkAncestors) :
-                null;
-        }
-        else if (this.fileSystem.File.Exists(path))
-        {
-            throw new ArgumentOutOfRangeException(nameof(path), "The specified path refers to a file where a directory is expected.");
-        }
-        else
-        {
-            throw new ArgumentException("The specified path does not exist.");
-        }
+        var directory = this.fileSystem.GetDirectory(path);
+        return CreatePackager().ResolvePackageDirectoryPath(directory, checkAncestors);
     }
 
     private static Packager<LibraryVersion> CreatePackager() => new("library");
