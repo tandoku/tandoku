@@ -3,7 +3,7 @@
 using System.IO.Abstractions;
 
 internal sealed class Packager<TVersion>
-    where TVersion : IPackageVersion
+    where TVersion : class, IPackageVersion<TVersion>
 {
     private const string VersionFileName = "version";
 
@@ -16,10 +16,7 @@ internal sealed class Packager<TVersion>
         this.metadataDirectoryName = ".tandoku-" + packageTypeName;
     }
 
-    internal async Task InitializePackageAsync(
-        IDirectoryInfo directory,
-        TVersion version,
-        bool force)
+    internal async Task InitializePackageAsync(IDirectoryInfo directory, TVersion version, bool force)
     {
         if (directory.Exists)
         {
@@ -46,14 +43,15 @@ internal sealed class Packager<TVersion>
         await version.WriteToAsync(versionFile);
     }
 
-    //internal async Task<TVersion> GetPackageMetadataAsync(
-    //    IDirectoryInfo directory)
-    //{
-    //    var metadataDirectory = directory.GetSubdirectory(this.metadataDirectoryName);
+    internal async Task<TVersion> GetPackageMetadataAsync(IDirectoryInfo directory)
+    {
+        var metadataDirectory = directory.GetSubdirectory(this.metadataDirectoryName);
 
-    //    var versionFile = metadataDirectory.GetFile(VersionFileName);
-    //    var version = versionFile.Exists ?
-    //        await TVersion.ReadFromAsync(versionFile) :
-    //        throw new ArgumentException($"The specified directory is not a valid tandoku {this.packageTypeName}.");
-    //}
+        var versionFile = metadataDirectory.GetFile(VersionFileName);
+        var version = versionFile.Exists ?
+            await IPackageVersion<TVersion>.ReadFromAsync(versionFile) :
+            throw new ArgumentException($"The specified directory is not a valid tandoku {this.packageTypeName}.");
+
+        return version;
+    }
 }

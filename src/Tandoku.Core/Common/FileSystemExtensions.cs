@@ -15,4 +15,7 @@ public static class FileSystemExtensions
         GetDirectory(directory.FileSystem, GetPath(directory, path));
     public static IFileInfo GetFile(this IDirectoryInfo directory, string path) =>
         GetFile(directory.FileSystem, GetPath(directory, path));
+
+    internal static string CleanInvalidFileNameChars(this IFileSystem fileSystem, string s, string? replaceWith = "_") =>
+        string.Join(replaceWith, s.Split(fileSystem.Path.GetInvalidFileNameChars())).Trim();
 }

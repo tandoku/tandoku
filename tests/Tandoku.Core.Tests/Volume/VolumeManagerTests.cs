@@ -15,14 +15,15 @@ public class VolumeManagerTests
     }
 
     [Fact]
-    public async Task Initialize()
+    public async Task CreateNew()
     {
-        var volumeRootPath = this.GetVolumeRootPath();
+        var title = "sample volume/1";
+        var containerPath = this.fileSystem.Directory.GetCurrentDirectory();
         //var definitionPath = this.fileSystem.Path.Join(volumeRootPath, "volume.yaml");
 
-        var info = await this.volumeManager.InitializeAsync(volumeRootPath);
+        var info = await this.volumeManager.CreateNewAsync(title, containerPath);
 
-        info.Path.Should().Be(volumeRootPath);
+        info.Path.Should().Be(this.fileSystem.Path.Join(containerPath, "sample volume_1"));
         info.Version.Should().Be(VolumeVersion.Latest);
         //info.DefinitionPath.Should().Be(definitionPath);
         //fileSystem.AllFiles.Count().Should().Be(2);
@@ -33,21 +34,21 @@ public class VolumeManagerTests
 //referenceLanguage: en");
     }
 
-    //[Fact]
-    //public async Task GetInfo()
-    //{
-    //    var volumeRootPath = this.GetVolumeRootPath();
-    //    var originalInfo = await this.volumeManager.InitializeAsync(volumeRootPath);
+    // TODO: add tests for moniker
 
-    //    var info = await this.volumeManager.GetInfoAsync(originalInfo.Path);
-
-    //    info.Should().BeEquivalentTo(originalInfo);
-    //}
-
-    private string GetVolumeRootPath()
+    [Fact]
+    public async Task GetInfo()
     {
-        return this.fileSystem.Path.Join(
-            this.fileSystem.Directory.GetCurrentDirectory(),
-            "tandoku-volume");
+        var originalInfo = await this.SetupVolume();
+
+        var info = await this.volumeManager.GetInfoAsync(originalInfo.Path);
+
+        info.Should().BeEquivalentTo(originalInfo);
+    }
+
+    private Task<VolumeInfo> SetupVolume(string title = "sample volume")
+    {
+        var containerPath = this.fileSystem.Directory.GetCurrentDirectory();
+        return this.volumeManager.CreateNewAsync(title, containerPath);
     }
 }

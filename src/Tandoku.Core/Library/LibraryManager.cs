@@ -6,7 +6,6 @@ using Tandoku.Packaging;
 public sealed class LibraryManager
 {
     private const string LibraryMetadataDirectory = ".tandoku-library";
-    private const string LibraryVersionFileName = "version";
     private const string LibraryDefinitionFileName = "library.yaml";
 
     private readonly IFileSystem fileSystem;
@@ -18,9 +17,9 @@ public sealed class LibraryManager
 
     public async Task<LibraryInfo> InitializeAsync(string path, bool force = false)
     {
+        var packager = CreatePackager();
         var directory = this.fileSystem.GetDirectory(path);
         var version = LibraryVersion.Latest;
-        var packager = CreatePackager();
         await packager.InitializePackageAsync(directory, version, force);
 
         var definitionFile = directory.GetFile(LibraryDefinitionFileName);
@@ -36,13 +35,9 @@ public sealed class LibraryManager
 
     public async Task<LibraryInfo> GetInfoAsync(string libraryPath)
     {
+        var packager = CreatePackager();
         var libraryDirectory = this.fileSystem.GetDirectory(libraryPath);
-        var metadataDirectory = libraryDirectory.GetSubdirectory(LibraryMetadataDirectory);
-
-        var versionFile = metadataDirectory.GetFile(LibraryVersionFileName);
-        var version = versionFile.Exists ?
-            await LibraryVersion.ReadFromAsync(versionFile) :
-            throw new ArgumentException("The specified directory is not a valid tandoku library");
+        var version = await packager.GetPackageMetadataAsync(libraryDirectory);
 
         var definitionFile = libraryDirectory.GetFile(LibraryDefinitionFileName);
         var definition = definitionFile.Exists ?
