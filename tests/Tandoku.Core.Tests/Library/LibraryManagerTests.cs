@@ -23,8 +23,8 @@ public class LibraryManagerTests
         fileSystem.GetFile(fileSystem.Path.Join(info.Path, ".tandoku-library/version")).TextContents.Should().Be(
             LibraryVersion.Latest.Version.ToString());
         fileSystem.GetFile(definitionPath).TextContents.TrimEnd().Should().Be(
-@"language: ja
-referenceLanguage: en");
+@"language: ja");
+//referenceLanguage: en");
     }
 
     [Fact]

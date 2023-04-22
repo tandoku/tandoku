@@ -25,7 +25,7 @@ public sealed class LibraryManager
         var definition = new LibraryDefinition
         {
             Language = LanguageConstants.DefaultLanguage,
-            ReferenceLanguage = LanguageConstants.DefaultReferenceLanguage,
+            //ReferenceLanguage = LanguageConstants.DefaultReferenceLanguage,
         };
         var definitionFile = await packager.WritePackagePart(directory, LibraryDefinitionFileName, definition);
 

@@ -148,7 +148,7 @@ public sealed class Program
             this.console.WriteLine($"Version: {info.Version}");
             this.console.WriteLine($"Definition path: {info.DefinitionPath}");
             this.console.WriteLine($"Language: {info.Definition.Language}");
-            this.console.WriteLine($"Reference language: {info.Definition.ReferenceLanguage}");
+            //this.console.WriteLine($"Reference language: {info.Definition.ReferenceLanguage}");
         }, libraryBinder);
 
         return command;

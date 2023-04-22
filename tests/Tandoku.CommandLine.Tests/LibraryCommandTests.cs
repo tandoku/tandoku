@@ -153,8 +153,8 @@ public class LibraryCommandTests
 @$"Path: {info.Path}
 Version: {info.Version}
 Definition path: {info.DefinitionPath}
-Language: {info.Definition.Language}
-Reference language: {info.Definition.ReferenceLanguage}";
+Language: {info.Definition.Language}";
+//Reference language: {info.Definition.ReferenceLanguage}";
 
     private async Task RunAndAssertAsync(
         string commandLine,

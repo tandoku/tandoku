@@ -36,7 +36,7 @@ public sealed class VolumeManager
             Title = title,
             Moniker = moniker,
             Language = LanguageConstants.DefaultLanguage,
-            ReferenceLanguage = LanguageConstants.DefaultReferenceLanguage,
+            //ReferenceLanguage = LanguageConstants.DefaultReferenceLanguage,
         };
         if (tags is not null)
         {

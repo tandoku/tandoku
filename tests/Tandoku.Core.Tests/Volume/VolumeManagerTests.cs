@@ -32,8 +32,8 @@ public class VolumeManagerTests
             VolumeVersion.Latest.Version.ToString());
         this.fileSystem.GetFile(definitionPath).TextContents.TrimEnd().Should().Be(
 @"title: sample volume/1
-language: ja
-referenceLanguage: en");
+language: ja");
+//referenceLanguage: en");
     }
 
     [Fact]
@@ -54,7 +54,6 @@ referenceLanguage: en");
 @"title: sample volume/2
 moniker: sv-2
 language: ja
-referenceLanguage: en
 tags: [tag-1, tag-2]");
     }
 
