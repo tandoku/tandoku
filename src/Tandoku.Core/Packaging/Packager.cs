@@ -1,6 +1,7 @@
 ﻿namespace Tandoku.Packaging;
 
 using System.IO.Abstractions;
+using Tandoku.Serialization;
 
 internal sealed class Packager<TVersion>
     where TVersion : class, IPackageVersion<TVersion>
@@ -53,5 +54,29 @@ internal sealed class Packager<TVersion>
             throw new ArgumentException($"The specified directory is not a valid tandoku {this.packageTypeName}.");
 
         return version;
+    }
+
+    internal async Task<(IFileInfo PartFile, TPart PartContents)> ReadPackagePart<TPart>(
+        IDirectoryInfo packageDirectory,
+        string relativePath,
+        string partName)
+        where TPart : IYamlSerializable<TPart>
+    {
+        var file = packageDirectory.GetFile(relativePath);
+        var contents = file.Exists ?
+            await TPart.ReadYamlAsync(file) :
+            throw new ArgumentException($"The specified directory does not contain a tandoku {this.packageTypeName} {partName}.");
+        return (file, contents);
+    }
+
+    internal async Task<IFileInfo> WritePackagePart<TPart>(
+        IDirectoryInfo packageDirectory,
+        string relativePath,
+        TPart partContents)
+        where TPart : IYamlSerializable<TPart>
+    {
+        var file = packageDirectory.GetFile(relativePath);
+        await partContents.WriteYamlAsync(file);
+        return file;
     }
 }

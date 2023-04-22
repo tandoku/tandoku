@@ -22,13 +22,12 @@ public sealed class LibraryManager
         var version = LibraryVersion.Latest;
         await packager.InitializePackageAsync(directory, version, force);
 
-        var definitionFile = directory.GetFile(LibraryDefinitionFileName);
         var definition = new LibraryDefinition
         {
             Language = LanguageConstants.DefaultLanguage,
             ReferenceLanguage = LanguageConstants.DefaultReferenceLanguage,
         };
-        await definition.WriteYamlAsync(definitionFile);
+        var definitionFile = await packager.WritePackagePart(directory, LibraryDefinitionFileName, definition);
 
         return new LibraryInfo(directory.FullName, version, definitionFile.FullName, definition);
     }
@@ -39,10 +38,10 @@ public sealed class LibraryManager
         var libraryDirectory = this.fileSystem.GetDirectory(libraryPath);
         var version = await packager.GetPackageMetadataAsync(libraryDirectory);
 
-        var definitionFile = libraryDirectory.GetFile(LibraryDefinitionFileName);
-        var definition = definitionFile.Exists ?
-            await LibraryDefinition.ReadYamlAsync(definitionFile) :
-            throw new ArgumentException("The specified directory does not contain a tandoku library definition");
+        var (definitionFile, definition) = await packager.ReadPackagePart<LibraryDefinition>(
+            libraryDirectory,
+            LibraryDefinitionFileName,
+            "definition");
 
         return new LibraryInfo(libraryDirectory.FullName, version, definitionFile.FullName, definition);
     }

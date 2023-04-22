@@ -29,9 +29,16 @@ public sealed class VolumeManager
         var version = VolumeVersion.Latest;
         await packager.InitializePackageAsync(volumeDirectory, version, force);
 
-        // TODO: write definition
+        var definition = new VolumeDefinition
+        {
+            Title = title,
+            Moniker = moniker,
+            Language = LanguageConstants.DefaultLanguage,
+            ReferenceLanguage = LanguageConstants.DefaultReferenceLanguage,
+        };
+        var definitionFile = await packager.WritePackagePart(volumeDirectory, VolumeDefinitionFileName, definition);
 
-        return new VolumeInfo(volumeDirectory.FullName, version);
+        return new VolumeInfo(volumeDirectory.FullName, version, definitionFile.FullName, definition);
     }
 
     public async Task<VolumeInfo> GetInfoAsync(string volumePath)
@@ -40,7 +47,12 @@ public sealed class VolumeManager
         var volumeDirectory = this.fileSystem.GetDirectory(volumePath);
         var version = await packager.GetPackageMetadataAsync(volumeDirectory);
 
-        return new VolumeInfo(volumeDirectory.FullName, version);
+        var (definitionFile, definition) = await packager.ReadPackagePart<VolumeDefinition>(
+            volumeDirectory,
+            VolumeDefinitionFileName,
+            "definition");
+
+        return new VolumeInfo(volumeDirectory.FullName, version, definitionFile.FullName, definition);
     }
 
     private static Packager<VolumeVersion> CreatePackager() => new("volume");
