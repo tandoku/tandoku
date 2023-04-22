@@ -19,7 +19,7 @@ internal interface IYamlSerializable<TSelf>
     {
         var deserializer = new DeserializerBuilder()
             .WithNamingConvention(CamelCaseNamingConvention.Instance)
-            .WithNodeDeserializer(new ImmutableSetNodeDeserializer<string>())
+            .WithNodeDeserializer(new ImmutableSetNodeDeserializer<string>()) // TODO: figure out how to use factory to create these dynamically (or do this within node deserializer)
             .Build();
 
         if (reader is StringReader)

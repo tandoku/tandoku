@@ -66,8 +66,21 @@ function AddNodesFromKeys($map) {
     $map.keys | ForEach-Object {
         $o = $map[$_]
         $attrs = @{}
+        $attrs.label = $_
+        $statusIndicator = $o.status ? (GetIndicatorFromStatus $o.status) : $null
+        if ($statusIndicator) { $attrs.label = "$($attrs.label) $statusIndicator" }
         if ($o.summary) { $attrs.tooltip = $o.summary }
         node -Name $_ -Attributes $attrs
+    }
+}
+
+function GetIndicatorFromStatus($status) {
+    switch ($status) {
+        'maybe' { '❓' } # TODO: for operations, use ❔ instead?
+        'next' { '⬅️' }
+        'partial' { '🚧' }
+        'done' { '✅' }
+        default { '' }
     }
 }
 

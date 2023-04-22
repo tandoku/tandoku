@@ -20,4 +20,5 @@ operations:
     script: tandoku script name (in tandoku/scripts, generally for prototyping before implemented as command)
     cmdlet: PowerShell cmdlet name (from public PowerShell module, e.g. New-TandokuVolume)
     module: PowerShell module containing cmdlet (if needed)
+    status: <not-started|maybe|next|partial|done>
     notes: text

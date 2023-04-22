@@ -38,11 +38,15 @@ simpleValues:
     summary: Library path or definition (.tdkl.yaml) location.
   library_info:
     summary: Library path, definition path and metadata/configuration values.
+  library_layout:
+    status: maybe
   
   volume_path:
     summary: Volume path or definition (.tdkv.yaml) location.
   volume_info:
     summary: Volume path, definition path and metadata/configuration values. Also includes library path.
+  volume_layout:
+    status: maybe
 
 operations:
   tandoku_library_init:
@@ -53,6 +57,7 @@ operations:
       - library_layout
       - library_definition
     cmdlet: Initialize-TandokuLibrary
+    status: done
 
   tandoku_library_info:
     inputs:
@@ -63,6 +68,7 @@ operations:
     outputs:
       - library_info
     cmdlet: Get-TandokuLibrary
+    status: done
 
   tandoku_volume_new:
     inputs:
@@ -71,12 +77,12 @@ operations:
       - volume_title
       - volume_moniker
       - volume_tags
-      - original_media
     outputs:
       - volume_version
       - volume_layout
       - volume_definition
     cmdlet: New-TandokuVolume
+    status: done
 
   tandoku_volume_info:
     inputs:
@@ -87,6 +93,7 @@ operations:
     outputs:
       - volume_info
     cmdlet: Get-TandokuVolume
+    status: next
   
   tandoku_volume_list:
     inputs:
@@ -98,6 +105,7 @@ operations:
     outputs:
       - volume_info
     cmdlet: Get-TandokuVolume
+    status: next
   
   tandoku_volume_setcover:
     inputs:
