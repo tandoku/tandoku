@@ -2,6 +2,7 @@
 
 using Tandoku.Volume;
 
+[UsesVerify]
 public class VolumeCommandTests : CliTestBase
 {
     [Fact]
@@ -34,7 +35,6 @@ tags: [tag1, tag2]");
         this.fileSystem.AddEmptyFile(this.ToFullPath("sample-volume", "existing.txt"));
         await this.RunAndAssertAsync(
             "volume new sample-volume",
-            expectedOutput: string.Empty,
             expectedError: "The specified directory is not empty and force is not specified.");
     }
 
@@ -47,15 +47,14 @@ tags: [tag1, tag2]");
             @$"Created new tandoku volume ""sample-volume"" at {this.ToFullPath("sample-volume")}");
     }
 
+    // TODO: refactor Info, InfoInNestedPath, InfoWithVolumePath to [Theory] test since they all share same output
     [Fact]
     public async Task Info()
     {
         var info = await this.SetupVolume();
         this.fileSystem.Directory.SetCurrentDirectory(info.Path);
 
-        await this.RunAndAssertAsync(
-            $"volume info",
-            GetExpectedInfoOutput(info));
+        await this.RunAndVerifyAsync("volume info");
     }
 
     [Fact]
@@ -66,9 +65,7 @@ tags: [tag1, tag2]");
         var nestedDirectory = volumeDirectory.CreateSubdirectory("nested-directory");
         this.fileSystem.Directory.SetCurrentDirectory(nestedDirectory.FullName);
 
-        await this.RunAndAssertAsync(
-            $"volume info",
-            GetExpectedInfoOutput(info));
+        await this.RunAndVerifyAsync("volume info");
     }
 
     [Fact]
@@ -88,9 +85,7 @@ tags: [tag1, tag2]");
     {
         var info = await this.SetupVolume();
 
-        await this.RunAndAssertAsync(
-            @$"volume info --volume ""{info.Path}""",
-            GetExpectedInfoOutput(info));
+        await this.RunAndVerifyAsync(@$"volume info --volume ""{info.Path}""");
     }
 
     private Task<VolumeInfo> SetupVolume()
@@ -100,15 +95,4 @@ tags: [tag1, tag2]");
             "sample volume",
             this.fileSystem.Directory.GetCurrentDirectory());
     }
-
-    // TODO: switch to Verify for these tests?
-    private static string GetExpectedInfoOutput(VolumeInfo info) =>
-@$"Path: {info.Path}
-Version: {info.Version.Version}
-Definition path: {info.DefinitionPath}
-Title: {info.Definition.Title}
-Moniker: {info.Definition.Moniker ?? "<none>"}
-Language: {info.Definition.Language}
-Tags: {(info.Definition.Tags.Any() ? string.Join(", ", info.Definition.Tags) : "<none>")}";
-//Reference language: {info.Definition.ReferenceLanguage}";
 }

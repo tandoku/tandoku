@@ -21,10 +21,10 @@
     <PackageReference Include="Markdig" Version="0.31.0" />
     <PackageReference Include="MathNet.Numerics" Version="5.0.0" />
     <PackageReference Include="SubtitlesParser" Version="1.5.1" />
-    <PackageReference Include="TestableIO.System.IO.Abstractions" Version="19.2.4" />
-    <PackageReference Include="TestableIO.System.IO.Abstractions.Wrappers" Version="19.2.4" />
+    <PackageReference Include="TestableIO.System.IO.Abstractions" Version="19.2.16" />
+    <PackageReference Include="TestableIO.System.IO.Abstractions.Wrappers" Version="19.2.16" />
     <PackageReference Include="WanaKanaSharp" Version="0.3.1-alpha" />
-    <PackageReference Include="YamlDotNet" Version="13.0.2" />
+    <PackageReference Include="YamlDotNet" Version="13.1.0" />
   </ItemGroup>
 
 </Project>

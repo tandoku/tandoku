@@ -3,7 +3,8 @@
 using System.CommandLine.IO;
 using System.IO.Abstractions;
 using System.IO.Abstractions.TestingHelpers;
-using Tandoku.CommandLine.Tests.Abstractions;
+using YamlDotNet.Core;
+using YamlDotNet.Serialization;
 
 public abstract class CliTestBase
 {
@@ -42,9 +43,24 @@ public abstract class CliTestBase
         result.Should().Be(expectedResult ?? (string.IsNullOrEmpty(expectedError) ? 0 : 1));
     }
 
+    protected async Task RunAndVerifyAsync(string commandLine)
+    {
+        var result = await this.program.RunAsync(commandLine);
+        var testOutput = new ConsoleTestOutput(
+            result,
+            this.console.Error.ToString(),
+            this.console.Out.ToString());
+        await VerifyYaml(testOutput);
+    }
+
     protected string ToFullPath(params string[] pathElements)
     {
         var relativePath = this.fileSystem.Path.Join(pathElements);
         return this.fileSystem.Path.Join(this.baseDirectory.FullName, relativePath);
     }
+
+    private record ConsoleTestOutput(
+        int Result,
+        [property: YamlMember(ScalarStyle = ScalarStyle.Literal)] string? Error,
+        [property: YamlMember(ScalarStyle = ScalarStyle.Literal)] string? Out);
 }

@@ -1,4 +1,4 @@
-﻿namespace Tandoku.CommandLine.Tests.Abstractions;
+﻿namespace Tandoku.CommandLine.Tests;
 
 using Tandoku.CommandLine.Abstractions;
 

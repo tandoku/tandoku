@@ -8,8 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="FluentAssertions" Version="6.10.0" />
+    <PackageReference Include="FluentAssertions" Version="6.11.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.5.0" />
+    <PackageReference Include="Verify.DiffPlex" Version="2.2.0" />
+    <PackageReference Include="Verify.Xunit" Version="19.13.0" />
     <PackageReference Include="xunit" Version="2.4.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.5">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -24,6 +26,10 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Tandoku.CommandLine\Tandoku.CommandLine.csproj" />
     <ProjectReference Include="..\Tandoku.Core.Tests\Tandoku.Core.Tests.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Snapshots\" />
   </ItemGroup>
 
 </Project>

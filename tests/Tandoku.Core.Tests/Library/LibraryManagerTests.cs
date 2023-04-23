@@ -30,17 +30,11 @@ public class LibraryManagerTests
     [Fact]
     public async Task InitializeWithConflictingFile()
     {
-        // Note: with real System.IO, the ReadOnly attribute on the file isn't necessary
-        // and this would throw an IOException rather than UnauthorizedAccessException.
-        // Filed https://github.com/TestableIO/System.IO.Abstractions/issues/968
-        // TODO: consider just handling this case explicitly in InitializeAsync
-
         var (libraryManager, fileSystem, libraryRootPath) = Setup();
         fileSystem.AddEmptyFile(libraryRootPath);
-        fileSystem.File.SetAttributes(libraryRootPath, FileAttributes.ReadOnly);
 
         await libraryManager.Invoking(m => m.InitializeAsync(libraryRootPath))
-            .Should().ThrowAsync<UnauthorizedAccessException>();
+            .Should().ThrowAsync<IOException>();
     }
 
     [Fact]
