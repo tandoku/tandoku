@@ -47,7 +47,7 @@ tags: [tag1, tag2]");
             @$"Created new tandoku volume ""sample-volume"" at {this.ToFullPath("sample-volume")}");
     }
 
-    // TODO: refactor Info, InfoInNestedPath, InfoWithVolumePath to [Theory] test since they all share same output
+
     [Fact]
     public async Task Info()
     {
@@ -57,15 +57,19 @@ tags: [tag1, tag2]");
         await this.RunAndVerifyAsync("volume info");
     }
 
-    [Fact]
-    public async Task InfoInNestedPath()
+    [Theory]
+    [InlineData(nameof(InfoInNestedPath))]
+    public async Task InfoInNestedPath(string variant)
     {
         var info = await this.SetupVolume();
         var volumeDirectory = this.fileSystem.GetDirectory(info.Path);
         var nestedDirectory = volumeDirectory.CreateSubdirectory("nested-directory");
         this.fileSystem.Directory.SetCurrentDirectory(nestedDirectory.FullName);
 
-        await this.RunAndVerifyAsync("volume info");
+        await this.RunAndVerifyVariantAsync(
+            "volume info",
+            nameof(Info),
+            variant);
     }
 
     [Fact]
@@ -80,12 +84,16 @@ tags: [tag1, tag2]");
             expectedError: "The specified path does not contain a tandoku volume.");
     }
 
-    [Fact]
-    public async Task InfoWithVolumePath()
+    [Theory]
+    [InlineData(nameof(InfoWithVolumePath))]
+    public async Task InfoWithVolumePath(string variant)
     {
         var info = await this.SetupVolume();
 
-        await this.RunAndVerifyAsync(@$"volume info --volume ""{info.Path}""");
+        await this.RunAndVerifyVariantAsync(
+            @$"volume info --volume ""{info.Path}""",
+            nameof(Info),
+            variant);
     }
 
     private Task<VolumeInfo> SetupVolume()

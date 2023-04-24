@@ -5,12 +5,12 @@ using YamlDotNet.Serialization.NamingConventions;
 
 public static class YamlVerifier
 {
-    public static async Task VerifyYaml(object target)
+    public static SettingsTask VerifyYaml(object target)
     {
         var serializer = new SerializerBuilder()
             .WithNamingConvention(CamelCaseNamingConvention.Instance)
             .Build();
         var output = serializer.Serialize(target);
-        await Verify(output, "yaml");
+        return Verify(output, "yaml");
     }
 }

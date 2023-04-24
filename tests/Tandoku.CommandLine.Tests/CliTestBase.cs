@@ -43,14 +43,28 @@ public abstract class CliTestBase
         result.Should().Be(expectedResult ?? (string.IsNullOrEmpty(expectedError) ? 0 : 1));
     }
 
-    protected async Task RunAndVerifyAsync(string commandLine)
+    protected async Task<ConsoleTestOutput> RunAsync(string commandLine)
     {
         var result = await this.program.RunAsync(commandLine);
-        var testOutput = new ConsoleTestOutput(
+
+        return new ConsoleTestOutput(
             result,
             this.console.Error.ToString(),
             this.console.Out.ToString());
-        await VerifyYaml(testOutput);
+    }
+
+    protected async Task RunAndVerifyAsync(string commandLine)
+    {
+        var output = await this.RunAsync(commandLine);
+        await VerifyYaml(output);
+    }
+
+    protected async Task RunAndVerifyVariantAsync(string commandLine, string snapshotMethodName, string variant)
+    {
+        var output = await this.RunAsync(commandLine);
+        await VerifyYaml(output)
+            .UseMethodName(snapshotMethodName)
+            .IgnoreParametersForVerified(variant);
     }
 
     protected string ToFullPath(params string[] pathElements)
@@ -59,7 +73,7 @@ public abstract class CliTestBase
         return this.fileSystem.Path.Join(this.baseDirectory.FullName, relativePath);
     }
 
-    private record ConsoleTestOutput(
+    protected record ConsoleTestOutput(
         int Result,
         [property: YamlMember(ScalarStyle = ScalarStyle.Literal)] string? Error,
         [property: YamlMember(ScalarStyle = ScalarStyle.Literal)] string? Out);
