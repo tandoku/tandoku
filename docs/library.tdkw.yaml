@@ -93,7 +93,7 @@ operations:
     outputs:
       - volume_info
     cmdlet: Get-TandokuVolume
-    status: next
+    status: done
   
   tandoku_volume_list:
     inputs:

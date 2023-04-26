@@ -1,6 +1,7 @@
 ﻿namespace Tandoku.Serialization;
 
 using System.IO.Abstractions;
+using System.Text.Json;
 using Tandoku.Yaml;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
@@ -17,8 +18,10 @@ internal interface IYamlSerializable<TSelf>
 
     static virtual async Task<TSelf> ReadYamlAsync(TextReader reader)
     {
+#if YAML_DESERIALIZER
         var deserializer = new DeserializerBuilder()
             .WithNamingConvention(CamelCaseNamingConvention.Instance)
+            .WithAttemptingUnquotedStringTypeDeserialization()
             .WithNodeDeserializer(new ImmutableSetNodeDeserializer<string>()) // TODO: figure out how to use factory to create these dynamically (or do this within node deserializer)
             .Build();
 
@@ -31,6 +34,33 @@ internal interface IYamlSerializable<TSelf>
             var s = await reader.ReadToEndAsync();
             return deserializer.Deserialize<TSelf>(s);
         }
+#else
+        reader = reader as StringReader ??
+            new StringReader(await reader.ReadToEndAsync());
+
+        var deserializer = new DeserializerBuilder()
+            .WithAttemptingUnquotedStringTypeDeserialization()
+            .Build();
+        var o = deserializer.Deserialize(reader);
+
+        var jsonStream = new MemoryStream();
+        using (var jsonWriter = new StreamWriter(jsonStream, leaveOpen: true))
+        {
+            var serializer = new SerializerBuilder()
+                .WithQuotingNecessaryStrings()
+                .JsonCompatible()
+                .Build();
+            serializer.Serialize(jsonWriter, o);
+        }
+        jsonStream.Position = 0;
+
+        var options = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        };
+        return JsonSerializer.Deserialize<TSelf>(jsonStream, options) ??
+            throw new InvalidDataException();
+#endif
     }
 
     virtual async Task WriteYamlAsync(IFileInfo file)
@@ -44,6 +74,7 @@ internal interface IYamlSerializable<TSelf>
     {
         var serializer = new SerializerBuilder()
             .WithNamingConvention(CamelCaseNamingConvention.Instance)
+            .WithQuotingNecessaryStrings()
             .ConfigureDefaultValuesHandling(
                 DefaultValuesHandling.OmitNull |
                 DefaultValuesHandling.OmitDefaults |
