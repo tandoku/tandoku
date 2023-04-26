@@ -3,6 +3,7 @@
 using System.IO.Abstractions;
 using System.Text.Json;
 using Tandoku.Yaml;
+using YamlDotNet.Core;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
@@ -34,7 +35,7 @@ internal interface IYamlSerializable<TSelf>
             var s = await reader.ReadToEndAsync();
             return deserializer.Deserialize<TSelf>(s);
         }
-#else
+#elif YAML_DESERIALIZER_JSON_DESERIALIZER
         reader = reader as StringReader ??
             new StringReader(await reader.ReadToEndAsync());
 
@@ -52,6 +53,23 @@ internal interface IYamlSerializable<TSelf>
                 .Build();
             serializer.Serialize(jsonWriter, o);
         }
+        jsonStream.Position = 0;
+
+        var options = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        };
+        return JsonSerializer.Deserialize<TSelf>(jsonStream, options) ??
+            throw new InvalidDataException();
+#else
+        reader = reader as StringReader ??
+            new StringReader(await reader.ReadToEndAsync());
+
+        var parser = new Parser(reader);
+        var jsonStream = new MemoryStream(); // TODO: use shared buffer instead (see System.Text.Json.JsonSerializer.Deserialize(JsonNode)
+        using (var jsonWriter = new Utf8JsonWriter(jsonStream))
+            YamlJsonWriter.Write(parser, jsonWriter);
+
         jsonStream.Position = 0;
 
         var options = new JsonSerializerOptions
