@@ -1,5 +1,6 @@
 ﻿namespace Tandoku.Serialization;
 
+using System.Buffers;
 using System.IO.Abstractions;
 using System.Text.Json;
 using Tandoku.Yaml;
@@ -66,17 +67,15 @@ internal interface IYamlSerializable<TSelf>
             new StringReader(await reader.ReadToEndAsync());
 
         var parser = new Parser(reader);
-        var jsonStream = new MemoryStream(); // TODO: use shared buffer instead (see System.Text.Json.JsonSerializer.Deserialize(JsonNode)
-        using (var jsonWriter = new Utf8JsonWriter(jsonStream))
+        var bufferWriter = new ArrayBufferWriter<byte>(JsonSerializerOptions.Default.DefaultBufferSize);
+        using (var jsonWriter = new Utf8JsonWriter(bufferWriter))
             YamlJsonWriter.Write(parser, jsonWriter);
-
-        jsonStream.Position = 0;
 
         var options = new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         };
-        return JsonSerializer.Deserialize<TSelf>(jsonStream, options) ??
+        return JsonSerializer.Deserialize<TSelf>(bufferWriter.WrittenSpan, options) ??
             throw new InvalidDataException();
 #endif
     }
