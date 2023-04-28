@@ -4,8 +4,12 @@ using System.Text.Json;
 using YamlDotNet.Core;
 using YamlDotNet.Core.Events;
 
+// TODO: rename to YamlToJsonConverter, ConvertToJson and DeserializeViaJson<T> methods
 public static class YamlJsonWriter
 {
+    public static void Write(TextReader yamlReader, Utf8JsonWriter jsonWriter) =>
+        Write(new Parser(yamlReader), jsonWriter);
+
     public static void Write(IParser yamlParser, Utf8JsonWriter jsonWriter)
     {
         var visitor = new ParsingEventVisitor(jsonWriter);
