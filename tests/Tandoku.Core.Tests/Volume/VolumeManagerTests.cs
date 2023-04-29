@@ -77,12 +77,42 @@ tags: [tag-1, tag-2]");
         info.Should().BeEquivalentTo(originalInfo);
     }
 
+    [Fact]
+    public async Task GetVolumeDirectories()
+    {
+        var rootPath = this.fileSystem.Directory.GetCurrentDirectory();
+        await this.SetupVolume("volume1", rootPath);
+        await this.SetupVolume("volume2", rootPath);
+        await this.SetupVolume("nested-volume", this.fileSystem.Path.Join(rootPath, "nested"));
+
+        var result = this.volumeManager.GetVolumeDirectories(rootPath);
+
+        result.Should().BeEquivalentTo(new[]
+        {
+            this.fileSystem.Path.Join(rootPath, "volume1"),
+            this.fileSystem.Path.Join(rootPath, "volume2"),
+            this.fileSystem.Path.Join(rootPath, "nested", "nested-volume"),
+        });
+    }
+
+    [Fact]
+    public void GetVolumeDirectories_NotExists()
+    {
+        var rootPath = this.fileSystem.Directory.GetCurrentDirectory();
+
+        var result = this.volumeManager.GetVolumeDirectories(
+            this.fileSystem.Path.Join(rootPath, "not-exists"));
+
+        result.Should().BeEmpty();
+    }
+
     private Task<VolumeInfo> SetupVolume(
         string title = "sample volume",
+        string? containerPath = null,
         string? moniker = null,
         IEnumerable<string>? tags = null)
     {
-        var containerPath = this.fileSystem.Directory.GetCurrentDirectory();
+        containerPath ??= this.fileSystem.Directory.GetCurrentDirectory();
         return this.volumeManager.CreateNewAsync(title, containerPath, moniker, tags);
     }
 }

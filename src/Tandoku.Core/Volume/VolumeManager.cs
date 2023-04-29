@@ -1,5 +1,6 @@
 ﻿namespace Tandoku.Volume;
 
+using System;
 using System.IO.Abstractions;
 using Tandoku.Packaging;
 
@@ -59,6 +60,12 @@ public sealed class VolumeManager
 
         return new VolumeInfo(volumeDirectory.FullName, version, definitionFile.FullName, definition);
 
+    }
+
+    public IEnumerable<string> GetVolumeDirectories(string path)
+    {
+        var baseDirectory = this.fileSystem.GetDirectory(path);
+        return CreatePackager().GetPackageDirectories(baseDirectory).Select(d => d.FullName);
     }
 
     public string? ResolveVolumeDirectoryPath(string path, bool checkAncestors = false)
