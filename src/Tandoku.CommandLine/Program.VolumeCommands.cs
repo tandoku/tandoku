@@ -92,38 +92,12 @@ public sealed partial class Program
         {
             var volumeManager = this.CreateVolumeManager();
             var path = directory?.FullName ?? this.fileSystem.Directory.GetCurrentDirectory();
-
-            if (all)
-            {
-                var libraryManager = this.CreateLibraryManager();
-                path = libraryManager.ResolveLibraryDirectoryPath(path, checkAncestors: true);
-                if (path is null)
-                    throw new ArgumentException("The specified path does not contain a tandoku library.");
-            }
-
-            var volumes = new List<VolumeInfo>();
-            foreach (var volumePath in volumeManager.GetVolumeDirectories(path))
+            var expandScope = all ? ExpandedScope.ParentLibrary : ExpandedScope.ParentVolume;
+            foreach (var volumePath in volumeManager.GetVolumeDirectories(path, expandScope))
             {
                 var volumeInfo = await volumeManager.GetInfoAsync(volumePath);
-                volumes.Add(volumeInfo);
-            }
-
-            if (volumes.Count == 0 && !all)
-            {
-                var volumePath = volumeManager.ResolveVolumeDirectoryPath(path, checkAncestors: true);
-                if (volumePath is not null)
-                {
-                    var volumeInfo = await volumeManager.GetInfoAsync(volumePath);
-                    volumes.Add(volumeInfo);
-                }
-            }
-
-            foreach (var volumeInfo in volumes)
-            {
                 this.console.WriteLine($"{volumeInfo.Definition.Title}\t{volumeInfo.Path}");
             }
-
-            // TODO: implement -a/--all option to first resolve library path and find volumes in library
         }, pathArgument, allOption);
 
         return command;
