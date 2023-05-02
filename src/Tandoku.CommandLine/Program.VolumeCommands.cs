@@ -92,6 +92,8 @@ public sealed partial class Program
                 var volumeInfo = await volumeManager.GetInfoAsync(volumePath);
                 this.console.WriteLine($"{volumeInfo.Definition.Title}\t{volumeInfo.Path}");
             }
+            // TODO: if nothing returned, resolve volume path and return current volume
+            // also implement -a/--all option to first resolve library path and find volumes in library
         }, pathArgument);
 
         return command;

@@ -96,18 +96,41 @@ tags: [tag1, tag2]");
             variant);
     }
 
-    [Fact]
-    public async Task List()
+    [Theory]
+    [InlineData(null)]
+    [InlineData(".")]
+    public async Task List(string pathArgument)
     {
         var rootPath = this.fileSystem.Directory.GetCurrentDirectory();
         await this.SetupVolume("volume1", rootPath);
         await this.SetupVolume("volume2", rootPath);
         await this.SetupVolume("nested-volume", this.fileSystem.Path.Join(rootPath, "nested"));
 
-        await this.RunAndVerifyAsync("volume list");
+        var output = await this.RunAsync(
+            pathArgument is null ? "volume list" : $"volume list {pathArgument}");
+        await VerifyYaml(output)
+            .IgnoreParametersForVerified(pathArgument);
     }
 
-    // TODO: add volume list <path> test
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task List_Nested(bool changeCurrentDirectory)
+    {
+        var rootPath = this.fileSystem.Directory.GetCurrentDirectory();
+        var nestedPath = this.fileSystem.Path.Join(rootPath, "nested");
+        await this.SetupVolume("volume1", rootPath);
+        await this.SetupVolume("nested-volume", nestedPath);
+        await this.SetupVolume("nested-volume2", nestedPath);
+
+        if (changeCurrentDirectory)
+            this.fileSystem.Directory.SetCurrentDirectory(nestedPath);
+
+        var output = await this.RunAsync(
+            changeCurrentDirectory ? "volume list": $"volume list {nestedPath}");
+        await VerifyYaml(output)
+            .IgnoreParametersForVerified(changeCurrentDirectory);
+    }
 
     private Task<VolumeInfo> SetupVolume(
         string title = "sample volume",
