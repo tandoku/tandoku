@@ -12,6 +12,7 @@ public sealed partial class Program
         {
             this.CreateVolumeNewCommand(),
             this.CreateVolumeInfoCommand(),
+            this.CreateVolumeListCommand(),
         };
 
     private Command CreateVolumeNewCommand()
@@ -66,6 +67,32 @@ public sealed partial class Program
             //this.console.WriteLine($"Reference language: {info.Definition.ReferenceLanguage.ToOutputString()}");
             this.console.WriteLine($"Tags: {info.Definition.Tags.ToOutputString()}");
         }, volumeBinder);
+
+        return command;
+    }
+
+    private Command CreateVolumeListCommand()
+    {
+        var pathArgument = new Argument<DirectoryInfo?>("path", "Directory to search for tandoku volumes")
+        {
+            Arity = ArgumentArity.ZeroOrOne,
+        }.LegalFilePathsOnly();
+
+        var command = new Command("list", "Lists volumes in the current or specified directory")
+        {
+            pathArgument,
+        };
+
+        command.SetHandler(async directory =>
+        {
+            var volumeManager = this.CreateVolumeManager();
+            var path = directory?.FullName ?? this.fileSystem.Directory.GetCurrentDirectory();
+            foreach (var volumePath in volumeManager.GetVolumeDirectories(path))
+            {
+                var volumeInfo = await volumeManager.GetInfoAsync(volumePath);
+                this.console.WriteLine($"{volumeInfo.Definition.Title}\t{volumeInfo.Path}");
+            }
+        }, pathArgument);
 
         return command;
     }

@@ -96,11 +96,28 @@ tags: [tag1, tag2]");
             variant);
     }
 
-    private Task<VolumeInfo> SetupVolume()
+    [Fact]
+    public async Task List()
     {
+        var rootPath = this.fileSystem.Directory.GetCurrentDirectory();
+        await this.SetupVolume("volume1", rootPath);
+        await this.SetupVolume("volume2", rootPath);
+        await this.SetupVolume("nested-volume", this.fileSystem.Path.Join(rootPath, "nested"));
+
+        await this.RunAndVerifyAsync("volume list");
+    }
+
+    // TODO: add volume list <path> test
+
+    private Task<VolumeInfo> SetupVolume(
+        string title = "sample volume",
+        string? containerPath = null,
+        string? moniker = null,
+        IEnumerable<string>? tags = null)
+    {
+        containerPath ??= this.fileSystem.Directory.GetCurrentDirectory();
+
         var volumeManager = new VolumeManager(this.fileSystem);
-        return volumeManager.CreateNewAsync(
-            "sample volume",
-            this.fileSystem.Directory.GetCurrentDirectory());
+        return volumeManager.CreateNewAsync(title, containerPath, moniker, tags);
     }
 }
