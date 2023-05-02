@@ -78,23 +78,53 @@ public sealed partial class Program
             Arity = ArgumentArity.ZeroOrOne,
         }.LegalFilePathsOnly();
 
+        var allOption = new Option<bool>(
+            new[] { "--all", "-a" },
+            "Return all volumes in the current or specified library");
+
         var command = new Command("list", "Lists volumes in the current or specified directory")
         {
             pathArgument,
+            allOption,
         };
 
-        command.SetHandler(async directory =>
+        command.SetHandler(async (directory, all) =>
         {
             var volumeManager = this.CreateVolumeManager();
             var path = directory?.FullName ?? this.fileSystem.Directory.GetCurrentDirectory();
+
+            if (all)
+            {
+                var libraryManager = this.CreateLibraryManager();
+                path = libraryManager.ResolveLibraryDirectoryPath(path, checkAncestors: true);
+                if (path is null)
+                    throw new ArgumentException("The specified path does not contain a tandoku library.");
+            }
+
+            var volumes = new List<VolumeInfo>();
             foreach (var volumePath in volumeManager.GetVolumeDirectories(path))
             {
                 var volumeInfo = await volumeManager.GetInfoAsync(volumePath);
+                volumes.Add(volumeInfo);
+            }
+
+            if (volumes.Count == 0 && !all)
+            {
+                var volumePath = volumeManager.ResolveVolumeDirectoryPath(path, checkAncestors: true);
+                if (volumePath is not null)
+                {
+                    var volumeInfo = await volumeManager.GetInfoAsync(volumePath);
+                    volumes.Add(volumeInfo);
+                }
+            }
+
+            foreach (var volumeInfo in volumes)
+            {
                 this.console.WriteLine($"{volumeInfo.Definition.Title}\t{volumeInfo.Path}");
             }
-            // TODO: if nothing returned, resolve volume path and return current volume
-            // also implement -a/--all option to first resolve library path and find volumes in library
-        }, pathArgument);
+
+            // TODO: implement -a/--all option to first resolve library path and find volumes in library
+        }, pathArgument, allOption);
 
         return command;
     }

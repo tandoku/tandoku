@@ -1,0 +1,4 @@
+﻿result: 1
+error: |+
+  The specified path does not contain a tandoku library.
+out: ""
