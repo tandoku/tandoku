@@ -64,18 +64,17 @@ public sealed class VolumeManager
 
     public IEnumerable<string> GetVolumeDirectories(string path, ExpandedScope expandScope = ExpandedScope.None)
     {
-        switch (expandScope)
+        path = expandScope switch
         {
-            case ExpandedScope.ParentVolume:
-                path = this.ResolveVolumeDirectoryPath(path, checkAncestors: true) ?? path;
-                break;
+            ExpandedScope.ParentVolume =>
+                this.ResolveVolumeDirectoryPath(path, checkAncestors: true) ?? path,
 
-            case ExpandedScope.ParentLibrary:
-                var libraryManager = new LibraryManager(this.fileSystem);
-                path = libraryManager.ResolveLibraryDirectoryPath(path, checkAncestors: true) ??
-                    throw new ArgumentException("The specified path does not contain a tandoku library.");
-                break;
-        }
+            ExpandedScope.ParentLibrary =>
+                this.CreateLibraryManager().ResolveLibraryDirectoryPath(path, checkAncestors: true) ??
+                    throw new ArgumentException("The specified path does not contain a tandoku library."),
+
+            _ => path,
+        };
 
         var baseDirectory = this.fileSystem.GetDirectory(path);
         return CreatePackager().GetPackageDirectories(baseDirectory).Select(d => d.FullName);
@@ -86,6 +85,8 @@ public sealed class VolumeManager
         var directory = this.fileSystem.GetDirectory(path);
         return CreatePackager().ResolvePackageDirectoryPath(directory, checkAncestors);
     }
+
+    private LibraryManager CreateLibraryManager() => new(this.fileSystem);
 
     private static Packager<VolumeVersion> CreatePackager() => new("volume");
 
