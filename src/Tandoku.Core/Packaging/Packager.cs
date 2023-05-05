@@ -44,6 +44,18 @@ internal sealed class Packager<TVersion>
         await version.WriteToAsync(versionFile);
     }
 
+    internal IEnumerable<IDirectoryInfo> GetPackageDirectories(IDirectoryInfo baseDirectory)
+    {
+        if (baseDirectory.Exists)
+        {
+            return baseDirectory
+                .EnumerateDirectories(this.metadataDirectoryName, SearchOption.AllDirectories)
+                .Select(d => d.Parent)
+                .OfType<IDirectoryInfo>(); // TODO: consider adding WhereNonNull() to satisfy null checking without cast
+        }
+        return Enumerable.Empty<IDirectoryInfo>();
+    }
+
     internal async Task<TVersion> GetPackageMetadataAsync(IDirectoryInfo directory)
     {
         var metadataDirectory = directory.GetSubdirectory(this.metadataDirectoryName);

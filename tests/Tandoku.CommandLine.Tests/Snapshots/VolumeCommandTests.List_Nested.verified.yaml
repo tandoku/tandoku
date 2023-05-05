@@ -1,0 +1,5 @@
+﻿result: 0
+error: ""
+out: |+
+  nested-volume	{CurrentDirectory}nested\nested-volume
+  nested-volume2	{CurrentDirectory}nested\nested-volume2

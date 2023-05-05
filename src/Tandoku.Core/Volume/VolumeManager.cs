@@ -1,6 +1,7 @@
 ﻿namespace Tandoku.Volume;
 
 using System.IO.Abstractions;
+using Tandoku.Library;
 using Tandoku.Packaging;
 
 public sealed class VolumeManager
@@ -61,11 +62,31 @@ public sealed class VolumeManager
 
     }
 
+    public IEnumerable<string> GetVolumeDirectories(string path, ExpandedScope expandScope = ExpandedScope.None)
+    {
+        path = expandScope switch
+        {
+            ExpandedScope.ParentVolume =>
+                this.ResolveVolumeDirectoryPath(path, checkAncestors: true) ?? path,
+
+            ExpandedScope.ParentLibrary =>
+                this.CreateLibraryManager().ResolveLibraryDirectoryPath(path, checkAncestors: true) ??
+                    throw new ArgumentException("The specified path does not contain a tandoku library."),
+
+            _ => path,
+        };
+
+        var baseDirectory = this.fileSystem.GetDirectory(path);
+        return CreatePackager().GetPackageDirectories(baseDirectory).Select(d => d.FullName);
+    }
+
     public string? ResolveVolumeDirectoryPath(string path, bool checkAncestors = false)
     {
         var directory = this.fileSystem.GetDirectory(path);
         return CreatePackager().ResolvePackageDirectoryPath(directory, checkAncestors);
     }
+
+    private LibraryManager CreateLibraryManager() => new(this.fileSystem);
 
     private static Packager<VolumeVersion> CreatePackager() => new("volume");
 

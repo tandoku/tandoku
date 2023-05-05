@@ -81,6 +81,7 @@ operations:
       - src_any_investigate
       - src_any_original
       - src_any_unused
+    status: next
 
   tandoku_images_recognizetext:
     inputs:

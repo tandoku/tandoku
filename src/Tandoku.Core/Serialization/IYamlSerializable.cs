@@ -66,10 +66,10 @@ internal interface IYamlSerializable<TSelf>
         reader = reader as StringReader ??
             new StringReader(await reader.ReadToEndAsync());
 
-        var parser = new Parser(reader);
-        var bufferWriter = new ArrayBufferWriter<byte>(JsonSerializerOptions.Default.DefaultBufferSize);
+        var bufferWriter = new ArrayBufferWriter<byte>(
+            JsonSerializerOptions.Default.DefaultBufferSize);
         using (var jsonWriter = new Utf8JsonWriter(bufferWriter))
-            YamlJsonWriter.Write(parser, jsonWriter);
+            YamlJsonWriter.Write(reader, jsonWriter);
 
         var options = new JsonSerializerOptions
         {

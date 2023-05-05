@@ -1,6 +1,7 @@
 ﻿namespace Tandoku.Tests.Volume;
 
 using System.IO.Abstractions.TestingHelpers;
+using Tandoku.Library;
 using Tandoku.Volume;
 
 public class VolumeManagerTests
@@ -77,12 +78,108 @@ tags: [tag-1, tag-2]");
         info.Should().BeEquivalentTo(originalInfo);
     }
 
+    [Fact]
+    public async Task GetVolumeDirectories()
+    {
+        var rootPath = this.fileSystem.Directory.GetCurrentDirectory();
+        await this.SetupVolume("volume1", rootPath);
+        await this.SetupVolume("volume2", rootPath);
+        await this.SetupVolume("nested-volume", this.fileSystem.Path.Join(rootPath, "nested"));
+
+        var result = this.volumeManager.GetVolumeDirectories(rootPath);
+
+        result.Should().BeEquivalentTo(new[]
+        {
+            this.fileSystem.Path.Join(rootPath, "volume1"),
+            this.fileSystem.Path.Join(rootPath, "volume2"),
+            this.fileSystem.Path.Join(rootPath, "nested", "nested-volume"),
+        });
+    }
+
+    [Fact]
+    public void GetVolumeDirectories_NotExists()
+    {
+        var rootPath = this.fileSystem.Directory.GetCurrentDirectory();
+
+        var result = this.volumeManager.GetVolumeDirectories(
+            this.fileSystem.Path.Join(rootPath, "not-exists"));
+
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetVolumeDirectories_WithinVolumeDirectory()
+    {
+        var info = await this.SetupVolume("sample-volume");
+        var nestedPath = this.fileSystem.GetDirectory(info.Path)
+            .CreateSubdirectory("nested").FullName;
+
+        var result = this.volumeManager.GetVolumeDirectories(nestedPath);
+
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetVolumeDirectories_WithinVolumeDirectory_ExpandScopeVolume()
+    {
+        var info = await this.SetupVolume("sample-volume");
+        var nestedPath = this.fileSystem.GetDirectory(info.Path)
+            .CreateSubdirectory("nested").FullName;
+
+        var result = this.volumeManager.GetVolumeDirectories(nestedPath, ExpandedScope.ParentVolume);
+
+        result.Should().BeEquivalentTo(new[]
+        {
+            info.Path
+        });
+    }
+
+    [Fact]
+    public async Task GetVolumeDirectories_ExpandScopeLibrary()
+    {
+        var libraryPath = (await this.SetupLibrary()).Path;
+        var nestedPath = this.fileSystem.Path.Join(libraryPath, "nested");
+        await this.SetupVolume("volume1", libraryPath);
+        await this.SetupVolume("nested-volume", nestedPath);
+        var info = await this.SetupVolume("nested-volume2", nestedPath);
+
+        var result = this.volumeManager.GetVolumeDirectories(info.Path, ExpandedScope.ParentLibrary);
+
+        result.Should().BeEquivalentTo(new[]
+        {
+            this.fileSystem.Path.Join(libraryPath, "volume1"),
+            this.fileSystem.Path.Join(libraryPath, "nested", "nested-volume"),
+            this.fileSystem.Path.Join(libraryPath, "nested", "nested-volume2"),
+        });
+    }
+
+    [Fact]
+    public async Task GetVolumeDirectories_ExpandScopeLibrary_NoLibrary()
+    {
+        var rootPath = this.fileSystem.Directory.GetCurrentDirectory();
+        var info = await this.SetupVolume("volume1", rootPath);
+
+        this.volumeManager.Invoking(m => m.GetVolumeDirectories(info.Path, ExpandedScope.ParentLibrary))
+            .Should().Throw<ArgumentException>();
+    }
+
     private Task<VolumeInfo> SetupVolume(
         string title = "sample volume",
+        string? containerPath = null,
         string? moniker = null,
         IEnumerable<string>? tags = null)
     {
-        var containerPath = this.fileSystem.Directory.GetCurrentDirectory();
+        containerPath ??= this.fileSystem.Directory.GetCurrentDirectory();
         return this.volumeManager.CreateNewAsync(title, containerPath, moniker, tags);
+    }
+
+    private Task<LibraryInfo> SetupLibrary()
+    {
+        var path = this.fileSystem.Path.Join(
+            this.fileSystem.Directory.GetCurrentDirectory(),
+            "tandoku-library");
+
+        var libraryManager = new LibraryManager(this.fileSystem);
+        return libraryManager.InitializeAsync(path);
     }
 }

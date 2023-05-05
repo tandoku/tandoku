@@ -12,6 +12,7 @@ public sealed partial class Program
         {
             this.CreateVolumeNewCommand(),
             this.CreateVolumeInfoCommand(),
+            this.CreateVolumeListCommand(),
         };
 
     private Command CreateVolumeNewCommand()
@@ -66,6 +67,38 @@ public sealed partial class Program
             //this.console.WriteLine($"Reference language: {info.Definition.ReferenceLanguage.ToOutputString()}");
             this.console.WriteLine($"Tags: {info.Definition.Tags.ToOutputString()}");
         }, volumeBinder);
+
+        return command;
+    }
+
+    private Command CreateVolumeListCommand()
+    {
+        var pathArgument = new Argument<DirectoryInfo?>("path", "Directory to search for tandoku volumes")
+        {
+            Arity = ArgumentArity.ZeroOrOne,
+        }.LegalFilePathsOnly();
+
+        var allOption = new Option<bool>(
+            new[] { "--all", "-a" },
+            "Return all volumes in the current or specified library");
+
+        var command = new Command("list", "Lists volumes in the current or specified directory")
+        {
+            pathArgument,
+            allOption,
+        };
+
+        command.SetHandler(async (directory, all) =>
+        {
+            var volumeManager = this.CreateVolumeManager();
+            var path = directory?.FullName ?? this.fileSystem.Directory.GetCurrentDirectory();
+            var expandScope = all ? ExpandedScope.ParentLibrary : ExpandedScope.ParentVolume;
+            foreach (var volumePath in volumeManager.GetVolumeDirectories(path, expandScope))
+            {
+                var volumeInfo = await volumeManager.GetInfoAsync(volumePath);
+                this.console.WriteLine($"{volumeInfo.Definition.Title}\t{volumeInfo.Path}");
+            }
+        }, pathArgument, allOption);
 
         return command;
     }
