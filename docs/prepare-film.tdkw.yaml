@@ -67,12 +67,15 @@ artifacts:
   temp_subs2cia_tsv:
     container: volume
     location: temp/subs2cia/
+    sourceControl: ignore
   temp_subs2cia_audio_clips:
     container: volume
     location: temp/subs2cia/
+    sourceControl: ignore
   temp_subs2cia_images:
     container: volume
     location: temp/subs2cia/
+    sourceControl: ignore
   subs2cia_content:
     container: volume
     location: content/subs2cia/
