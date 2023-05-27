@@ -47,7 +47,7 @@ public sealed partial class Program
 
     private Command CreateVolumeInfoCommand()
     {
-        var volumeBinder = new VolumeBinder(this.fileSystem, this.CreateVolumeManager);
+        var volumeBinder = this.CreateVolumeBinder();
 
         var command = new Command("info", "Displays information about the current or specified volume")
         {
@@ -104,6 +104,8 @@ public sealed partial class Program
     }
 
     private VolumeManager CreateVolumeManager() => new(this.fileSystem);
+
+    private VolumeBinder CreateVolumeBinder() => new(this.fileSystem, this.CreateVolumeManager);
 
     private sealed class VolumeBinder : BinderBase<IDirectoryInfo>
     {

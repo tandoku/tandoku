@@ -89,6 +89,7 @@ public sealed partial class Program
         {
             this.CreateLibraryCommand(),
             this.CreateVolumeCommand(),
+            this.CreateSourceCommand(),
 
             // Legacy commands
             CreateGenerateCommand(),
