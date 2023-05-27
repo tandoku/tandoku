@@ -8,6 +8,7 @@ using System.CommandLine.NamingConventionBinder; // TODO: remove when migrated t
 using System.CommandLine.Parsing;
 using System.CommandLine.Rendering;
 using System.IO.Abstractions;
+using System.Text;
 using Tandoku.CommandLine.Abstractions;
 
 public sealed partial class Program
@@ -29,7 +30,8 @@ public sealed partial class Program
     [STAThread] // TODO: needed? should use MTAThread instead?
     public static Task<int> Main(string[] args)
     {
-        // TODO: switch codepage to UTF-8?
+        Console.InputEncoding = Encoding.UTF8;
+        Console.OutputEncoding = Encoding.UTF8;
 
         return new Program().RunAsync(args);
     }
