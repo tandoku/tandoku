@@ -17,21 +17,25 @@ public sealed class SourceManager
     // - language (Auto, None, or language code)
     // - folder (unused, investigate, original)
     // - optional target filename (rename incoming files from Calibre)
-    public Task<IReadOnlyList<string>> ImportFilesAsync(IEnumerable<string> paths)
+    public Task<IReadOnlyList<string>> ImportFilesAsync(IEnumerable<string> paths, string? targetFileName = null)
     {
         var sourceDirectory = this.GetSourceDirectory(createIfNotExists: true);
 
-        var importedPaths = new List<string>();
-
-        // TODO: make this more transactional by checking for errors upfront and doing all actual copy operations last
+        var copyOperations = new List<(IFileInfo Source, string Target)>();
         foreach (var path in paths)
         {
             var originFile = this.fileSystem.GetFile(path);
-            var targetPath = sourceDirectory.GetPath(originFile.Name);
-            var targetFile = originFile.CopyTo(targetPath);
-            importedPaths.Add(targetFile.FullName);
+            var targetPath = sourceDirectory.GetPath(targetFileName ?? originFile.Name);
+            copyOperations.Add((originFile, targetPath));
         }
-        return Task.FromResult<IReadOnlyList<string>>(importedPaths);
+
+        if (copyOperations.DistinctBy(o => o.Target, this.fileSystem.Path.GetComparer()).Count() < copyOperations.Count)
+            throw new ArgumentException("Target filenames must be unique.");
+
+        foreach (var copyOperation in copyOperations)
+            copyOperation.Source.CopyTo(copyOperation.Target);
+
+        return Task.FromResult<IReadOnlyList<string>>(copyOperations.Select(o => o.Target).ToArray());
     }
 
     private IDirectoryInfo GetSourceDirectory(bool createIfNotExists = false)

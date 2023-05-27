@@ -23,6 +23,23 @@ public class VolumeSourceCommandTests : CliTestBase
             .Should().Be("source file content");
     }
 
+    [Fact]
+    public async Task ImportWithFileName()
+    {
+        var externalFilePath = this.fileSystem.Path.Join(
+            this.fileSystem.Directory.GetCurrentDirectory(),
+            "external",
+            "volume-source.txt");
+        this.fileSystem.AddFile(externalFilePath, new MockFileData("source file content"));
+
+        var volumeInfo = await this.SetupVolume();
+        this.fileSystem.Directory.SetCurrentDirectory(volumeInfo.Path);
+
+        await this.RunAndVerifyAsync(@$"source import ""{externalFilePath}"" --filename src.txt");
+        this.fileSystem.GetFile(this.ToFullPath("sample volume", "source", "src.txt")).TextContents.TrimEnd()
+            .Should().Be("source file content");
+    }
+
     private Task<VolumeInfo> SetupVolume(
         string title = "sample volume",
         string? containerPath = null,
