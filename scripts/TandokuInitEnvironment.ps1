@@ -1,3 +1,9 @@
+param(
+    [Parameter()]
+    [Switch]
+    $Dev
+)
+
 $scriptsPath = $PSScriptRoot
 if (Test-Path $scriptsPath) {
     Write-Host "Adding tandoku scripts path $scriptsPath to PATH"
@@ -14,4 +20,6 @@ if (Test-Path $binPath) {
     Write-Warning "Cannot find tandoku bin path $binPath"
 }
 
-# TODO: add -Dev switch parameter to add dev aliases (tdksrc, tdkscripts) etc.
+if ($Dev) {
+    Import-Module (Join-Path $scriptsPath 'modules/tandoku-dev.psm1')
+}
