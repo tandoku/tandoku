@@ -1,6 +1,10 @@
 param(
     [Parameter()]
     [Switch]
+    $Force,
+
+    [Parameter()]
+    [Switch]
     $Unpack
 )
 
@@ -11,17 +15,22 @@ $files = @(
     'title.crew',
     'title.episode',
     'title.principals',
-    'title.ratings') | %{ "$_.tsv.gz" }
+    'title.ratings') | %{ "$_.tsv" }
 foreach ($f in $files) {
-    Write-Host "Downloading $f"
-    Invoke-WebRequest "https://datasets.imdbws.com/$f" -OutFile $f
+    $gzf = "$f.gz"
+    if ($Force -or (-not (Test-Path $f) -and -not (Test-Path $gzf))) {
+        Write-Host "Downloading $gzf"
+        Invoke-WebRequest "https://datasets.imdbws.com/$gzf" -OutFile $gzf
+    }
 }
 
 if ($Unpack) {
     foreach ($f in $files) {
-        Write-Host "Unpacking $f"
-        7z x $f
-        [void] $f -match '(.+)\.gz'
-        Move-Item data.tsv $matches[1]
+        $gzf = "$f.gz"
+        if (Test-Path $gzf) {
+            Write-Host "Unpacking $gzf"
+            7z x $gzf
+            Move-Item data.tsv $f
+        }
     }
 }

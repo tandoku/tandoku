@@ -1,3 +1,49 @@
+# Desired artifacts
+## Netflix watchlist
+Titles from Netflix watchlist with the following columns:
+* Netflix title
+* Type (movie/series)
+* Category (anime/drama)
+* JPDB difficulty stats
+* IMDb rating
+
+### Required datasets
+* Netflix watchlist
+  * Netflix id
+  * Netflix title
+* Netflix/IMDb mapping
+  * Netflix id
+  * IMDb id
+* IMDb title data
+  * IMDb id
+  * Title type (movie/series)
+  * IMDb rating
+* JPDB anime/drama difficulty levels
+  * MyAnimeList/MyDramaList id
+  * Difficulty level
+  * Other stats
+* MyAnimeList/IMDb mapping
+  * MAL id
+  * IMDb id
+* MyDramaList/IMDb mapping
+  * MDL id
+  * IMDb id
+
+### IMDb lists
+* JPDB difficulty levels
+* Queue: Free-flow
+
+### Commands/data sources
+* Netflix watchlist
+  * Use [Netflix Watchlist Manager Chrome extension](https://chrome.google.com/webstore/detail/netflix-watch-list-manage/obgidigipndchfoaapdbldekffjpmmfa)
+  * Export to ```./netflix/netflix-my-list.json```
+
+* MyAnimeList/IMDb mapping
+  * Sources: [Fribb anime-lists](https://github.com/Fribb/anime-lists), [Plex Meta Manager Anime IDs](https://github.com/meisnate12/Plex-Meta-Manager-Anime-IDs)
+
+## Other utilities
+* [Trim: IMDB Ratings on Netflix and Prime Video](https://chrome.google.com/webstore/detail/trim-imdb-ratings-on-netf/lpgajkhkagnpdjklmpgjeplmgffnhhjj)
+
 # Rapid API for uNoGS Netflix data
 
 API documentation: https://rapidapi.com/unogs/api/unogs/

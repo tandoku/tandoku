@@ -1,6 +1,18 @@
+param(
+    [Parameter()]
+    [ValidateSet('anime', 'live-action', 'novel', 'visual-novel', 'web-novel')]
+    [String]
+    $ContentType,
+
+    [Parameter()]
+    [Switch]
+    $FirstPageOnly
+)
+
 # TODO: support auth token so known word stats can be extracted
 
-$nextUrl = 'https://jpdb.io/anime-difficulty-list'
+$listUrlSegment = $ContentType.ToLowerInvariant()
+$nextUrl = "https://jpdb.io/$listUrlSegment-difficulty-list"
 
 do {
     $response = Invoke-WebRequest $nextUrl
@@ -21,8 +33,9 @@ do {
             [PSCustomObject] $obj
         }
 
-    # Uncomment this to break after second page
-    #if ($nextUrl -match 'offset') { break }
+    if ($FirstPageOnly -and $nextUrl -match 'offset') {
+        break
+    }
 
     # next page
     $nextUrl = $html.SelectNodes('//a') |
