@@ -38,8 +38,15 @@ Titles from Netflix watchlist with the following columns:
   * Use [Netflix Watchlist Manager Chrome extension](https://chrome.google.com/webstore/detail/netflix-watch-list-manage/obgidigipndchfoaapdbldekffjpmmfa)
   * Export to ```./netflix/netflix-my-list.json```
 
+* Netflix/IMDb mapping
+  * Run ```./netflix/DownloadNetflixTitles.ps1```
+  * Outputs: ```./netflix/netflix-ja-audio.csv```, ```./netflix/netflix-ja-subs+audio.csv```
+
 * MyAnimeList/IMDb mapping
-  * Sources: [Fribb anime-lists](https://github.com/Fribb/anime-lists), [Plex Meta Manager Anime IDs](https://github.com/meisnate12/Plex-Meta-Manager-Anime-IDs)
+  * Sources [Fribb anime-lists](https://github.com/Fribb/anime-lists), [Plex Meta Manager Anime IDs](https://github.com/meisnate12/Plex-Meta-Manager-Anime-IDs)
+    * Unfortunately IMDb IDs in both of these are pretty sparse 
+  * Run ```./myanimelist/DownloadAnimeList.ps1```
+  * Outputs: ```./myanimelist/anime-list-full.json```
 
 ## Other utilities
 * [Trim: IMDB Ratings on Netflix and Prime Video](https://chrome.google.com/webstore/detail/trim-imdb-ratings-on-netf/lpgajkhkagnpdjklmpgjeplmgffnhhjj)

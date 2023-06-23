@@ -4,6 +4,9 @@ param(
     $Dev
 )
 
+Write-Host "Setting console encoding to UTF-8 (required for tandoku CLI to work)"
+[console]::InputEncoding = [console]::OutputEncoding = [System.Text.UTF8Encoding]::new()
+
 $scriptsPath = $PSScriptRoot
 if (Test-Path $scriptsPath) {
     Write-Host "Adding tandoku scripts path $scriptsPath to PATH"
