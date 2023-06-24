@@ -3,7 +3,7 @@ param(
     $Path = '.'
 )
 
-$opfPath = (Get-Item "$Path/*.opf")
+$opfPath = (Get-Item "$Path/metadata.opf")
 if ($opfPath) {
     $xml = [xml] (Get-Content $opfPath)
     $obj = [PSCustomObject] @{
@@ -12,5 +12,5 @@ if ($opfPath) {
     }
     return $obj
 } else {
-    Write-Error "No .opf file at specified path $Path"
+    Write-Error "No metadata.opf file at specified path $Path"
 }

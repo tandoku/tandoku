@@ -16,6 +16,8 @@ param(
     $KindleStoreMetadataPath
 )
 
+# TODO: read $KindleStoreMetadataPath from ~/.tandoku/config.yaml if not specified
+
 $meta = TandokuCalibreExtractMeta.ps1 -Path $Path
 
 $volumeNewArgs = @('volume', 'new', $meta.title)
@@ -32,15 +34,21 @@ if ($tandokuVolumeNewOut -match ' at (.+)$') {
     $volumePath = $Matches[1]
 } else {
     Write-Error "Failed to create new volume"
-    Write-Error $tandokuVolumeNewOut
+    Write-Error "$tandokuVolumeNewOut"
     return
 }
 
 Write-Host "Created new volume at $volumePath"
 
-tandoku source import (Join-Path $Path '*.opf') --volume $volumePath
+tandoku source import (Join-Path $Path 'metadata.opf') --volume $volumePath
 tandoku source import (Join-Path $Path 'cover.jpg') --volume $volumePath
-tandoku source import (Join-Path $Path '*.azw3') -n "$title.azw3" --volume $volumePath
+
+$azwPath = (Get-Item (Join-Path $Path '*.azw3'))
+if ($azwPath.Count -eq 1) {
+    tandoku source import $azwPath -n "$($meta.title).azw3" --volume $volumePath
+} else {
+    Write-Error "Expecting single .azw3 file at $Path"
+}
 
 # ./TandokuKindleStoreExtractMeta.ps1 -Asin $asin -OutFile "$volumePath/source/kindle-metadata.xml" -KindleStoreMetadataPath $KindleStoreMetadataPath
 
