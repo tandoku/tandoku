@@ -14,38 +14,12 @@ artifacts:
     location: library.yaml
     sourceControl: text
 
-  volume_version:
-    container: volume
-    location: .tandoku-volume/version
-    sourceControl: text
-  volume_layout:
-    container: volume
-    location: .tandoku-volume/layout.yaml
-    sourceControl: text
-  volume_definition:
-    summary: Holds definition/metadata for a single tandoku volume.
-    container: volume
-    location: volume.yaml
-    sourceControl: text
-  
-  volume_cover:
-    container: volume
-    location: cover.jpg
-    sourceControl: binary
-
 simpleValues:
   library_path:
     summary: Library path or definition (.tdkl.yaml) location.
   library_info:
     summary: Library path, definition path and metadata/configuration values.
   library_layout:
-    status: maybe
-  
-  volume_path:
-    summary: Volume path or definition (.tdkv.yaml) location.
-  volume_info:
-    summary: Volume path, definition path and metadata/configuration values. Also includes library path.
-  volume_layout:
     status: maybe
 
 operations:
@@ -69,46 +43,3 @@ operations:
       - library_info
     cmdlet: Get-TandokuLibrary
     status: done
-
-  tandoku_volume_new:
-    inputs:
-      - library_info
-      - container_path
-      - volume_title
-      - volume_moniker
-      - volume_tags
-    outputs:
-      - volume_version
-      - volume_layout
-      - volume_definition
-    cmdlet: New-TandokuVolume
-    status: done
-
-  tandoku_volume_info:
-    inputs:
-      - volume_path
-      - volume_version
-      - volume_layout
-      - volume_definition
-    outputs:
-      - volume_info
-    cmdlet: Get-TandokuVolume
-    status: done
-  
-  tandoku_volume_list:
-    inputs:
-      - library_info
-      - volume_version
-      - volume_layout
-      - volume_definition
-      - all_switch
-    outputs:
-      - volume_info
-    cmdlet: Get-TandokuVolume
-    status: done
-  
-  tandoku_volume_setcover:
-    inputs:
-      - volume_info
-    outputs:
-      - volume_cover
