@@ -5,7 +5,7 @@
 param(
     [Parameter(ValueFromPipeline=$true)]
     [String[]]
-    $Path = '.\*.tdkw.yaml',
+    $Path = '.\*.workflow.yaml',
 
     [Parameter()]
     [String]
