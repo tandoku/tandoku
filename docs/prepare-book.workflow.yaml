@@ -33,9 +33,29 @@ operations:
   tandoku_calibre_extractmeta:
     inputs:
       - external_calibre_ebook_metadata
-      - kindlestore_metadata_cache
     outputs:
       - volume_title
+      - asin
+    script: TandokuCalibreExtractMeta.ps1
+    status: done
+  
+  tandoku_kindlestore_extractmeta:
+    inputs:
+      - asin
+      - kindlestore_metadata_cache
+    outputs:
+      - src_kindle_metadata
+    script: TandokuKindleStoreExtractMeta.ps1
+    status: done
+  
+  tandoku_calibre_importmeta:
+    inputs:
+      - src_ebook_metadata
+      - src_kindle_metadata
+    outputs:
+      - volume_definition
+    script: TandokuCalibreImportMeta.ps1
+    status: next
   
   # TODO: figure out representation of higher-level/aggregate operations
   #tandoku_calibre_import:

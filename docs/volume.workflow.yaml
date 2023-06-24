@@ -70,4 +70,5 @@ operations:
       - volume_info
     outputs:
       - volume_cover
+    script: TandokuVolumeSetCover.ps1
     status: done
