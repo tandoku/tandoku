@@ -50,7 +50,7 @@ if ($azwPath.Count -eq 1) {
     Write-Error "Expecting single .azw3 file at $Path"
 }
 
-# ./TandokuKindleStoreExtractMeta.ps1 -Asin $asin -OutFile "$volumePath/source/kindle-metadata.xml" -KindleStoreMetadataPath $KindleStoreMetadataPath
+TandokuKindleStoreExtractMeta.ps1 -Asin $meta.asin -OutFile "$volumePath/source/kindle-metadata.xml" -KindleStoreMetadataPath $KindleStoreMetadataPath
 
 # ./TandokuVolumeSetCover.ps1 "$volumePath/source/cover.jpg" -VolumePath $volumePath
 
