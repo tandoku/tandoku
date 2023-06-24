@@ -64,11 +64,14 @@ TandokuKindleStoreExtractMeta.ps1 -Asin $meta.asin -OutFile "$volumePath/source/
 
 TandokuVolumeSetCover.ps1 "$volumePath/source/cover.jpg" -VolumePath $volumePath
 
-# TODO: add files to source control (specify text/binary)
-
 # TODO: set additional metadata in volume.yaml from Calibre, Kindle metadata
 # (ISBN, ASIN, author, publisher, ...?)
+# TandokuCalibreImportMeta.ps1 -VolumePath $volumePath
+
+# TODO: add files to source control (specify text/binary)
 
 # TODO: these should probably be part of 'tandoku build' later?
 # TandokuKindleUnpack.ps1 "$volumePath/source/*.azw3" -Destination "$volumePath/temp/ebook"
-# TandokuImagesImport.ps1 "$volumePath/temp/ebook/mobi7/Images"
+# TandokuImagesImport.ps1 "$volumePath/temp/ebook/mobi7/Images" -Exclude "thumb*.*"
+
+# TODO: add -Commit switch to commit to source control
