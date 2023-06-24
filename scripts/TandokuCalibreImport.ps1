@@ -16,9 +16,25 @@ param(
     $KindleStoreMetadataPath
 )
 
-# TODO: read $KindleStoreMetadataPath from ~/.tandoku/config.yaml if not specified
+$metadataPath = (Get-Item "$Path/metadata.opf")
+$coverPath = (Get-Item "$Path/cover.jpg")
+$azwPath = (Get-Item "$Path/*.azw3")
+
+if (-not $metadataPath) {
+    Write-Error "Missing metadata.opf file at $Path"
+    return
+} elseif (-not $coverPath) {
+    Write-Error "Missing cover.jpg file at $Path"
+    return
+} elseif ($azwPath.Count -ne 1) {
+    Write-Error "Expecting single .azw3 file at $Path"
+    return
+}
 
 $meta = TandokuCalibreExtractMeta.ps1 -Path $Path
+if (-not $meta) {
+    return
+}
 
 $volumeNewArgs = @('volume', 'new', $meta.title)
 if ($Moniker) {
@@ -40,20 +56,19 @@ if ($tandokuVolumeNewOut -match ' at (.+)$') {
 
 Write-Host "Created new volume at $volumePath"
 
-tandoku source import (Join-Path $Path 'metadata.opf') --volume $volumePath
-tandoku source import (Join-Path $Path 'cover.jpg') --volume $volumePath
-
-$azwPath = (Get-Item (Join-Path $Path '*.azw3'))
-if ($azwPath.Count -eq 1) {
-    tandoku source import $azwPath -n "$($meta.title).azw3" --volume $volumePath
-} else {
-    Write-Error "Expecting single .azw3 file at $Path"
-}
+tandoku source import $metadataPath --volume $volumePath
+tandoku source import $coverPath --volume $volumePath
+tandoku source import $azwPath -n "$($meta.title).azw3" --volume $volumePath
 
 TandokuKindleStoreExtractMeta.ps1 -Asin $meta.asin -OutFile "$volumePath/source/kindle-metadata.xml" -KindleStoreMetadataPath $KindleStoreMetadataPath
 
-# ./TandokuVolumeSetCover.ps1 "$volumePath/source/cover.jpg" -VolumePath $volumePath
+TandokuVolumeSetCover.ps1 "$volumePath/source/cover.jpg" -VolumePath $volumePath
 
-# TODO - these should probably be part of 'tandoku build' later?
-# ./TandokuKindleUnpack.ps1 "$volumePath/source/*.azw3" -Destination "$volumePath/temp/ebook"
-# ./TandokuImagesImport.ps1 "$volumePath/temp/ebook/mobi7/Images"
+# TODO: add files to source control (specify text/binary)
+
+# TODO: set additional metadata in volume.yaml from Calibre, Kindle metadata
+# (ISBN, ASIN, author, publisher, ...?)
+
+# TODO: these should probably be part of 'tandoku build' later?
+# TandokuKindleUnpack.ps1 "$volumePath/source/*.azw3" -Destination "$volumePath/temp/ebook"
+# TandokuImagesImport.ps1 "$volumePath/temp/ebook/mobi7/Images"
