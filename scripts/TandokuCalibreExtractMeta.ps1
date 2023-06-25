@@ -3,6 +3,8 @@ param(
     $Path = '.'
 )
 
+# TODO: use $Path directly if it is a file, or check for metadata.opf child item if it is a directory
+
 $opfPath = (Get-Item "$Path/metadata.opf")
 if ($opfPath) {
     $xml = [xml] (Get-Content $opfPath)

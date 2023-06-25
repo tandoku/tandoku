@@ -21,7 +21,7 @@ artifacts:
   
   temp_kindle_ebook_images:
     container: volume
-    location: temp/ebook/mobi7/Images/
+    location: temp/ebook/mobi8/OEBPS/Images/
     files: [.jpeg, .jpg]
     sourceControl: ignore
   
@@ -89,14 +89,16 @@ operations:
       - src_kindle_ebook
     outputs:
       - temp_kindle_ebook_images
+    script: TandokuKindleUnpack.ps1
+    status: done
   
   tandoku_images_import:
     inputs:
       - temp_kindle_ebook_images
     outputs:
       - images
-    notes: |-
-      Exclude thumb*.* files when importing (TODO - can this be inferred from kindle unpack output?)
+    script: TandokuImagesImport.ps1
+    status: done
   
   tandoku_content_transform_manga:
     inputs:
@@ -113,3 +115,5 @@ operations:
       - images
     outputs:
       - exported_comicbook
+    script: TandokuComicBookExport.ps1
+    status: next

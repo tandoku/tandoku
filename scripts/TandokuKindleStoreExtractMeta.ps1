@@ -1,4 +1,7 @@
 param(
+    # TODO: add -Path argument that can be specified instead of -Asin
+    # (support either KindleSyncMetadataCache.xml or single kindle-metadata.xml?)
+
     [Parameter(Mandatory=$true)]
     [String]
     $Asin,

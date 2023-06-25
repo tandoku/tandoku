@@ -62,16 +62,15 @@ tandoku source import $azwPath -n "$($meta.title).azw3" --volume $volumePath
 
 TandokuKindleStoreExtractMeta.ps1 -Asin $meta.asin -OutFile "$volumePath/source/kindle-metadata.xml" -KindleStoreMetadataPath $KindleStoreMetadataPath
 
-TandokuVolumeSetCover.ps1 "$volumePath/source/cover.jpg" -VolumePath $volumePath
+TandokuVolumeSetCover.ps1 -Path "$volumePath/source/cover.jpg" -VolumePath $volumePath
 
-# TODO: set additional metadata in volume.yaml from Calibre, Kindle metadata
-# (ISBN, ASIN, author, publisher, ...?)
-# TandokuCalibreImportMeta.ps1 -VolumePath $volumePath
+TandokuCalibreImportMeta.ps1 -VolumePath $volumePath
 
 # TODO: add files to source control (specify text/binary)
 
 # TODO: these should probably be part of 'tandoku build' later?
-# TandokuKindleUnpack.ps1 "$volumePath/source/*.azw3" -Destination "$volumePath/temp/ebook"
-# TandokuImagesImport.ps1 "$volumePath/temp/ebook/mobi7/Images" -Exclude "thumb*.*"
+# TODO: get .azw3 path from tandoku source import instead
+TandokuKindleUnpack.ps1 -Path (Get-Item "$volumePath/source/*.azw3") -Destination "$volumePath/temp/ebook"
+TandokuImagesImport.ps1 -Path "$volumePath/temp/ebook/mobi8/OEBPS/Images/" -VolumePath $volumePath
 
 # TODO: add -Commit switch to commit to source control
