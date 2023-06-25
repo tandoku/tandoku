@@ -31,7 +31,7 @@ if (-not $metadataPath) {
     return
 }
 
-$meta = TandokuCalibreExtractMeta.ps1 -Path $Path
+$meta = TandokuCalibreExtractMeta -Path $Path
 if (-not $meta) {
     return
 }
@@ -60,17 +60,17 @@ tandoku source import $metadataPath --volume $volumePath
 tandoku source import $coverPath --volume $volumePath
 tandoku source import $azwPath -n "$($meta.title).azw3" --volume $volumePath
 
-TandokuKindleStoreExtractMeta.ps1 -Asin $meta.asin -OutFile "$volumePath/source/kindle-metadata.xml" -KindleStoreMetadataPath $KindleStoreMetadataPath
+TandokuKindleStoreExtractMeta -Asin $meta.asin -OutFile "$volumePath/source/kindle-metadata.xml" -KindleStoreMetadataPath $KindleStoreMetadataPath
 
-TandokuVolumeSetCover.ps1 -Path "$volumePath/source/cover.jpg" -VolumePath $volumePath
+TandokuVolumeSetCover -Path "$volumePath/source/cover.jpg" -VolumePath $volumePath
 
-TandokuCalibreImportMeta.ps1 -VolumePath $volumePath
+TandokuCalibreImportMeta -VolumePath $volumePath
 
 # TODO: add files to source control (specify text/binary)
 
 # TODO: these should probably be part of 'tandoku build' later?
 # TODO: get .azw3 path from tandoku source import instead
-TandokuKindleUnpack.ps1 -Path (Get-Item "$volumePath/source/*.azw3") -Destination "$volumePath/temp/ebook"
-TandokuImagesImport.ps1 -Path "$volumePath/temp/ebook/mobi8/OEBPS/Images/" -VolumePath $volumePath
+TandokuKindleUnpack -Path (Get-Item "$volumePath/source/*.azw3") -Destination "$volumePath/temp/ebook"
+TandokuImagesImport -Path "$volumePath/temp/ebook/mobi8/OEBPS/Images/" -VolumePath $volumePath
 
 # TODO: add -Commit switch to commit to source control
