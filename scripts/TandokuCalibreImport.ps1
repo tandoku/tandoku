@@ -70,6 +70,7 @@ TandokuCalibreImportMeta -VolumePath $volumePath
 
 # TODO: these should probably be part of 'tandoku build' later?
 # TODO: get .azw3 path from tandoku source import instead
+# TODO: switch to temp/mobi destination
 TandokuKindleUnpack -Path (Get-Item "$volumePath/source/*.azw3") -Destination "$volumePath/temp/ebook"
 TandokuImagesImport -Path "$volumePath/temp/ebook/mobi8/OEBPS/Images/" -VolumePath $volumePath
 
