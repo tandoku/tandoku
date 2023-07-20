@@ -34,6 +34,16 @@ param(
 # cargo install substudy
 # (or install substudy binary to PATH from https://github.com/emk/subtitles-rs/releases)
 
+function GetSubtitleItem($baseName, $lang) {
+    $filter = "$baseName.$lang*.srt"
+    $item = Get-ChildItem $SubtitlePath -Filter $filter
+    if (-not $item) {
+        Write-Warning "Could not find $filter, skipping"
+        return
+    }
+    return $item
+}
+
 if (-not $Language) {
     $Language = 'ja'
 }
@@ -47,26 +57,27 @@ if (-not $ReferenceLanguage) {
 Get-ChildItem $Path -Filter *.mp4 |
     ForEach-Object {
         $baseName = Split-Path $_ -LeafBase
-        $sub1Filter = "$baseName.$Language*.srt"
-        $sub1 = Get-ChildItem $SubtitlePath -Filter $sub1Filter
-        if (-not $sub1) {
-            Write-Warning "Could not find $sub1Filter, skipping"
-            return
-        }
-
-        # TODO: factor out function
-        $sub2Filter = "$baseName.$ReferenceLanguage*.srt"
-        $sub2 = Get-ChildItem $SubtitlePath -Filter $sub2Filter
-        if (-not $sub2) {
-            Write-Warning "Could not find $sub2Filter, skipping"
-            return
-        }
+        $sub1 = GetSubtitleItem $baseName $Language
+        $sub2 = GetSubtitleItem $baseName $ReferenceLanguage
 
         Push-Location $Destination
         substudy export review $_ $sub1 $sub2
 
-        # TODO: replace play.svg, delete audio, ebook-convert .\index.html <target>.epub --authors "substudy" --language $Language
-        # also, substudy export should go to <volume>/temp/substudy while ebook-convert should go to staging
+        $reviewPath = Convert-Path "$($baseName)_review"
+        $indexPath = Join-Path $reviewPath 'index.html'
+        $html = ConvertFrom-Html -Path $indexPath
+        $html.SelectNodes('html/body/div/img[@class="play-button"]') |
+            ForEach-Object { $_.Remove() }
+        $html.SelectNodes('html/body/div/audio') |
+            ForEach-Object { $_.Remove() }
+
+        $ebookIndexPath = Join-Path $reviewPath 'ebook-index.html'
+        Set-Content $ebookIndexPath $html.OuterHtml
+
+        $epubPath = "$reviewPath.epub"
+        ebook-convert $ebookIndexPath $epubPath --authors "substudy" --language $Language
+
+        # TODO: when volume specified, substudy export should go to <volume>/temp/substudy while ebook-convert should go to staging
 
         Pop-Location
     }
