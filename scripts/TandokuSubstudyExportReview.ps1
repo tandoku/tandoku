@@ -25,7 +25,11 @@ param(
 
     [Parameter()]
     [String]
-    $Combine
+    $Combine,
+
+    [Parameter()]
+    [Switch]
+    $Audio
 
     # TODO: support volume
     # [Parameter()]
@@ -37,6 +41,7 @@ param(
 # scoop install rust
 # cargo install substudy
 # (or install substudy binary to PATH from https://github.com/emk/subtitles-rs/releases)
+# Install-Module powerhtml
 
 function GetSubtitleItem($baseName, $lang) {
     $filter = "$baseName.$lang*.srt"
@@ -54,6 +59,8 @@ if (-not $Language) {
 if (-not $ReferenceLanguage) {
     $ReferenceLanguage = 'en'
 }
+
+$audioTag = ($Audio ? '-audio' : '')
 
 # TODO: get $Destination from ~/.tandoku/config.yaml if not specified (defaults to ~/.tandoku/staging/substudy/)
 
@@ -73,10 +80,12 @@ Get-ChildItem $Path -Filter *.mp4 |
         $html = ConvertFrom-Html -Path $indexPath
         $html.SelectNodes('html/body/div/img[@class="play-button"]') |
             ForEach-Object { $_.Remove() }
-        $html.SelectNodes('html/body/div/audio') |
-            ForEach-Object { $_.Remove() }
+        if (-not $Audio) {
+            $html.SelectNodes('html/body/div/audio') |
+                ForEach-Object { $_.Remove() }
+        }
 
-        $ebookIndexPath = Join-Path $reviewPath 'ebook-index.html'
+        $ebookIndexPath = Join-Path $reviewPath "ebook-index$audioTag.html"
         Set-Content $ebookIndexPath $html.OuterHtml
 
         if ($Combine) {
@@ -86,7 +95,7 @@ Get-ChildItem $Path -Filter *.mp4 |
                 Title = $baseName
             }
         } else {
-            $epubPath = "$reviewPath.epub"
+            $epubPath = "$reviewPath$audioTag.epub"
             ebook-convert $ebookIndexPath $epubPath --authors "substudy" --language $Language
         }
 
@@ -114,9 +123,9 @@ if ($Combine) {
     }
     $html.SelectSingleNode('html/body/p').InnerHtml = $inner -join [Environment]::NewLine
 
-    $rootIndexPath = Join-Path $Destination "$Combine.html"
+    $rootIndexPath = Join-Path $Destination "$Combine$audioTag.html"
     Set-Content $rootIndexPath $html.OuterHtml
 
-    $epubPath = Join-Path $Destination "$Combine.epub"
+    $epubPath = Join-Path $Destination "$Combine$audioTag.epub"
     ebook-convert $rootIndexPath $epubPath --authors "substudy" --language $Language
 }
