@@ -21,7 +21,11 @@ param(
 
     [Parameter()]
     [String]
-    $Destination
+    $Destination,
+
+    [Parameter()]
+    [String]
+    $Combine
 
     # TODO: support volume
     # [Parameter()]
@@ -54,6 +58,7 @@ if (-not $ReferenceLanguage) {
 # TODO: get $Destination from ~/.tandoku/config.yaml if not specified (defaults to ~/.tandoku/staging/substudy/)
 
 # TODO: common code for listing videos
+$items = @()
 Get-ChildItem $Path -Filter *.mp4 |
     ForEach-Object {
         $baseName = Split-Path $_ -LeafBase
@@ -74,10 +79,33 @@ Get-ChildItem $Path -Filter *.mp4 |
         $ebookIndexPath = Join-Path $reviewPath 'ebook-index.html'
         Set-Content $ebookIndexPath $html.OuterHtml
 
-        $epubPath = "$reviewPath.epub"
-        ebook-convert $ebookIndexPath $epubPath --authors "substudy" --language $Language
+        if ($Combine) {
+            $items += @{
+                Path = $ebookIndexPath
+                RelativePath = (Resolve-Path $ebookIndexPath -Relative).Replace('\','/')
+                Title = $baseName
+            }
+        } else {
+            $epubPath = "$reviewPath.epub"
+            ebook-convert $ebookIndexPath $epubPath --authors "substudy" --language $Language
+        }
 
         # TODO: when volume specified, substudy export should go to <volume>/temp/substudy while ebook-convert should go to staging
 
         Pop-Location
     }
+
+if ($Combine) {
+    $html = ConvertFrom-Html '<html><body></body></html>'
+    $inner = @()
+    foreach ($i in $items) {
+        $inner += "<a href='$($i.RelativePath)'>$($i.Title)</a>"
+    }
+    $html.SelectSingleNode('html/body').InnerHtml = $inner -join [Environment]::NewLine
+
+    $rootIndexPath = Join-Path $Destination "$Combine.html"
+    Set-Content $rootIndexPath $html.OuterHtml
+
+    $epubPath = Join-Path $Destination "$Combine.epub"
+    ebook-convert $rootIndexPath $epubPath --authors "substudy" --language $Language
+}
