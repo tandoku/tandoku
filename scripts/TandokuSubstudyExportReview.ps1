@@ -29,7 +29,7 @@ param(
 
     [Parameter()]
     [Switch]
-    $Audio
+    $NoAudio
 
     # TODO: support volume
     # [Parameter()]
@@ -60,7 +60,7 @@ if (-not $ReferenceLanguage) {
     $ReferenceLanguage = 'en'
 }
 
-$audioTag = ($Audio ? '-audio' : '')
+$audioTag = ($NoAudio ? '-noaudio' : '')
 
 # TODO: get $Destination from ~/.tandoku/config.yaml if not specified (defaults to ~/.tandoku/staging/substudy/)
 
@@ -80,7 +80,7 @@ Get-ChildItem $Path -Filter *.mp4 |
         $html = ConvertFrom-Html -Path $indexPath
         $html.SelectNodes('html/body/div/img[@class="play-button"]') |
             ForEach-Object { $_.Remove() }
-        if (-not $Audio) {
+        if ($NoAudio) {
             $html.SelectNodes('html/body/div/audio') |
                 ForEach-Object { $_.Remove() }
         }
@@ -106,10 +106,9 @@ Get-ChildItem $Path -Filter *.mp4 |
 
 if ($Combine) {
     $html = ConvertFrom-Html @"
-<html>
+<html xmlns="http://www.w3.org/1999/xhtml">
     <head>
-        <meta charset="UTF-8">
-        <title>$Combine</title>
+        <title>$Combine$audioTag</title>
     </head>
     <body>
         <h1>$Combine</h1>
