@@ -106,7 +106,7 @@ if ($Combine) {
         <h1>$Combine</h1>
         <p></p>
     </body>
-</html>'
+</html>
 "@
     $inner = @()
     foreach ($i in $items) {
