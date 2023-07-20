@@ -96,12 +96,23 @@ Get-ChildItem $Path -Filter *.mp4 |
     }
 
 if ($Combine) {
-    $html = ConvertFrom-Html '<html><body></body></html>'
+    $html = ConvertFrom-Html @"
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>$Combine</title>
+    </head>
+    <body>
+        <h1>$Combine</h1>
+        <p></p>
+    </body>
+</html>'
+"@
     $inner = @()
     foreach ($i in $items) {
-        $inner += "<a href='$($i.RelativePath)'>$($i.Title)</a>"
+        $inner += "<li><a href='$($i.RelativePath)'>$($i.Title)</a></li>"
     }
-    $html.SelectSingleNode('html/body').InnerHtml = $inner -join [Environment]::NewLine
+    $html.SelectSingleNode('html/body/p').InnerHtml = $inner -join [Environment]::NewLine
 
     $rootIndexPath = Join-Path $Destination "$Combine.html"
     Set-Content $rootIndexPath $html.OuterHtml
