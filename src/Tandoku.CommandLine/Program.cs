@@ -73,12 +73,19 @@ public sealed partial class Program
         static void HandleKnownException(Exception exception, InvocationContext context)
         {
             var terminal = context.Console.GetTerminal(preferVirtualTerminal: false);
-            terminal.ResetColor();
-            terminal.ForegroundColor = ConsoleColor.Red;
+            if (terminal != null)
+            {
+                terminal.ResetColor();
+                terminal.ForegroundColor = ConsoleColor.Red;
 
-            terminal.Error.WriteLine(exception.Message);
+                terminal.Error.WriteLine(exception.Message);
 
-            terminal.ResetColor();
+                terminal.ResetColor();
+            }
+            else
+            {
+                context.Console.WriteLine(exception.Message);
+            }
 
             context.ExitCode = 1;
         }
