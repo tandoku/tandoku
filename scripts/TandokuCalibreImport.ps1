@@ -36,30 +36,15 @@ if (-not $meta) {
     return
 }
 
-# TODO: switch to tandoku_volume_new
-$volumeNewArgs = @('volume', 'new', $meta.title)
-if ($Moniker) {
-    $volumeNewArgs += @('--moniker', $Moniker)
-}
-if ($Tags) {
-    $volumeNewArgs += @('--tags', ($Tags -join ','))
-}
-
-# TODO: add JSON output instead of string parsing
-$tandokuVolumeNewOut = (& "tandoku" $volumeNewArgs)
-if ($tandokuVolumeNewOut -match ' at (.+)$') {
-    $volumePath = $Matches[1]
-} else {
-    Write-Error "Failed to create new volume"
-    Write-Error "$tandokuVolumeNewOut"
+$volumeInfo = tandoku_volume_new -Title $meta.title -Moniker $Moniker -Tags $Tags
+if (-not $volumeInfo) {
     return
 }
-
-Write-Host "Created new volume at $volumePath"
+$volumePath = $volumeInfo.VolumePath
 
 tandoku source import $metadataPath --volume $volumePath
 tandoku source import $coverPath --volume $volumePath
-tandoku source import $azwPath -n "$($meta.title).azw3" --volume $volumePath
+tandoku source import $azwPath -n source.azw3 --volume $volumePath
 
 TandokuKindleStoreExtractMeta -Asin $meta.asin -OutFile "$volumePath/source/kindle-metadata.xml" -KindleStoreMetadataPath $KindleStoreMetadataPath
 
@@ -70,9 +55,7 @@ TandokuCalibreImportMeta -VolumePath $volumePath
 # TODO: add files to source control (specify text/binary)
 
 # TODO: these should probably be part of 'tandoku build' later?
-# TODO: get .azw3 path from tandoku source import instead
-# TODO: switch to temp/mobi destination
-TandokuKindleUnpack -Path (Get-Item "$volumePath/source/*.azw3") -Destination "$volumePath/temp/ebook"
-TandokuImagesImport -Path "$volumePath/temp/ebook/mobi8/OEBPS/Images/" -VolumePath $volumePath
+TandokuKindleUnpack -Path "$volumePath/source/source.azw3" -Destination "$volumePath/temp/mobi"
+TandokuImagesImport -Path "$volumePath/temp/mobi/mobi8/OEBPS/Images/" -VolumePath $volumePath
 
-# TODO: add -Commit switch to commit to source control
+# TODO: add -Commit switch to commit to source control?
