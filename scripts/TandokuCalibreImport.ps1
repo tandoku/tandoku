@@ -36,6 +36,7 @@ if (-not $meta) {
     return
 }
 
+# TODO: switch to tandoku_volume_new
 $volumeNewArgs = @('volume', 'new', $meta.title)
 if ($Moniker) {
     $volumeNewArgs += @('--moniker', $Moniker)

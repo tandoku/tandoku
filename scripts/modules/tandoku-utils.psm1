@@ -1,3 +1,5 @@
+function ArgsToArray { return $args }
+
 function ExtractRelativePath([String] $basePath, [String] $childPath) {
     if ($basePath -eq $childPath) {
         return '.'
@@ -37,4 +39,4 @@ function MapToPSDriveAlias {
     return $path
 }
 
-Export-ModuleMember -Function * -Alias *
+Export-ModuleMember -Function *

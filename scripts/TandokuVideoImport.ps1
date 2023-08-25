@@ -5,11 +5,7 @@ param(
 
     [Parameter()]
     [String]
-    $Moniker,
-
-    [Parameter()]
-    [String[]]
-    $Tags
+    $VolumePath
 )
 
 # Collect .mp4/.mkv files at $Path (tandoku source import)
