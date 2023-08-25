@@ -1,5 +1,9 @@
 param(
     [Parameter()]
+    [String]
+    $LibraryPath,
+
+    [Parameter()]
     [Switch]
     $Dev
 )
@@ -23,6 +27,10 @@ if (Test-Path $binPath) {
     Write-Warning "Cannot find tandoku bin path $binPath"
 }
 
+if ($LibraryPath) {
+    $env:TANDOKU_LIBRARY = (Convert-Path $LibraryPath)
+}
+
 if ($Dev) {
-    Import-Module (Join-Path $scriptsPath 'modules/tandoku-dev.psm1')
+    Import-Module (Join-Path $scriptsPath 'modules/tandoku-dev.psm1') -Scope Global
 }

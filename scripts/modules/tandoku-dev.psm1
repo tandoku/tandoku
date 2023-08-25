@@ -1,4 +1,4 @@
-using module '.\tandoku-utils.psm1'
+using module './tandoku-utils.psm1'
 
 $modulesPath = $PSScriptRoot
 $repoRoot = (Split-Path (Split-Path $modulesPath -Parent) -Parent)
@@ -22,5 +22,14 @@ function Set-LocationToTandokuSrc {
     Set-Location (MapToPSDriveAlias $repoRoot/src)
 }
 New-Alias tdksrc Set-LocationToTandokuSrc
+
+function Set-LocationToTandokuLibrary {
+    if ($env:TANDOKU_LIBRARY) {
+        Set-Location (MapToPSDriveAlias $env:TANDOKU_LIBRARY)
+    } else {
+        Write-Error "TANDOKU_LIBRARY environment variable is not defined"
+    }
+}
+New-Alias tdklib Set-LocationToTandokuLibrary
 
 Export-ModuleMember -Function *-* -Alias *
