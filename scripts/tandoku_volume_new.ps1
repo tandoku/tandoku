@@ -39,12 +39,15 @@ if ($Force) {
 }
 
 # TODO: add JSON output instead of string parsing
+# also check for error output properly
 $tandokuVolumeNewOut = (& "tandoku" $volumeNewArgs)
 if ($tandokuVolumeNewOut -match ' at (.+)$') {
     $volumePath = $Matches[1]
 } else {
     Write-Error "Failed to create new volume"
-    Write-Error "$tandokuVolumeNewOut"
+    if ($tandokuVolumeNewOut) {
+        Write-Error "$tandokuVolumeNewOut"
+    }
     return
 }
 

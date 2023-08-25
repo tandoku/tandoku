@@ -84,7 +84,7 @@ public sealed partial class Program
             }
             else
             {
-                context.Console.WriteLine(exception.Message);
+                context.Console.Error.WriteLine(exception.Message);
             }
 
             context.ExitCode = 1;
