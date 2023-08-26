@@ -36,7 +36,7 @@ if (-not $meta) {
     return
 }
 
-$volumeInfo = tandoku_volume_new -Title $meta.title -Moniker $Moniker -Tags $Tags
+$volumeInfo = TandokuVolumeNew -Title $meta.title -Moniker $Moniker -Tags $Tags
 if (-not $volumeInfo) {
     return
 }
