@@ -5,6 +5,19 @@ param(
     $CacheType
 )
 
+# Set up git if needed
+if (-not (Test-Path .git)) {
+    git init -b main
+
+    git add .tandoku-library
+    git add library.yaml
+}
+
+Add-Content .gitignore **/temp/
+git add .gitignore
+
+# Set up dvc
+
 # Prerequisites:
 # scoop install dvc
 
@@ -13,11 +26,11 @@ param(
 
 dvc init
 
-# TODO - may want to use autostage when managing git operations as well as dvc ones
-# dvc config core.autostage true
+dvc config core.autostage true
+git add .dvc/config
 
 if ($CacheType) {
     dvc config cache.type "reflink,$CacheType,copy" --local
 }
 
-Write-Host "Use `dvc remote add` if needed to set up remote storage"
+Write-Host "Use `dvc remote add` to set up remote storage"

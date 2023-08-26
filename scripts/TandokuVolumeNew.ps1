@@ -40,20 +40,21 @@ if ($Force) {
 
 # TODO: add JSON output instead of string parsing
 # also check for error output properly
-$tandokuVolumeNewOut = (& "tandoku" $volumeNewArgs)
+$tandokuVolumeNewOut = (& 'tandoku' $volumeNewArgs)
 if ($tandokuVolumeNewOut -match ' at (.+)$') {
     $volumePath = $Matches[1]
+    Write-Host $tandokuVolumeNewOut
 } else {
     Write-Error "Failed to create new volume"
     if ($tandokuVolumeNewOut) {
-        Write-Error "$tandokuVolumeNewOut"
+        Write-Error $tandokuVolumeNewOut
     }
     return
 }
 
-Write-Host "Created new volume at $volumePath"
-
-# TODO: call tandoku version-control add 
+# TODO: these should come from JSON output of `tandoku volume new`
+TandokuVersionControlAdd -Path "$VolumePath/.tandoku-volume" -Kind text
+TandokuVersionControlAdd -Path "$VolumePath/volume.yaml" -Kind text
 
 return [PSCustomObject]@{
     VolumePath = $volumePath

@@ -3,13 +3,14 @@ param(
     [String]
     $Path,
 
-    [Parameter()]
+    # TODO: not mandatory (infer if not specified)
+    [Parameter(Mandatory=$true)]
     [String]
     $VolumePath
 )
 
-# TODO: infer $VolumePath if not specified
-
 [void] (mkdir "$VolumePath/images")
-Copy-Item -Path "$Path/*.jpeg" -Destination "$VolumePath/images/"
-Copy-Item -Path "$Path/*.jpg" -Destination "$VolumePath/images/"
+$target = Copy-Item -Path "$Path/*.jpeg" -Destination "$VolumePath/images/" -PassThru
+$target += Copy-Item -Path "$Path/*.jpg" -Destination "$VolumePath/images/" -PassThru
+
+TandokuVersionControlAdd -Path $target -Kind binary

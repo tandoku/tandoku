@@ -42,20 +42,19 @@ if (-not $volumeInfo) {
 }
 $volumePath = $volumeInfo.VolumePath
 
-tandoku source import $metadataPath --volume $volumePath
-tandoku source import $coverPath --volume $volumePath
-tandoku source import $azwPath -n source.azw3 --volume $volumePath
+$sourceMetadata = TandokuSourceImport -Path $metadataPath -VersionControl text -VolumePath $volumePath
+$sourceCover = TandokuSourceImport -Path $coverPath -VersionControl binary -VolumePath $volumePath
+$sourceBook = TandokuSourceImport -Path $azwPath -FileName source.azw3 -VersionControl binary -VolumePath $volumePath
 
 TandokuKindleStoreExtractMeta -Asin $meta.asin -OutFile "$volumePath/source/kindle-metadata.xml" -KindleStoreMetadataPath $KindleStoreMetadataPath
 
-TandokuVolumeSetCover -Path "$volumePath/source/cover.jpg" -VolumePath $volumePath
+TandokuVolumeSetCover -Path $sourceCover -VolumePath $volumePath
 
 TandokuCalibreImportMeta -VolumePath $volumePath
 
-# TODO: add files to source control (specify text/binary)
-
 # TODO: these should probably be part of 'tandoku build' later?
-TandokuKindleUnpack -Path "$volumePath/source/source.azw3" -Destination "$volumePath/temp/mobi"
+TandokuKindleUnpack -Path $sourceBook -Destination "$volumePath/temp/mobi"
 TandokuImagesImport -Path "$volumePath/temp/mobi/mobi8/OEBPS/Images/" -VolumePath $volumePath
 
 # TODO: add -Commit switch to commit to source control?
+Write-Host "TODO: git commit, git push, dvc push"
