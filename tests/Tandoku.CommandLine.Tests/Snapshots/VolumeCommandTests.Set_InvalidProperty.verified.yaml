@@ -1,0 +1,5 @@
+﻿result: 1
+error: |+
+  Unexpected property name. (Parameter 'property')
+  Actual value was invalid-property.
+out: ""

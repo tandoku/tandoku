@@ -53,10 +53,25 @@ public abstract class CliTestBase
             this.console.Out.ToString());
     }
 
-    protected async Task RunAndVerifyAsync(string commandLine)
+    protected async Task RunAndVerifyAsync(string commandLine, bool jsonOutput = false)
     {
-        var output = await this.RunAsync(commandLine);
-        await VerifyYaml(output);
+        var output = await this.RunAsync($"{commandLine}{(jsonOutput ? " --json-output" : string.Empty)}");
+        if (jsonOutput)
+        {
+            if (!string.IsNullOrWhiteSpace(output.Out))
+            {
+                // TODO: consider adding scrubbers to handle JSON encoded strings instead of converting JSON to YAML
+                var deserializer = new Deserializer();
+                var serializer = new Serializer();
+                var o = deserializer.Deserialize(new StringReader(output.Out));
+                output = output with { Out = serializer.Serialize(o) };
+            }
+            await VerifyYaml(output).UseParameters(jsonOutput);
+        }
+        else
+        {
+            await VerifyYaml(output);
+        }
     }
 
     protected async Task RunAndVerifyVariantAsync(string commandLine, string snapshotMethodName, string variant)

@@ -1,4 +1,11 @@
-function ArgsToArray { return $args }
+function ArgsToArray {
+    # It seems like there should be some built-in way to do this...
+    # This is useful when building up a command to invoke with & operator, e.g.
+    # $cmdargs = ArgsToArray /arg1 /arg2 arg2-value /arg3
+    # if ($someCondition) { $cmdargs += '/arg4' }
+    # & 'somecmd' $cmdargs
+    return $args
+}
 
 function ExtractRelativePath([String] $basePath, [String] $childPath) {
     if ($basePath -eq $childPath) {

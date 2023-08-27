@@ -1,0 +1,12 @@
+﻿result: 0
+error: ""
+out: |+
+  path: {CurrentDirectory}sample volume
+  version:
+    version: 0.1.0
+  definitionPath: {CurrentDirectory}sample volume\volume.yaml
+  definition:
+    title: sample volume
+    moniker: 
+    language: ja
+    tags: []

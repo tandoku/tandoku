@@ -3,6 +3,8 @@
 using System.CommandLine;
 using System.CommandLine.Binding;
 using System.IO.Abstractions;
+using System.Text.Encodings.Web;
+using System.Text.Json;
 using Tandoku.Volume;
 
 public sealed partial class Program
@@ -12,6 +14,7 @@ public sealed partial class Program
         {
             this.CreateVolumeNewCommand(),
             this.CreateVolumeInfoCommand(),
+            this.CreateVolumeSetCommand(),
             this.CreateVolumeListCommand(),
         };
 
@@ -48,25 +51,79 @@ public sealed partial class Program
     private Command CreateVolumeInfoCommand()
     {
         var volumeBinder = this.CreateVolumeBinder();
+        var jsonOutputOption = new Option<bool>(new[] { "--json-output" }, "Output results as JSON"); // TODO: move to common
 
         var command = new Command("info", "Displays information about the current or specified volume")
         {
             volumeBinder.VolumeOption,
+            jsonOutputOption,
         };
 
-        command.SetHandler(async (volumeDirectory) =>
+        command.SetHandler(async (volumeDirectory, jsonOutput) =>
         {
             var volumeManager = this.CreateVolumeManager();
             var info = await volumeManager.GetInfoAsync(volumeDirectory.FullName);
-            this.console.WriteLine($"Path: {info.Path}");
-            this.console.WriteLine($"Version: {info.Version}");
-            this.console.WriteLine($"Definition path: {info.DefinitionPath}");
-            this.console.WriteLine($"Title: {info.Definition.Title}");
-            this.console.WriteLine($"Moniker: {info.Definition.Moniker.ToOutputString()}");
-            this.console.WriteLine($"Language: {info.Definition.Language}");
-            //this.console.WriteLine($"Reference language: {info.Definition.ReferenceLanguage.ToOutputString()}");
-            this.console.WriteLine($"Tags: {info.Definition.Tags.ToOutputString()}");
-        }, volumeBinder);
+            if (jsonOutput)
+            {
+                // TODO: use VolumeInfo directly, or copy to a JSON serializable object?
+                //       Promote Version property or add JsonConverter for VolumeVersion (probably can't inherit from interface?)
+
+                // TODO: move this to IJsonSerializable? Or static helper?
+                // should have common infra for writing JSON output from CLI commands
+                var options = new JsonSerializerOptions
+                {
+                    Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                    WriteIndented = true,
+                };
+                this.console.WriteLine(JsonSerializer.Serialize(info, options));
+            }
+            else
+            {
+                this.console.WriteLine($"Path: {info.Path}");
+                this.console.WriteLine($"Version: {info.Version}");
+                this.console.WriteLine($"Definition path: {info.DefinitionPath}");
+                this.console.WriteLine($"Title: {info.Definition.Title}");
+                this.console.WriteLine($"Moniker: {info.Definition.Moniker.ToOutputString()}");
+                this.console.WriteLine($"Language: {info.Definition.Language}");
+                //this.console.WriteLine($"Reference language: {info.Definition.ReferenceLanguage.ToOutputString()}");
+                this.console.WriteLine($"Tags: {info.Definition.Tags.ToOutputString()}");
+            }
+        }, volumeBinder, jsonOutputOption);
+
+        return command;
+    }
+
+    private Command CreateVolumeSetCommand()
+    {
+        var propertyArgument = new Argument<string>("property", "Name of definition property to set")
+        {
+            Arity = ArgumentArity.ExactlyOne,
+        };
+        var valueArgument = new Argument<string>("value", "Value of definition property to set")
+        {
+            Arity = ArgumentArity.ExactlyOne,
+        };
+        var volumeBinder = this.CreateVolumeBinder();
+
+        var command = new Command("set", "Sets a definition property for the current or specified volume")
+        {
+            propertyArgument,
+            valueArgument,
+            volumeBinder.VolumeOption,
+        };
+
+        command.SetHandler(async (property, value, volumeDirectory) =>
+        {
+            var volumeManager = this.CreateVolumeManager();
+            var info = await volumeManager.GetInfoAsync(volumeDirectory.FullName);
+            var modifiedDefinition = property switch
+            {
+                "title" => info.Definition with { Title = value },
+                _ => throw new ArgumentOutOfRangeException(nameof(property), property, "Unexpected property name."),
+            };
+            await volumeManager.SetDefinitionAsync(volumeDirectory.FullName, modifiedDefinition);
+        }, propertyArgument, valueArgument, volumeBinder);
 
         return command;
     }

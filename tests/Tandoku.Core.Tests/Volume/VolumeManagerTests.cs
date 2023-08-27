@@ -79,6 +79,18 @@ tags: [tag-1, tag-2]");
     }
 
     [Fact]
+    public async Task SetDefinition()
+    {
+        var originalInfo = await this.SetupVolume();
+        var modifiedDefinition = originalInfo.Definition with { Title = "newer-title" };
+        await this.volumeManager.SetDefinitionAsync(originalInfo.Path, modifiedDefinition);
+
+        var info = await this.volumeManager.GetInfoAsync(originalInfo.Path);
+
+        info.Definition.Should().BeEquivalentTo(modifiedDefinition);
+    }
+
+    [Fact]
     public async Task GetVolumeDirectories()
     {
         var rootPath = this.fileSystem.Directory.GetCurrentDirectory();

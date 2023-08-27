@@ -49,13 +49,14 @@ tags: [tag1, tag2]");
     }
 
 
-    [Fact]
-    public async Task Info()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Info(bool jsonOutput)
     {
-        var info = await this.SetupVolume();
-        this.fileSystem.Directory.SetCurrentDirectory(info.Path);
+        var info = await this.SetupVolume(changeCurrentDirectory: true);
 
-        await this.RunAndVerifyAsync("volume info");
+        await this.RunAndVerifyAsync("volume info", jsonOutput);
     }
 
     [Theory]
@@ -95,6 +96,25 @@ tags: [tag1, tag2]");
             @$"volume info --volume ""{info.Path}""",
             nameof(Info),
             variant);
+    }
+
+    [Fact]
+    public async Task SetTitle()
+    {
+        var originalInfo = await this.SetupVolume(changeCurrentDirectory: true);
+
+        await this.RunAndVerifyAsync("volume set title newer-title");
+
+        var info = await this.CreateVolumeManager().GetInfoAsync(originalInfo.Path);
+        info.Definition.Title.Should().Be("newer-title");
+    }
+
+    [Fact]
+    public async Task Set_InvalidProperty()
+    {
+        await this.SetupVolume(changeCurrentDirectory: true);
+
+        await this.RunAndVerifyAsync("volume set invalid-property some-value");
     }
 
     [Theory]
@@ -158,8 +178,7 @@ tags: [tag1, tag2]");
         var nestedPath = this.fileSystem.Path.Join(libraryPath, "nested");
         await this.SetupVolume("volume1", libraryPath);
         await this.SetupVolume("nested-volume", nestedPath);
-        var info = await this.SetupVolume("nested-volume2", nestedPath);
-        this.fileSystem.Directory.SetCurrentDirectory(info.Path);
+        await this.SetupVolume("nested-volume2", nestedPath, changeCurrentDirectory: true);
 
         await this.RunAndVerifyAsync("volume list -a");
     }
@@ -172,17 +191,25 @@ tags: [tag1, tag2]");
         await this.RunAndVerifyAsync("volume list -a");
     }
 
-    private Task<VolumeInfo> SetupVolume(
+    private async Task<VolumeInfo> SetupVolume(
         string title = "sample volume",
         string? containerPath = null,
         string? moniker = null,
-        IEnumerable<string>? tags = null)
+        IEnumerable<string>? tags = null,
+        bool changeCurrentDirectory = false)
     {
         containerPath ??= this.fileSystem.Directory.GetCurrentDirectory();
 
-        var volumeManager = new VolumeManager(this.fileSystem);
-        return volumeManager.CreateNewAsync(title, containerPath, moniker, tags);
+        var volumeManager = this.CreateVolumeManager();
+        var info = await volumeManager.CreateNewAsync(title, containerPath, moniker, tags);
+
+        if (changeCurrentDirectory)
+            this.fileSystem.Directory.SetCurrentDirectory(info.Path);
+
+        return info;
     }
+
+    private VolumeManager CreateVolumeManager() => new VolumeManager(this.fileSystem);
 
     private Task<LibraryInfo> SetupLibrary(string? path = null)
     {

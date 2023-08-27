@@ -7,6 +7,7 @@ using Tandoku.Packaging;
 public sealed class VolumeManager
 {
     private const string VolumeDefinitionFileName = "volume.yaml";
+    private const string VolumeDefinitionPartName = "definition";
 
     private readonly IFileSystem fileSystem;
 
@@ -56,10 +57,17 @@ public sealed class VolumeManager
         var (definitionFile, definition) = await packager.ReadPackagePart<VolumeDefinition>(
             volumeDirectory,
             VolumeDefinitionFileName,
-            "definition");
+            VolumeDefinitionPartName);
 
         return new VolumeInfo(volumeDirectory.FullName, version, definitionFile.FullName, definition);
+    }
 
+    public async Task SetDefinitionAsync(string volumePath, VolumeDefinition definition)
+    {
+        var packager = CreatePackager();
+        var volumeDirectory = this.fileSystem.GetDirectory(volumePath);
+
+        await packager.WritePackagePart(volumeDirectory, VolumeDefinitionFileName, definition);
     }
 
     public IEnumerable<string> GetVolumeDirectories(string path, ExpandedScope expandScope = ExpandedScope.None)

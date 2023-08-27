@@ -28,8 +28,4 @@
     <ProjectReference Include="..\Tandoku.Core.Tests\Tandoku.Core.Tests.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Snapshots\" />
-  </ItemGroup>
-
 </Project>
