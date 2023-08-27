@@ -23,8 +23,8 @@ public sealed partial class Program
         {
             pathsArgument,
             fileNameOption,
-            volumeBinder.VolumeOption,
         };
+        volumeBinder.AddToCommand(command);
 
         command.SetHandler(async (paths, fileName, volumeDirectory) =>
         {

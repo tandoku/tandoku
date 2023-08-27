@@ -51,13 +51,13 @@ public sealed partial class Program
     private Command CreateVolumeInfoCommand()
     {
         var volumeBinder = this.CreateVolumeBinder();
-        var jsonOutputOption = new Option<bool>(new[] { "--json-output" }, "Output results as JSON"); // TODO: move to common
+        var jsonOutputOption = new Option<bool>(new[] { "--json-output" }, "Output results as JSON"); // TODO: move to common, or global option (rootCommand.AddGlobalOption)
 
         var command = new Command("info", "Displays information about the current or specified volume")
         {
-            volumeBinder.VolumeOption,
             jsonOutputOption,
         };
+        volumeBinder.AddToCommand(command);
 
         command.SetHandler(async (volumeDirectory, jsonOutput) =>
         {
@@ -110,8 +110,8 @@ public sealed partial class Program
         {
             propertyArgument,
             valueArgument,
-            volumeBinder.VolumeOption,
         };
+        volumeBinder.AddToCommand(command);
 
         command.SetHandler(async (property, value, volumeDirectory) =>
         {
@@ -164,27 +164,33 @@ public sealed partial class Program
 
     private VolumeBinder CreateVolumeBinder() => new(this.fileSystem, this.CreateVolumeManager);
 
+    // TODO: change this to return a VolumeContext (or maybe VolumeLocation) wrapper object rather than IDirectoryInfo
+    // (VolumeManager APIs should all accept this instead)
     private sealed class VolumeBinder : BinderBase<IDirectoryInfo>
     {
         private readonly IFileSystem fileSystem;
         private readonly Func<VolumeManager> createVolumeManager;
+        private readonly Option<DirectoryInfo?> volumeOption;
 
         internal VolumeBinder(IFileSystem fileSystem, Func<VolumeManager> createVolumeManager)
         {
             this.fileSystem = fileSystem;
             this.createVolumeManager = createVolumeManager;
 
-            this.VolumeOption = new Option<DirectoryInfo?>(
+            this.volumeOption = new Option<DirectoryInfo?>(
                 new[] { "--volume", "-v" },
                 "Volume directory path")
                 .LegalFilePathsOnly();
         }
 
-        internal Option<DirectoryInfo?> VolumeOption { get; }
+        public void AddToCommand(Command command)
+        {
+            command.Add(this.volumeOption);
+        }
 
         protected override IDirectoryInfo GetBoundValue(BindingContext bindingContext)
         {
-            var directoryInfo = bindingContext.ParseResult.GetValueForOption(this.VolumeOption);
+            var directoryInfo = bindingContext.ParseResult.GetValueForOption(this.volumeOption);
 
             var volumeManager = this.createVolumeManager();
 
