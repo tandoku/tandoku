@@ -29,6 +29,7 @@ if ($VolumePath) {
 
 # TODO: add JSON output instead of string parsing
 # also check for error output properly
+# and move this into common utility for calling tandoku and processing JSON/error output
 $tandokuSourceImportOut = (& 'tandoku' $sourceImportArgs)
 if ($tandokuSourceImportOut -match 'Added (.+)$') {
     $itemPath = $Matches[1]
