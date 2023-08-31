@@ -1,18 +1,19 @@
 param(
-    [Parameter()]
-    $Path = '.'
+    [Parameter(Mandatory=$true)]
+    [String]
+    $Path
 )
 
-# TODO: use $Path directly if it is a file, or check for metadata.opf child item if it is a directory
+function GetElementText($el) {
+    return $el -is [System.Xml.XmlElement] ? $el.'#text' : [string]$el
+}
 
-$opfPath = (Get-Item "$Path/metadata.opf")
-if ($opfPath) {
-    $xml = [xml] (Get-Content $opfPath)
+$xml = [xml] (Get-Content $Path)
+if ($xml) {
     $obj = [PSCustomObject] @{
-        title = $xml.package.metadata.title
-        asin = ($xml.package.metadata.identifier | Where-Object scheme -eq 'MOBI-ASIN').'#text'
+        # TODO: extract additional metadata (ISBN, creator, publisher, file-as for each, language, book-type, primary-writing-mode, original-resolution)
+        title = GetElementText $xml.package.metadata.title
+        asin = GetElementText ($xml.package.metadata.identifier | Where-Object scheme -eq 'MOBI-ASIN')
     }
     return $obj
-} else {
-    Write-Error "No metadata.opf file at specified path $Path"
 }

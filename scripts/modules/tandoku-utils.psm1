@@ -46,4 +46,18 @@ function MapToPSDriveAlias {
     return $path
 }
 
+function InvokeTandokuCommand {
+    $tandokuArgs = ($args.Length -eq 1 -and $args[0] -is [Array]) ? $args[0] : $args
+
+    $tandokuArgs += '--json-output'
+
+    $tandokuOut = (& 'tandoku' $tandokuArgs) | Out-String
+    if ($tandokuOut) {
+        return (ConvertFrom-Json $tandokuOut)
+    } else {
+        # TODO: capture error output? (or just let it go to console?)
+        return
+    }
+}
+
 Export-ModuleMember -Function *

@@ -31,12 +31,7 @@ if (-not $metadataPath) {
     return
 }
 
-$meta = TandokuCalibreExtractMeta -Path $Path
-if (-not $meta) {
-    return
-}
-
-$volumeInfo = TandokuVolumeNew -Title $meta.title -Moniker $Moniker -Tags $Tags
+$volumeInfo = TandokuVolumeNew -Moniker $Moniker -Tags $Tags
 if (-not $volumeInfo) {
     return
 }
@@ -46,14 +41,15 @@ $sourceMetadata = TandokuSourceImport -Path $metadataPath -VersionControl text -
 $sourceCover = TandokuSourceImport -Path $coverPath -VersionControl binary -VolumePath $volumePath
 $sourceBook = TandokuSourceImport -Path $azwPath -FileName source.azw3 -VersionControl binary -VolumePath $volumePath
 
-TandokuKindleStoreExtractMeta -Asin $meta.asin -OutFile "$volumePath/source/kindle-metadata.xml" -KindleStoreMetadataPath $KindleStoreMetadataPath
-
 TandokuVolumeSetCover -Path $sourceCover -VolumePath $volumePath
 
-TandokuCalibreImportMeta -VolumePath $volumePath
-
-# TODO: these should probably be part of 'tandoku build' later?
 TandokuKindleUnpack -Path $sourceBook -Destination "$volumePath/temp/mobi"
+
+TandokuCalibreImportMeta -Path $sourceMetadata,"$volumePath/temp/mobi/mobi8/OEBPS/content.opf" -VolumePath $volumePath
+
+# TODO: TandokuVolumeRename
+
+# TODO: should this be part of 'tandoku build' later?
 TandokuImagesImport -Path "$volumePath/temp/mobi/mobi8/OEBPS/Images/" -VolumePath $volumePath
 
 # TODO: add -Commit switch to commit to source control?

@@ -1,8 +1,8 @@
 param(
-    # TODO: not mandatory
-    [Parameter(Mandatory=$true)]
+    # TODO: no default
+    [Parameter()]
     [String]
-    $Title,
+    $Title = "temporary",
 
     [Parameter()]
     [String]
