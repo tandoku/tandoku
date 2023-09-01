@@ -17,6 +17,8 @@ public sealed partial class Program
     private readonly IFileSystem fileSystem;
     private readonly IEnvironment environment;
 
+    private readonly Option<bool> jsonOutputOption = new(new[] { "--json-output" }, "Output results as JSON");
+
     public Program(
         IConsole? console = null,
         IFileSystem? fileSystem = null,
@@ -91,8 +93,9 @@ public sealed partial class Program
         }
     }
 
-    private RootCommand CreateRootCommand() =>
-        new("Command-line interface for tandoku")
+    private RootCommand CreateRootCommand()
+    {
+        var rootCommand = new RootCommand("Command-line interface for tandoku")
         {
             this.CreateLibraryCommand(),
             this.CreateVolumeCommand(),
@@ -107,6 +110,9 @@ public sealed partial class Program
 
             Demos.CreateCommand(),
         };
+        rootCommand.AddGlobalOption(this.jsonOutputOption);
+        return rootCommand;
+    }
 
     // Legacy commands
 

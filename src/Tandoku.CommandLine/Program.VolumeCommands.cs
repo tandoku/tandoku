@@ -3,8 +3,6 @@
 using System.CommandLine;
 using System.CommandLine.Binding;
 using System.IO.Abstractions;
-using System.Text.Encodings.Web;
-using System.Text.Json;
 using Tandoku.Volume;
 
 public sealed partial class Program
@@ -51,12 +49,8 @@ public sealed partial class Program
     private Command CreateVolumeInfoCommand()
     {
         var volumeBinder = this.CreateVolumeBinder();
-        var jsonOutputOption = new Option<bool>(new[] { "--json-output" }, "Output results as JSON"); // TODO: move to common, or global option (rootCommand.AddGlobalOption)
 
-        var command = new Command("info", "Displays information about the current or specified volume")
-        {
-            jsonOutputOption,
-        };
+        var command = new Command("info", "Displays information about the current or specified volume");
         volumeBinder.AddToCommand(command);
 
         command.SetHandler(async (volumeDirectory, jsonOutput) =>
@@ -67,16 +61,7 @@ public sealed partial class Program
             {
                 // TODO: use VolumeInfo directly, or copy to a JSON serializable object?
                 //       Promote Version property or add JsonConverter for VolumeVersion (probably can't inherit from interface?)
-
-                // TODO: move this to IJsonSerializable? Or static helper?
-                // should have common infra for writing JSON output from CLI commands
-                var options = new JsonSerializerOptions
-                {
-                    Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                    WriteIndented = true,
-                };
-                this.console.WriteLine(JsonSerializer.Serialize(info, options));
+                this.console.WriteJsonOutput(info);
             }
             else
             {
@@ -89,7 +74,7 @@ public sealed partial class Program
                 //this.console.WriteLine($"Reference language: {info.Definition.ReferenceLanguage.ToOutputString()}");
                 this.console.WriteLine($"Tags: {info.Definition.Tags.ToOutputString()}");
             }
-        }, volumeBinder, jsonOutputOption);
+        }, volumeBinder, this.jsonOutputOption);
 
         return command;
     }
