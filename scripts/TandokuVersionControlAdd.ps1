@@ -3,9 +3,8 @@ param(
     [String[]]
     $Path,
 
-    # TODO: add 'auto' value, only allowed if $Path already exists, checks for $Path.dvc file to determine if binary
     [Parameter(Mandatory=$true)]
-    [ValidateSet('text', 'binary', 'ignore')]
+    [ValidateSet('text', 'binary', 'auto', 'ignore')]
     [String]
     $Kind
 )
@@ -13,4 +12,14 @@ param(
 switch ($Kind) {
     'text' { git add $Path }
     'binary' { dvc add $Path }
+    'auto' {
+        # TODO: check that each $Path already exists, check for $Path.dvc file to determine if binary (***for directories as well***)
+        if ($Path.Count -eq 1 -and (Test-Path $Path -PathType Container)) {
+            # Note: this assumes any binary files under directory have already been added individually
+            # This should only be used to handle directory renames
+            git add $Path
+        } else {
+            Write-Error "Not implemented: auto for multiple/non-directory paths"
+        }
+    }
 }

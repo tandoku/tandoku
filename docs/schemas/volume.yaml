@@ -1,0 +1,9 @@
+# TODO: currently just title: <...>
+title:
+  en: <...>
+  ja: <...>
+  ja-Kana: <...> # note - per ISO 15924 this is specifically katakana (Hira is hiragana, Hrkt is mixed kana)
+  ja-Latn: <...>
+moniker: text
+language: text
+tags: [text, text, ...]

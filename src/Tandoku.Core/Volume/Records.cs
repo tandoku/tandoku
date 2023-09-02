@@ -5,3 +5,5 @@ public sealed record VolumeInfo(
     VolumeVersion Version,
     string DefinitionPath,
     VolumeDefinition Definition);
+
+public sealed record RenameResult(string OriginalPath, string RenamedPath);

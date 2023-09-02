@@ -117,6 +117,8 @@ tags: [tag1, tag2]");
         await this.RunAndVerifyAsync("volume set invalid-property some-value");
     }
 
+    // TODO: add tests for tandoku volume rename
+
     [Theory]
     [InlineData(null)]
     [InlineData(".")]

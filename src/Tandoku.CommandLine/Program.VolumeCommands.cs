@@ -13,6 +13,7 @@ public sealed partial class Program
             this.CreateVolumeNewCommand(),
             this.CreateVolumeInfoCommand(),
             this.CreateVolumeSetCommand(),
+            this.CreateVolumeRenameCommand(),
             this.CreateVolumeListCommand(),
         };
 
@@ -109,6 +110,31 @@ public sealed partial class Program
             };
             await volumeManager.SetDefinitionAsync(volumeDirectory.FullName, modifiedDefinition);
         }, propertyArgument, valueArgument, volumeBinder);
+
+        return command;
+    }
+
+    private Command CreateVolumeRenameCommand()
+    {
+        var volumeBinder = this.CreateVolumeBinder();
+
+        var command = new Command("rename", "Renames the current or specified volume to match definition metadata");
+        volumeBinder.AddToCommand(command);
+
+        command.SetHandler(async (volumeDirectory, jsonOutput) =>
+        {
+            var volumeManager = this.CreateVolumeManager();
+            var result = await volumeManager.RenameVolumeDirectory(volumeDirectory.FullName);
+            if (jsonOutput)
+            {
+                // TODO: use result directly, or copy to a JSON serializable object?
+                this.console.WriteJsonOutput(result);
+            }
+            else
+            {
+                this.console.WriteLine($"Renamed {result.OriginalPath} to {result.RenamedPath}");
+            }
+        }, volumeBinder, this.jsonOutputOption);
 
         return command;
     }

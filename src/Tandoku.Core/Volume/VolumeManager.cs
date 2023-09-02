@@ -50,6 +50,11 @@ public sealed class VolumeManager
 
     public async Task<VolumeInfo> GetInfoAsync(string volumePath)
     {
+        return (await this.GetInfoAsyncCore(volumePath)).VolumeInfo;
+    }
+
+    private async Task<(VolumeInfo VolumeInfo, IDirectoryInfo VolumeDirectory)> GetInfoAsyncCore(string volumePath)
+    {
         var packager = CreatePackager();
         var volumeDirectory = this.fileSystem.GetDirectory(volumePath);
         var version = await packager.GetPackageMetadataAsync(volumeDirectory);
@@ -59,7 +64,7 @@ public sealed class VolumeManager
             VolumeDefinitionFileName,
             VolumeDefinitionPartName);
 
-        return new VolumeInfo(volumeDirectory.FullName, version, definitionFile.FullName, definition);
+        return (new VolumeInfo(volumeDirectory.FullName, version, definitionFile.FullName, definition), volumeDirectory);
     }
 
     public async Task SetDefinitionAsync(string volumePath, VolumeDefinition definition)
@@ -68,6 +73,24 @@ public sealed class VolumeManager
         var volumeDirectory = this.fileSystem.GetDirectory(volumePath);
 
         await packager.WritePackagePart(volumeDirectory, VolumeDefinitionFileName, definition);
+    }
+
+    public async Task<RenameResult> RenameVolumeDirectory(string volumePath)
+    {
+        var (info, volumeDirectory) = await this.GetInfoAsyncCore(volumePath);
+
+        var newName = this.GetVolumeDirectoryName(info.Definition.Title, info.Definition.Moniker);
+
+        if (newName.Equals(volumeDirectory.Name))
+            return new RenameResult(volumeDirectory.Name, volumeDirectory.Name);
+
+        var oldPath = volumeDirectory.FullName; // capture this since it will change after MoveTo()
+        var newPath = volumeDirectory.Parent?.GetPath(newName) ??
+            throw new InvalidOperationException("Cannot rename volume in a root directory.");
+
+        volumeDirectory.MoveTo(newPath);
+
+        return new RenameResult(oldPath, newPath);
     }
 
     public IEnumerable<string> GetVolumeDirectories(string path, ExpandedScope expandScope = ExpandedScope.None)

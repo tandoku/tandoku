@@ -90,6 +90,8 @@ tags: [tag-1, tag-2]");
         info.Definition.Should().BeEquivalentTo(modifiedDefinition);
     }
 
+    // TODO: add tests for RenameVolumeDirectory
+
     [Fact]
     public async Task GetVolumeDirectories()
     {
