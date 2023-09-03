@@ -43,9 +43,9 @@ param(
 # (or install substudy binary to PATH from https://github.com/emk/subtitles-rs/releases)
 # Install-Module powerhtml
 
-function GetSubtitleItem($baseName, $lang) {
+function GetSubtitleItem($subPath, $baseName, $lang) {
     $filter = "$baseName.$lang*.srt"
-    $item = Get-ChildItem $SubtitlePath -Filter $filter
+    $item = Get-ChildItem $subPath -Filter $filter
     if (-not $item) {
         Write-Warning "Could not find $filter, skipping"
         return
@@ -59,6 +59,9 @@ if (-not $Language) {
 if (-not $ReferenceLanguage) {
     $ReferenceLanguage = 'en'
 }
+if (-not $ReferenceSubtitlePath) {
+    $ReferenceSubtitlePath = $SubtitlePath
+}
 
 $audioTag = ($NoAudio ? '-noaudio' : '')
 
@@ -69,8 +72,8 @@ $items = @()
 Get-ChildItem $Path -Filter *.mp4 |
     ForEach-Object {
         $baseName = Split-Path $_ -LeafBase
-        $sub1 = GetSubtitleItem $baseName $Language
-        $sub2 = GetSubtitleItem $baseName $ReferenceLanguage
+        $sub1 = GetSubtitleItem $SubtitlePath $baseName $Language
+        $sub2 = GetSubtitleItem $ReferenceSubtitlePath $baseName $ReferenceLanguage
 
         Push-Location $Destination
         substudy export review $_ $sub1 $sub2
