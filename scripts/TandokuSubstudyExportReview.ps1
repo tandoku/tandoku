@@ -81,8 +81,12 @@ Get-ChildItem $Path -Filter *.mp4 |
         $reviewPath = Convert-Path "$($baseName)_review"
         $indexPath = Join-Path $reviewPath 'index.html'
         $html = ConvertFrom-Html -Path $indexPath
+
+        $html.SelectSingleNode('html/head/link[@href="style.css"]').Attributes['href'].Value = 'ebook-style.css'
+
         $html.SelectNodes('html/body/div/img[@class="play-button"]') |
             ForEach-Object { $_.Remove() }
+
         if ($NoAudio) {
             $html.SelectNodes('html/body/div/audio') |
                 ForEach-Object { $_.Remove() }
@@ -90,6 +94,18 @@ Get-ChildItem $Path -Filter *.mp4 |
 
         $ebookIndexPath = Join-Path $reviewPath "ebook-index$audioTag.html"
         Set-Content $ebookIndexPath $html.OuterHtml
+
+        $ebookStylePath = Join-Path $reviewPath 'ebook-style.css'
+        Set-Content $ebookStylePath @'
+.subtitle .text p {
+  margin: 0 0 15px 0;
+}
+
+.subtitle .native {
+  font-style: italic;
+  font-size: 10pt;
+}
+'@
 
         if ($Combine) {
             $items += @{
