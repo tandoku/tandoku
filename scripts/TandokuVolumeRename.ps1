@@ -15,4 +15,5 @@ $result = InvokeTandokuCommand $volumeRenameArgs
 if ($result) {
     TandokuVersionControlAdd $result.OriginalPath -Kind auto
     TandokuVersionControlAdd $result.RenamedPath -Kind auto
+    return $result
 }

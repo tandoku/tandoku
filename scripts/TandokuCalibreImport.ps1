@@ -47,9 +47,13 @@ TandokuKindleUnpack -Path $sourceBook -Destination "$volumePath/temp/mobi"
 
 TandokuCalibreImportMeta -Path $sourceMetadata,"$volumePath/temp/mobi/mobi8/OEBPS/content.opf" -VolumePath $volumePath
 
-# TODO: TandokuVolumeRename
+$renameResult = TandokuVolumeRename -VolumePath $volumePath
+if (-not $renameResult) {
+    Write-Error 'Volume rename failed, aborting'
+    return
+}
+$volumePath = $renameResult.RenamedPath
 
-# TODO: should this be part of 'tandoku build' later?
 TandokuImagesImport -Path "$volumePath/temp/mobi/mobi8/OEBPS/Images/" -VolumePath $volumePath
 
 # TODO: add -Commit switch to commit to source control?
