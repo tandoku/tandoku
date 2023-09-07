@@ -37,9 +37,12 @@ if (-not $volumeInfo) {
 }
 $volumePath = $volumeInfo.VolumePath
 
+$metadata = TandokuCalibreExtractMeta $metadataPath
+$sourceBookName = $metadata.asin ?? 'source'
+
 $sourceMetadata = TandokuSourceImport -Path $metadataPath -VersionControl text -VolumePath $volumePath
 $sourceCover = TandokuSourceImport -Path $coverPath -VersionControl binary -VolumePath $volumePath
-$sourceBook = TandokuSourceImport -Path $azwPath -FileName source.azw3 -VersionControl binary -VolumePath $volumePath
+$sourceBook = TandokuSourceImport -Path $azwPath -FileName "$sourceBookName.azw3" -VersionControl binary -VolumePath $volumePath
 
 TandokuVolumeSetCover -Path $sourceCover -VolumePath $volumePath
 
