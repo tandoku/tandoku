@@ -1,9 +1,6 @@
-param(
-    [Parameter()]
-    [ValidateSet('', 'hardlink', 'symlink')]
-    [String]
-    $CacheType
-)
+# TODO: Require-Command git, dvc
+# Prerequisites:
+# scoop install dvc
 
 # Set up git if needed
 if (-not (Test-Path .git)) {
@@ -18,19 +15,15 @@ git add .gitignore
 
 # Set up dvc
 
-# Prerequisites:
-# scoop install dvc
-
 # Note that symlink requires special user privilege on Windows which can be assigned by using the
-# official dvc installer (can uninstall and reinstall with scoop afterwards)
+# official dvc installer (can uninstall and reinstall with scoop afterwards).
+# This is only required if cache will be stored on separate partition or drive.
 
 dvc init
 
 dvc config core.autostage true
 git add .dvc/config
 
-if ($CacheType) {
-    dvc config cache.type "reflink,$CacheType,copy" --local
-}
+dvc config cache.type reflink,hardlink,symlink,copy --local
 
 Write-Host "Use `dvc remote add` to set up remote storage"
