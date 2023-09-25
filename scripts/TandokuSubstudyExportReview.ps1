@@ -137,7 +137,7 @@ if ($Combine) {
 "@
     $inner = @()
     foreach ($i in $items) {
-        $inner += "<li><a href='$($i.RelativePath)'>$($i.Title)</a></li>"
+        $inner += "<li><a href='$([System.Web.HttpUtility]::HtmlAttributeEncode($i.RelativePath))'>$($i.Title)</a></li>"
     }
     $html.SelectSingleNode('html/body/p').InnerHtml = $inner -join [Environment]::NewLine
 
