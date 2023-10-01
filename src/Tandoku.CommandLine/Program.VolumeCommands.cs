@@ -194,6 +194,8 @@ public sealed partial class Program
                 .LegalFilePathsOnly();
         }
 
+        // TODO: have this implement an interface and expose an extension method on command that can add multiple binders at once
+        // i.e. command.Add(volumeBinder) => calls volumeBinder.AddToCommand(command)
         public void AddToCommand(Command command)
         {
             command.Add(this.volumeOption);

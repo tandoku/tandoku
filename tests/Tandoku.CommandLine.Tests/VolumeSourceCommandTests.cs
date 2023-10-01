@@ -6,8 +6,10 @@ using Tandoku.Volume;
 [UsesVerify]
 public class VolumeSourceCommandTests : CliTestBase
 {
-    [Fact]
-    public async Task Import()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Import(bool jsonOutput)
     {
         var externalFilePath = this.fileSystem.Path.Join(
             this.fileSystem.Directory.GetCurrentDirectory(),
@@ -18,13 +20,15 @@ public class VolumeSourceCommandTests : CliTestBase
         var volumeInfo = await this.SetupVolume();
         this.fileSystem.Directory.SetCurrentDirectory(volumeInfo.Path);
 
-        await this.RunAndVerifyAsync(@$"source import ""{externalFilePath}""");
+        await this.RunAndVerifyAsync(@$"source import ""{externalFilePath}""", jsonOutput);
         this.fileSystem.GetFile(this.ToFullPath("sample volume", "source", "volume-source.txt")).TextContents.TrimEnd()
             .Should().Be("source file content");
     }
 
-    [Fact]
-    public async Task ImportWithFileName()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ImportWithFileName(bool jsonOutput)
     {
         var externalFilePath = this.fileSystem.Path.Join(
             this.fileSystem.Directory.GetCurrentDirectory(),
@@ -35,7 +39,7 @@ public class VolumeSourceCommandTests : CliTestBase
         var volumeInfo = await this.SetupVolume();
         this.fileSystem.Directory.SetCurrentDirectory(volumeInfo.Path);
 
-        await this.RunAndVerifyAsync(@$"source import ""{externalFilePath}"" --filename src.txt");
+        await this.RunAndVerifyAsync(@$"source import ""{externalFilePath}"" --filename src.txt", jsonOutput);
         this.fileSystem.GetFile(this.ToFullPath("sample volume", "source", "src.txt")).TextContents.TrimEnd()
             .Should().Be("source file content");
     }

@@ -26,18 +26,25 @@ public sealed partial class Program
         };
         volumeBinder.AddToCommand(command);
 
-        command.SetHandler(async (paths, fileName, volumeDirectory) =>
+        command.SetHandler(async (paths, fileName, volumeDirectory, jsonOutput) =>
         {
             var volumeManager = this.CreateVolumeManager();
             var volumeInfo = await volumeManager.GetInfoAsync(volumeDirectory.FullName);
             var sourceManager = this.CreateSourceManager(volumeInfo);
             var importedFiles = await sourceManager.ImportFilesAsync(paths.Select(p => p.FullName), fileName);
-            foreach (var importedFile in importedFiles)
-                this.console.WriteLine($"Added {importedFile}");
-        }, pathsArgument, fileNameOption, volumeBinder);
+            if (jsonOutput)
+            {
+                this.console.WriteJsonOutput(importedFiles);
+            }
+            else
+            {
+                foreach (var importedFile in importedFiles)
+                    this.console.WriteLine($"Added {importedFile}");
+            }
+        }, pathsArgument, fileNameOption, volumeBinder, this.jsonOutputOption);
 
         return command;
     }
 
-    private SourceManager CreateSourceManager(VolumeInfo volumeInfo) => new SourceManager(volumeInfo, this.fileSystem);
+    private SourceManager CreateSourceManager(VolumeInfo volumeInfo) => new(volumeInfo, this.fileSystem);
 }
