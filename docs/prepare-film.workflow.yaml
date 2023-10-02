@@ -7,30 +7,39 @@ artifacts:
       May or may not include language in filename (e.g. subtitle.ja.srt).
       Should be in a supported subtitle format (.srt, .ass, .vtt).
     container: volume
-    location: source/{lang}/
+    location: source/{reflang?}/
     sourceControl: binary
+
+  src_plain_subtitle:
+    summary: |-
+      Plain subrip (.srt) subtitle with no formatting or overlapping timecodes.
+      May or may not include language in filename (e.g. subtitle.ja.srt).
+      Should be in a supported subtitle format (.srt, .ass, .vtt).
+    container: volume
+    location: source/{reflang?}/plain/
+    sourceControl: text
 
   initial_subtitle:
     summary: |-
       Subtitle file renamed according to volume slug.
       Always includes language in filename (e.g. subtitle.ja.srt).
     container: volume
-    location: subtitles/{lang}/initial/
+    location: subtitles/{reflang?}/00-initial/
     sourceControl: text
   clean_subtitle:
     container: volume
-    location: subtitles/{lang}/clean/
+    location: subtitles/{reflang?}/10-clean/
     sourceControl: text
   aligned_subtitle:
     container: volume
-    location: subtitles/{lang}/aligned/
+    location: subtitles/{reflang?}/20-aligned/
     sourceControl: text
   final_subtitle:
     container: volume
-    location: subtitles/{lang}/
+    location: subtitles/{reflang?}/ff-final/
     sourceControl: text
     notes: |-
-      TBD - append /final/ subdirectory?
+      TBD - is the /ff-final/ directory needed to use dvc pipelines? Remove later?
 
   src_video:
     container: volume
@@ -40,18 +49,18 @@ artifacts:
     summary: |-
       Video file renamed according to volume slug.
     container: volume
-    location: video/initial/
+    location: video/00-initial/
     sourceControl: binary
   clean_video:
     container: volume
-    location: video/clean/
+    location: video/10-clean/
     sourceControl: binary
   final_video:
     container: volume
-    location: video/
+    location: video/ff-final/
     sourceControl: binary
     notes: |-
-      TBD - append /final/ subdirectory?
+      TBD - is the /ff-final/ directory needed to use dvc pipelines? Remove later?
 
   exported_video:
     container: staging
@@ -78,7 +87,7 @@ artifacts:
     sourceControl: ignore
   subs2cia_content:
     container: volume
-    location: content/subs2cia/
+    location: content/50-subs2cia/
     sourceControl: text
 
   audio_clips:

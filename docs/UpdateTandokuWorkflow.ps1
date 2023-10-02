@@ -122,9 +122,9 @@ if ($OutFile) {
 }
 
 if ($ShowGraph) {
-    # TODO: find dot.exe path dynamically (Get-Command?)
     # TODO: add option to cleanup temp files (rm $env:temp\*.*.svg)
-    $graph | Show-PSGraph -GraphVizPath ~\scoop\shims\dot.exe -OutputFormat svg
+    $dotPath = (Get-Command dot).Source
+    $graph | Show-PSGraph -GraphVizPath $dotPath -OutputFormat svg
 }
 
 if (-not $OutFile -and -not $ShowGraph) {

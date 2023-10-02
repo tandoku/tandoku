@@ -3,41 +3,43 @@ artifacts:
   src_any_original:
     summary: Original source file in unsupported format, to be converted to supported format.
     container: volume
-    location: source/{lang}/original/
+    location: source/{reflang?}/original/
     sourceControl: binary
   src_any_investigate:
     summary: Source files to investigate.
     container: volume
-    location: source/{lang}/investigate/
+    location: source/{reflang?}/investigate/
     sourceControl: binary
   src_any_unused:
     summary: Source files that are currently unused.
     container: volume
-    location: source/{lang}/unused/
+    location: source/{reflang?}/unused/
     sourceControl: binary
 
   initial_content:
     container: volume
-    location: content/{lang}/initial/
+    location: content/{reflang?}/00-initial/
     sourceControl: text
   transformed_content:
     container: volume
-    location: content/{lang}/transformed/
+    location: content/{reflang?}/20-transformed/
     sourceControl: text
   merged_content:
     container: volume
-    location: content/merged/
+    location: content/40-merged/
     sourceControl: text
   tokenized_content:
     container: volume
-    location: content/tokenized/
+    location: content/90-tokenized/
     sourceControl: text
   final_content:
     container: volume
-    location: content/
+    location: content/ff-final/
     sourceControl: text
     notes: |-
-      TBD - append /final/ subdirectory?
+      TBD - is the /ff-final/ directory needed to use dvc pipelines? Remove later?
+      But also - not sure if 'final' content really makes sense at least for now.
+      Individual workflows should probably depend directly on needed stages.
 
   images:
     container: volume
