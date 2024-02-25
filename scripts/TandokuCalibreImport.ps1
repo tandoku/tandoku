@@ -57,6 +57,7 @@ if (-not $renameResult) {
 }
 $volumePath = $renameResult.RenamedPath
 
+# TODO: check for comic/picture book type before doing this
 TandokuImagesImport -Path "$volumePath/temp/mobi/mobi8/OEBPS/Images/" -VolumePath $volumePath
 
 # TODO: add -Commit switch to commit to source control?
