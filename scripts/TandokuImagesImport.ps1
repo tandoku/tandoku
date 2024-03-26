@@ -3,13 +3,20 @@ param(
     [String]
     $Path,
 
-    # TODO: not mandatory (infer if not specified)
-    [Parameter(Mandatory=$true)]
+    [Parameter()]
     [String]
     $VolumePath
 )
 
-[void] (mkdir "$VolumePath/images")
+$volume = TandokuVolumeInfo -VolumePath $VolumePath
+if (-not $volume) {
+    return
+}
+$volumePath = $volume.path
+
+if (-not (Test-Path "$VolumePath/images")) {
+    [void] (New-Item "$VolumePath/images" -ItemType Directory)
+}
 $target = Copy-Item -Path "$Path/*.jpeg" -Destination "$VolumePath/images/" -PassThru
 $target += Copy-Item -Path "$Path/*.jpg" -Destination "$VolumePath/images/" -PassThru
 
