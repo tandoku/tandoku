@@ -23,9 +23,7 @@ function GenerateMarkdown($contentPath, $targetDirectory) {
             $imagePath = Join-Path $volumePath "images/$imageName"
             $imageRelativePath = [IO.Path]::GetRelativePath($targetDirectory, $imagePath)
             # TODO - factor this out (try using Uri class)
-            # also may need to deal with spaces and/or avoid escaping altogether by renaming images
-            # (current format not working with pandoc)
-            $imageUrl = $imageRelativePath.Replace('\', '/').Replace('(', '%28').Replace(')', '%29')
+            $imageUrl = $imageRelativePath.Replace('\', '/').Replace('(', '%28').Replace(')', '%29').Replace(' ', '%20')
             Write-Output "![$heading]($imageUrl)"
             Write-Output ''
         }
