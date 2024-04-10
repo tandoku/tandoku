@@ -56,9 +56,14 @@ if (-not $volume) {
 }
 $volumePath = $volume.path
 
-# TODO - add this as anpther property on volume info
+# TODO - add this as another property on volume info
 # also consider dropping the moniker from this (just the cleaned title)
+# Note - this is only needed when producing single merged .md file
 $volumeBaseFileName = Split-Path $volumePath -Leaf
+
+# TODO - use 'markdown' directory instead and subdirectories for format options
+# e.g. markdown/[split-][inlineref]
+#   or markdown/[nomerge-][nofootnotes]
 $targetDirectory = Join-Path $volumePath 'export'
 CreateDirectoryIfNotExists $targetDirectory
 $targetPath = Join-Path $targetDirectory "$volumeBaseFileName.md"
@@ -67,6 +72,7 @@ $contentFiles =
     @(Get-ChildItem "$volumePath/content" -Filter content.yaml) +
     @(Get-ChildItem "$volumePath/content" -Filter *.content.yaml)
 
+# TODO - Split/NoMerge option to generate .md file for each content file
 $contentFiles |
     Foreach-Object { GenerateMarkdown $_ $targetDirectory } |
     Set-Content $targetPath
