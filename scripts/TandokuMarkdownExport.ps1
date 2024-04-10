@@ -1,7 +1,11 @@
 param(
     [Parameter()]
     [String]
-    $VolumePath
+    $VolumePath,
+
+    [Parameter()]
+    [Switch]
+    $NoFootnotes
 )
 
 Import-Module "$PSScriptRoot/modules/tandoku-utils.psm1" -Scope Local
@@ -31,11 +35,18 @@ function GenerateMarkdown($contentPath, $targetDirectory) {
         # Text
         $blockText = $block.text
         $blockRefText = $block.references.en # TODO - should be references.en.text
-        $footnote += 1
-        Write-Output "$blockText [^$footnote]"
-        Write-Output ''
-        Write-Output "[^$footnote]: $blockRefText"
-        Write-Output ''
+        if ($NoFootnotes) {
+            Write-Output $blockText
+            Write-Output ''
+            Write-Output $blockRefText # TODO - add show/hide css
+            Write-Output ''
+        } else {
+            $footnote += 1
+            Write-Output "$blockText [^$footnote]"
+            Write-Output ''
+            Write-Output "[^$footnote]: $blockRefText"
+            Write-Output ''
+        }
     }
 }
 
