@@ -24,6 +24,7 @@ function GenerateMarkdown($contentPath, $targetDirectory) {
         # Image
         $imageName = $block.image.name
         if ($imageName) {
+            # TODO - write images paths relative to volume root (after ensuring pandoc will resolve paths from current directory)
             $imagePath = Join-Path $volumePath "images/$imageName"
             $imageRelativePath = [IO.Path]::GetRelativePath($targetDirectory, $imagePath)
             # TODO - factor this out (try using Uri class)
