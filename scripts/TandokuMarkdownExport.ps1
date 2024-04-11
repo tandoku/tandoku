@@ -4,8 +4,9 @@ param(
     $VolumePath,
 
     [Parameter()]
-    [Switch]
-    $NoFootnotes
+    [String]
+    [ValidateSet('None', 'Footnotes', 'BlurredText')]
+    $ReferenceTextStyle = 'None'
 )
 
 Import-Module "$PSScriptRoot/modules/tandoku-utils.psm1" -Scope Local
@@ -24,11 +25,9 @@ function GenerateMarkdown($contentPath, $targetDirectory) {
         # Image
         $imageName = $block.image.name
         if ($imageName) {
-            # TODO - write images paths relative to volume root (after ensuring pandoc will resolve paths from current directory)
-            $imagePath = Join-Path $volumePath "images/$imageName"
-            $imageRelativePath = [IO.Path]::GetRelativePath($targetDirectory, $imagePath)
+            $imagePath = "images/$imageName"
             # TODO - factor this out (try using Uri class)
-            $imageUrl = $imageRelativePath.Replace('\', '/').Replace('(', '%28').Replace(')', '%29').Replace(' ', '%20')
+            $imageUrl = $imagePath.Replace('(', '%28').Replace(')', '%29').Replace(' ', '%20')
             Write-Output "![$heading]($imageUrl)"
             Write-Output ''
         }
@@ -36,16 +35,33 @@ function GenerateMarkdown($contentPath, $targetDirectory) {
         # Text
         $blockText = $block.text
         $blockRefText = $block.references.en # TODO - should be references.en.text
-        if ($NoFootnotes) {
-            Write-Output $blockText
-            Write-Output ''
-            Write-Output $blockRefText # TODO - add show/hide css
-            Write-Output ''
-        } else {
+        if ($blockRefText) {
             $footnote += 1
-            Write-Output "$blockText [^$footnote]"
-            Write-Output ''
-            Write-Output "[^$footnote]: $blockRefText"
+            if ($ReferenceTextStyle -eq 'Footnotes') {
+                Write-Output "$blockText [^$footnote]"
+                Write-Output ''
+                Write-Output "[^$footnote]: $blockRefText"
+                Write-Output ''
+            } elseif ($ReferenceTextStyle -eq 'BlurredText') {
+                # references
+                # - https://www.w3docs.com/snippets/css/how-to-create-a-blurry-text-in-css.html
+                # - https://bernholdtech.blogspot.com/2013/04/very-simple-pure-css-collapsible-list.html
+
+                $blockRefHtml = (ConvertFrom-Markdown -InputObject $blockRefText).Html
+                $blockRefHtml = $blockRefHtml -replace '^<p>',"<p class='blurText'><label for='ref-en-$footnote'>"
+                $blockRefHtml = $blockRefHtml -replace '</p>$',"</label><input type='checkbox' id='ref-en-$footnote'/></p>"
+
+                Write-Output $blockText
+                Write-Output ''
+                Write-Output $blockRefHtml
+            } else {
+                Write-Output $blockText
+                Write-Output ''
+                Write-Output $blockRefText
+                Write-Output ''
+            }
+        } else {
+            Write-Output $blockText
             Write-Output ''
         }
     }
@@ -62,10 +78,12 @@ $volumePath = $volume.path
 # Note - this is only needed when producing single merged .md file
 $volumeBaseFileName = Split-Path $volumePath -Leaf
 
-# TODO - use 'markdown' directory instead and subdirectories for format options
-# e.g. markdown/[split-][inlineref]
-#   or markdown/[nomerge-][nofootnotes]
-$targetDirectory = Join-Path $volumePath 'export'
+$targetDirectory = Join-Path $volumePath 'markdown'
+if ($ReferenceTextStyle -eq 'Footnotes') {
+    $targetDirectory = Join-Path $targetDirectory 'footnotes'
+} elseif ($ReferenceTextStyle -eq 'BlurredText') {
+    $targetDirectory = Join-Path $targetDirectory 'blurrefs'
+}
 CreateDirectoryIfNotExists $targetDirectory
 $targetPath = Join-Path $targetDirectory "$volumeBaseFileName.md"
 
@@ -74,6 +92,7 @@ $contentFiles =
     @(Get-ChildItem "$volumePath/content" -Filter *.content.yaml)
 
 # TODO - Split/NoMerge option to generate .md file for each content file
+# (put this in a [split-] or [nomerge-] directory)
 $contentFiles |
     Foreach-Object { GenerateMarkdown $_ $targetDirectory } |
     Set-Content $targetPath
