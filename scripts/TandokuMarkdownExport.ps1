@@ -4,16 +4,20 @@ param(
     $VolumePath,
 
     [Parameter()]
+    [Switch]
+    $Merge,
+
+    [Parameter()]
     [String]
-    [ValidateSet('None', 'Footnotes', 'BlurredText')]
-    $ReferenceTextStyle = 'None'
+    [ValidateSet('None', 'Footnotes', 'BlurHtml')]
+    $ReferenceBehavior = 'None'
 )
 
 Import-Module "$PSScriptRoot/modules/tandoku-utils.psm1" -Scope Local
 
-function GenerateMarkdown($contentPath, $targetDirectory) {
+function GenerateMarkdown($contentPath) {
     $content = Get-Content $contentPath | ConvertFrom-Yaml -AllDocuments
-    $footnote = 0
+    $refIndex = 0
     foreach ($block in $content) {
         # Heading
         $heading = $block.source.block
@@ -25,9 +29,8 @@ function GenerateMarkdown($contentPath, $targetDirectory) {
         # Image
         $imageName = $block.image.name
         if ($imageName) {
-            $imagePath = "images/$imageName"
-            # TODO - factor this out (try using Uri class)
-            $imageUrl = $imagePath.Replace('(', '%28').Replace(')', '%29').Replace(' ', '%20')
+            $imageNameEncoded = [Uri]::EscapeDataString($imageName)
+            $imageUrl = "images/$imageNameEncoded"
             Write-Output "![$heading]($imageUrl)"
             Write-Output ''
         }
@@ -36,20 +39,20 @@ function GenerateMarkdown($contentPath, $targetDirectory) {
         $blockText = $block.text
         $blockRefText = $block.references.en # TODO - should be references.en.text
         if ($blockRefText) {
-            $footnote += 1
-            if ($ReferenceTextStyle -eq 'Footnotes') {
-                Write-Output "$blockText [^$footnote]"
+            $refIndex += 1
+            if ($ReferenceBehavior -eq 'Footnotes') {
+                Write-Output "$blockText [^$refIndex]"
                 Write-Output ''
-                Write-Output "[^$footnote]: $blockRefText"
+                Write-Output "[^$refIndex]: $blockRefText"
                 Write-Output ''
-            } elseif ($ReferenceTextStyle -eq 'BlurredText') {
+            } elseif ($ReferenceBehavior -eq 'BlurHtml') {
                 # references
                 # - https://www.w3docs.com/snippets/css/how-to-create-a-blurry-text-in-css.html
                 # - https://bernholdtech.blogspot.com/2013/04/very-simple-pure-css-collapsible-list.html
 
                 $blockRefHtml = (ConvertFrom-Markdown -InputObject $blockRefText).Html
-                $blockRefHtml = $blockRefHtml -replace '^<p>',"<p class='blurText'><label for='ref-en-$footnote'>"
-                $blockRefHtml = $blockRefHtml -replace '</p>$',"</label><input type='checkbox' id='ref-en-$footnote'/></p>"
+                $blockRefHtml = $blockRefHtml -replace '^<p>',"<p class='blurText'><input type='checkbox' id='ref-en-$refIndex'/><label for='ref-en-$refIndex'>"
+                $blockRefHtml = $blockRefHtml -replace '</p>$',"</label></p>"
 
                 Write-Output $blockText
                 Write-Output ''
@@ -67,32 +70,50 @@ function GenerateMarkdown($contentPath, $targetDirectory) {
     }
 }
 
+function GetTargetDirectory($volumePath) {
+    $targetDirectory = Join-Path $volumePath 'markdown'
+
+    $tags = @()
+    if ($Merge) {
+        $tags += "merged"
+    }
+    if ($ReferenceBehavior -ne 'None') {
+        $tags += "ref-$($ReferenceBehavior.ToLowerInvariant())"
+    }
+    if ($tags) {
+        $targetDirectory = Join-Path $targetDirectory ($tags -join '-')
+    }
+
+    return $targetDirectory
+}
+
 $volume = TandokuVolumeInfo -VolumePath $VolumePath
 if (-not $volume) {
     return
 }
 $volumePath = $volume.path
 
-# TODO - add this as another property on volume info
-# also consider dropping the moniker from this (just the cleaned title)
-# Note - this is only needed when producing single merged .md file
-$volumeBaseFileName = Split-Path $volumePath -Leaf
-
-$targetDirectory = Join-Path $volumePath 'markdown'
-if ($ReferenceTextStyle -eq 'Footnotes') {
-    $targetDirectory = Join-Path $targetDirectory 'footnotes'
-} elseif ($ReferenceTextStyle -eq 'BlurredText') {
-    $targetDirectory = Join-Path $targetDirectory 'blurrefs'
-}
+$targetDirectory = GetTargetDirectory $volumePath
 CreateDirectoryIfNotExists $targetDirectory
-$targetPath = Join-Path $targetDirectory "$volumeBaseFileName.md"
 
 $contentFiles =
     @(Get-ChildItem "$volumePath/content" -Filter content.yaml) +
     @(Get-ChildItem "$volumePath/content" -Filter *.content.yaml)
 
-# TODO - Split/NoMerge option to generate .md file for each content file
-# (put this in a [split-] or [nomerge-] directory)
-$contentFiles |
-    Foreach-Object { GenerateMarkdown $_ $targetDirectory } |
-    Set-Content $targetPath
+if ($Merge) {
+    # TODO - add this as another property on volume info
+    # also consider dropping the moniker from this (just the cleaned title)
+    $volumeBaseFileName = Split-Path $volumePath -Leaf
+    $targetPath = Join-Path $targetDirectory "$volumeBaseFileName.md"
+
+    $contentFiles |
+        Foreach-Object { GenerateMarkdown $_ } |
+        Set-Content $targetPath
+} else {
+    $contentFiles |
+        Foreach-Object {
+            $contentBaseName = Split-Path $_ -LeafBase
+            $targetPath = Join-Path $targetDirectory "$contentBaseName.md"
+            GenerateMarkdown $_ | Set-Content $targetPath
+        }
+}
