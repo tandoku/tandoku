@@ -25,6 +25,7 @@ $targetPath = Join-Path $targetDirectory "$volumeBaseFileName.epub"
 # pandoc resolves references to resources (e.g. images, audio) based on
 # the current working directory, not the directory of the input files
 Push-Location $VolumePath
+# TODO --file-scope causes epub output to have single xhtml file, need to renumber footnotes to avoid using --file-scope
 pandoc $markdownFiles -f commonmark+footnotes --file-scope -o $targetPath -t epub3 --metadata title="$($volume.definition.title)" --metadata author="tandoku" --metadata lang=ja
 Pop-Location
 
