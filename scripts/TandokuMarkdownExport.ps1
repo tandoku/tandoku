@@ -5,7 +5,7 @@ param(
 
     [Parameter()]
     [Switch]
-    $Merge,
+    $Combine,
 
     [Parameter()]
     [String]
@@ -17,7 +17,7 @@ Import-Module "$PSScriptRoot/modules/tandoku-utils.psm1" -Scope Local
 
 function GenerateMarkdown($contentPath) {
     $content = Get-Content $contentPath | ConvertFrom-Yaml -AllDocuments
-    $refIndex = 0
+    $refIndex = 0 # TODO - this is wrong if $Combine, should not reset for each file
     foreach ($block in $content) {
         # Heading
         $heading = $block.source.block
@@ -37,7 +37,7 @@ function GenerateMarkdown($contentPath) {
 
         # Text
         $blockText = $block.text
-        $blockRefText = $block.references.en # TODO - should be references.en.text
+        $blockRefText = $block.references.en.text
         if ($blockRefText) {
             $refIndex += 1
             if ($ReferenceBehavior -eq 'Footnotes') {
@@ -74,8 +74,8 @@ function GetTargetDirectory($volumePath) {
     $targetDirectory = Join-Path $volumePath 'markdown'
 
     $tags = @()
-    if ($Merge) {
-        $tags += "merged"
+    if ($Combine) {
+        $tags += "combined"
     }
     if ($ReferenceBehavior -ne 'None') {
         $tags += "ref-$($ReferenceBehavior.ToLowerInvariant())"
@@ -100,7 +100,7 @@ $contentFiles =
     @(Get-ChildItem "$volumePath/content" -Filter content.yaml) +
     @(Get-ChildItem "$volumePath/content" -Filter *.content.yaml)
 
-if ($Merge) {
+if ($Combine) {
     # TODO - add this as another property on volume info
     # also consider dropping the moniker from this (just the cleaned title)
     $volumeBaseFileName = Split-Path $volumePath -Leaf

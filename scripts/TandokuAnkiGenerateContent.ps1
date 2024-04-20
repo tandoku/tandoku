@@ -50,7 +50,9 @@ $cards |
         }
         if ($_.ref) {
             $block.references = @{
-                en = FormatCardText $_.ref
+                en = @{
+                    text = FormatCardText $_.ref
+                }
             }
         }
         (ConvertTo-Yaml $block).TrimEnd()
