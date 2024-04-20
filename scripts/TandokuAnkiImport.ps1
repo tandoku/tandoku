@@ -5,7 +5,11 @@ param(
 
     [Parameter()]
     [String]
-    $VolumePath
+    $VolumePath,
+
+    [Parameter()]
+    [Switch]
+    $UseReading
 )
 
 $volume = TandokuVolumeInfo -VolumePath $VolumePath
@@ -15,14 +19,15 @@ if (-not $volume) {
 $volumePath = $volume.path
 
 $apkgPath = (Get-Item $Path)
-$parentPath = (Split-Path $apkgPath -Parent)
-$apkgBaseName = (Split-Path $apkgPath -LeafBase)
-$txtPath = (Get-Item "$parentPath/$apkgBaseName.txt")
-
 if (-not $apkgPath) {
     Write-Error "Missing .apkg file at $Path"
     return
-} elseif (-not $txtPath) {
+}
+
+$parentPath = (Split-Path $apkgPath -Parent)
+$apkgBaseName = (Split-Path $apkgPath -LeafBase)
+$txtPath = (Get-Item "$parentPath/$apkgBaseName.txt")
+if (-not $txtPath) {
     Write-Error "Missing $apkgBaseName.txt file at $Path"
     return
 }
@@ -35,4 +40,4 @@ Expand-Archive -LiteralPath $sourceApkg -Destination $tempApkgPath
 
 TandokuAnkiImportImages -Path $tempApkgPath -TempDestination "$tempApkgPath/images" -VolumePath $volumePath
 
-TandokuAnkiGenerateContent -Path $sourceTxt -VolumePath $volumePath
+TandokuAnkiGenerateContent -Path $sourceTxt -VolumePath $volumePath -UseReading:$UseReading

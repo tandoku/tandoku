@@ -5,7 +5,11 @@ param(
 
     [Parameter()]
     [String]
-    $VolumePath
+    $VolumePath,
+
+    [Parameter()]
+    [Switch]
+    $UseReading
 )
 
 function FormatCardText($text) {
@@ -20,6 +24,7 @@ if (-not $volume) {
 }
 $volumePath = $volume.path
 
+# TODO - generalize as needed (other Jo-Mako decks - including audio, other Anki decks)
 $cards = Get-Content $path |
     Select-Object -Skip 3 |
     ConvertFrom-Csv -Delimiter `t -Header @('id','native','ref','nativeReading','img')
@@ -32,7 +37,7 @@ $contentPath = "$volumePath/content/content.yaml"
 $cards |
     Foreach-Object {
         $block = @{
-            text = (FormatCardText $_.native) # TODO - use nativeReading and replace ruby text[?]
+            text = FormatCardText ($UseReading ? $_.nativeReading : $_.native)
             source = @{
                 block = $_.id
             }
@@ -45,7 +50,7 @@ $cards |
         }
         if ($_.ref) {
             $block.references = @{
-                en = (FormatCardText $_.ref)
+                en = FormatCardText $_.ref
             }
         }
         (ConvertTo-Yaml $block).TrimEnd()
