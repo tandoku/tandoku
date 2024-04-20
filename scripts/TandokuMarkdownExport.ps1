@@ -8,12 +8,13 @@ param(
     $Combine,
 
     [Parameter()]
-    [Switch]
-    $ExpandRuby, # TODO - this should probably be a separate transform step
+    [ValidateSet('None', 'Expand', 'Remove')]
+    [String]
+    $RubyBehavior = 'None', # TODO - this should probably be a separate transform step
 
     [Parameter()]
-    [String]
     [ValidateSet('None', 'Footnotes', 'BlurHtml')]
+    [String]
     $ReferenceBehavior = 'None'
 )
 
@@ -48,10 +49,7 @@ function GenerateMarkdown($contentPath) {
         }
 
         # Text / Reference text
-        $blockText = $block.text
-        if ($ExpandRuby) {
-            $blockText = ConvertAnkiRubyToHtml $blockText
-        }
+        $blockText = ProcessRubyText $block.text
         $blockRefText = $block.references.en.text
         if ($blockRefText) {
             $refId = "ref-en-$blockIndex"
@@ -98,8 +96,16 @@ function GetIdPrefix($contentPath) {
     return $null
 }
 
-function ConvertAnkiRubyToHtml($text) {
-    return $text -replace '(^| )([^ \[]+)\[(.+?)\]','<ruby><rb>$2</rb><rt>$3</rt></ruby>'
+function ProcessRubyText($text) {
+    if ($RubyBehavior -ne 'None') {
+        $rubyMatch = '(^| )([^ \[]+)\[(.+?)\]'
+        $rubyReplace = switch ($RubyBehavior) {
+            'Expand' { '<ruby><rb>$2</rb><rt>$3</rt></ruby>' }
+            'Remove' { '$2' }
+        }
+        return $text -replace $rubyMatch,$rubyReplace
+    }
+    return $text
 }
 
 function GetTargetDirectory($volumePath) {

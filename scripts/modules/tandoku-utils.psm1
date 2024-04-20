@@ -2,6 +2,30 @@
 # when loaded by a script and changes are not reflected without creating a new PowerShell session or using
 # -Force on the Import-Module invocation (can do this temporarily to force loading changes during development)
 
+function TestCommand {
+    param(
+        [Parameter()]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $Name
+    )
+
+    return (Get-Command $Name -ErrorAction SilentlyContinue) ? $true : $false
+}
+
+function RequireCommand {
+    param(
+        [Parameter()]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $Name
+    )
+
+    if (-not (TestCommand $Name)) {
+        throw "Requires $Name"
+    }
+}
+
 function ArgsToArray {
     # It seems like there should be some built-in way to do this...
     # This is useful when building up a command to invoke with & operator, e.g.
@@ -44,6 +68,27 @@ function ReplaceStringInFiles {
         }
         $searchList | Foreach-Object {
             (Get-Content $_.Path -Raw) -replace $Search,$Replace | Set-Content $_.Path }
+    }
+}
+
+function CompressArchive([String[]]$Path, [String]$DestinationPath, [Switch]$Force) {
+    # Use 7z if available for performance reasons (Compress-Archive can be very slow)
+    if (TestCommand 7z) {
+        if ($Force -and (Test-Path $DestinationPath)) {
+            Remove-Item $DestinationPath
+        }
+        7z a -tzip -r $DestinationPath $Path
+    } else {
+        Compress-Archive -Path $Path -DestinationPath $DestinationPath -Force:$Force
+    }
+}
+
+function ExpandArchive([String]$Path, [String]$DestinationPath) {
+    # Use 7z if available for performance reasons
+    if (TestCommand 7z) {
+        7z x -o"$DestinationPath" $Path
+    } else {
+        Expand-Archive -Path $Path -DestinationPath $DestinationPath
     }
 }
 

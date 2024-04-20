@@ -10,12 +10,11 @@ function PrefixFootnotes($epubPath, $tempDestination, $prefix) {
     if (Test-Path $tempDestination) {
         Remove-Item $tempDestination -Recurse -Force
     }
-    Expand-Archive -Path $epubPath -DestinationPath $tempDestination
+    ExpandArchive -Path $epubPath -DestinationPath $tempDestination
     Get-ChildItem "$tempDestination/EPUB/text" -Filter "ch*.xhtml" |
         ReplaceStringInFiles 'role="doc-(noteref|backlink)">(\d+)</a>' ('role="doc-$1">' + $prefix + '-$2</a>')
     Push-Location $tempDestination
-    # TODO - create a wrapper for Expand-Archive/Compress-Archive to use 7z if available for much better performance
-    Compress-Archive -Path * -DestinationPath $epubPath -Force
+    CompressArchive -Path * -DestinationPath $epubPath -Force
     Pop-Location
 }
 
