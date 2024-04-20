@@ -83,7 +83,11 @@ function CompressArchive([String[]]$Path, [String]$DestinationPath, [Switch]$For
     }
 }
 
-function ExpandArchive([String]$Path, [String]$DestinationPath) {
+function ExpandArchive([String]$Path, [String]$DestinationPath, [Switch]$ClobberDestination) {
+    if ($ClobberDestination -and (Test-Path $DestinationPath)) {
+        Remove-Item $DestinationPath -Recurse -Force
+    }
+
     # Use 7z if available for performance reasons
     if (TestCommand 7z) {
         7z x -o"$DestinationPath" $Path
@@ -131,6 +135,17 @@ function MapToPSDriveAlias {
     }
 
     return $path
+}
+
+function GetContentBaseName($contentPath) {
+    # Strip file-type extension (.yaml/.md)
+    $base = Split-Path $contentPath -LeafBase
+    if ($base -eq 'content') {
+        return $null
+    } elseif ((Split-Path $base -Extension) -eq '.content') {
+        return (Split-Path $base -LeafBase)
+    }
+    return $base
 }
 
 function InvokeTandokuCommand {

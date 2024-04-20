@@ -26,7 +26,7 @@ function GenerateMarkdown($contentPath) {
     # Note that an id prefix is used anytime there are multiple input files, whether or not the output
     # will be combined into a single markdown file.
     # Required by TandokuEpubExport which treats multiple markdown files as a single concatenated file.
-    $idPrefix = GetIdPrefix $contentPath
+    $idPrefix = GetContentBaseName $contentPath
 
     $blockIndex = 0
     foreach ($block in $content) {
@@ -84,16 +84,6 @@ function GenerateMarkdown($contentPath) {
             Write-Output ''
         }
     }
-}
-
-function GetIdPrefix($contentPath) {
-    # Strip .yaml extension
-    $base = Split-Path $contentPath -LeafBase
-    $ext = Split-Path $base -Extension
-    if ($ext -eq '.content') {
-        return (Split-Path $base -LeafBase)
-    }
-    return $null
 }
 
 function ProcessRubyText($text) {

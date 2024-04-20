@@ -1,0 +1,9 @@
+.blurText input {
+  display: none
+}
+.blurText input + * {
+  filter: blur(10px)
+}
+.blurText input:checked + * {
+  filter: none
+}
