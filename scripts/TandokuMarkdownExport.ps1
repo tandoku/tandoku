@@ -8,6 +8,10 @@ param(
     $Combine,
 
     [Parameter()]
+    [Switch]
+    $ExpandRuby, # TODO - this should probably be a separate transform step
+
+    [Parameter()]
     [String]
     [ValidateSet('None', 'Footnotes', 'BlurHtml')]
     $ReferenceBehavior = 'None'
@@ -35,8 +39,11 @@ function GenerateMarkdown($contentPath) {
             Write-Output ''
         }
 
-        # Text
+        # Text / Reference text
         $blockText = $block.text
+        if ($ExpandRuby) {
+            $blockText = ConvertAnkiRubyToHtml $blockText
+        }
         $blockRefText = $block.references.en.text
         if ($blockRefText) {
             $refIndex += 1
@@ -68,6 +75,10 @@ function GenerateMarkdown($contentPath) {
             Write-Output ''
         }
     }
+}
+
+function ConvertAnkiRubyToHtml($text) {
+    return $text -replace '(^| )([^ \[]+)\[(.+?)\]','<ruby><rb>$2</rb><rt>$3</rt></ruby>'
 }
 
 function GetTargetDirectory($volumePath) {
