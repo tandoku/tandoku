@@ -17,6 +17,36 @@ function CreateDirectoryIfNotExists([String] $Path) {
     }
 }
 
+function ReplaceStringInFiles {
+    param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [String]
+        $Search,
+
+        [Parameter(Mandatory=$true,Position=1)]
+        [AllowEmptyString()]
+        [String]
+        $Replace,
+
+        [Parameter(ParameterSetName='inputObject',Mandatory=$true,ValueFromPipeline=$true,Position=2)]
+        [PSObject]
+        $InputObject,
+
+        [Parameter(ParameterSetName='path',Mandatory=$true,Position=2)]
+        [String[]]
+        $Path
+    )
+    process {
+        if ($PSCmdlet.ParameterSetName -eq 'inputObject') {
+            $searchList = $InputObject | Select-String -Pattern $Search -List
+        } elseif ($PSCmdlet.ParameterSetName -eq 'path') {
+            $searchList = Select-String -Pattern $Search -Path $Path -List
+        }
+        $searchList | Foreach-Object {
+            (Get-Content $_.Path -Raw) -replace $Search,$Replace | Set-Content $_.Path }
+    }
+}
+
 # TODO - replace this with [IO.Path]::GetRelativePath
 function ExtractRelativePath([String] $basePath, [String] $childPath) {
     if ($basePath -eq $childPath) {

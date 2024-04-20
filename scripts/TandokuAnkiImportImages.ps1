@@ -12,16 +12,17 @@ param(
     $VolumePath
 )
 
-$media = Get-Content "$path/media" | ConvertFrom-Json -AsHashtable
+Import-Module "$PSScriptRoot/modules/tandoku-utils.psm1" -Scope Local
 
-if (-not (Test-Path $TempDestination)) {
-    [void] (New-Item $TempDestination -ItemType Directory)
-}
+$media = Get-Content "$path/media" | ConvertFrom-Json -AsHashtable
+$imageExtensions = @('.jpg','.jpeg')
+
+CreateDirectoryIfNotExists $TempDestination
 
 foreach ($mediaItem in $media.Keys) {
     $fileName = $media[$mediaItem]
     $fileExt = Split-Path $fileName -Extension
-    if (($fileExt -eq '.jpg') -or ($fileExt -eq '.jpeg')) {
+    if ($imageExtensions -contains $fileExt) {
         Copy-Item "$path/$mediaItem" "$TempDestination/$fileName"
     }
 }

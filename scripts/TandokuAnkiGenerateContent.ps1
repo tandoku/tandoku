@@ -16,6 +16,8 @@ param(
     $UseReading
 )
 
+Import-Module "$PSScriptRoot/modules/tandoku-utils.psm1" -Scope Local
+
 function FormatCardText($text) {
     $newline = [Environment]::NewLine
     $lines = $text -split '　'
@@ -33,9 +35,7 @@ $cards = Get-Content $path |
     Select-Object -Skip 3 |
     ConvertFrom-Csv -Delimiter `t -Header @('id','native','ref','nativeReading','img')
 
-if (-not (Test-Path "$volumePath/content")) {
-    [void] (New-Item "$volumePath/content" -ItemType Directory)
-}
+CreateDirectoryIfNotExists "$volumePath/content"
 
 $cardGroups = $cards |
     ForEach-Object { $i = 0 } { $_; $i++ } |
@@ -47,6 +47,7 @@ $cardGroups |
             "cards$($_.Name).content.yaml" :
             'content.yaml'
         $contentPath = "$volumePath/content/$contentFileName"
+
         $_.Group |
             Foreach-Object {
                 $block = @{
