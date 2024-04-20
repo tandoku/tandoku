@@ -43,8 +43,10 @@ $cardGroups = $cards |
 
 $cardGroups |
     Foreach-Object {
-        $contentFileNum = $cardGroups.Count -gt 1 ? $_.Name : $null
-        $contentPath = "$volumePath/content/content$contentFileNum.yaml"
+        $contentFileName = $cardGroups.Count -gt 1 ?
+            "cards$($_.Name).content.yaml" :
+            'content.yaml'
+        $contentPath = "$volumePath/content/$contentFileName"
         $_.Group |
             Foreach-Object {
                 $block = @{
