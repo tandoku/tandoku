@@ -21,8 +21,16 @@ Import-Module "$PSScriptRoot/modules/tandoku-utils.psm1" -Scope Local
 
 function GenerateMarkdown($contentPath) {
     $content = Get-Content $contentPath | ConvertFrom-Yaml -AllDocuments
-    $refIndex = 0 # TODO - this is wrong if $Combine, should not reset for each file
+
+    # Note that an id prefix is used anytime there are multiple input files, whether or not the output
+    # will be combined into a single markdown file.
+    # Required by TandokuEpubExport which treats multiple markdown files as a single concatenated file.
+    $idPrefix = GetIdPrefix $contentPath
+
+    $blockIndex = 0
     foreach ($block in $content) {
+        $blockIndex += 1
+
         # Heading
         $heading = $block.source.block
         if ($heading) {
@@ -46,11 +54,14 @@ function GenerateMarkdown($contentPath) {
         }
         $blockRefText = $block.references.en.text
         if ($blockRefText) {
-            $refIndex += 1
+            $refId = "ref-en-$blockIndex"
+            if ($idPrefix) {
+                $refId = "$idPrefix-$refId"
+            }
             if ($ReferenceBehavior -eq 'Footnotes') {
-                Write-Output "$blockText [^$refIndex]"
+                Write-Output "$blockText [^$refId]"
                 Write-Output ''
-                Write-Output "[^$refIndex]: $blockRefText"
+                Write-Output "[^$refId]: $blockRefText"
                 Write-Output ''
             } elseif ($ReferenceBehavior -eq 'BlurHtml') {
                 # references
@@ -58,7 +69,7 @@ function GenerateMarkdown($contentPath) {
                 # - https://bernholdtech.blogspot.com/2013/04/very-simple-pure-css-collapsible-list.html
 
                 $blockRefHtml = (ConvertFrom-Markdown -InputObject $blockRefText).Html
-                $blockRefHtml = $blockRefHtml -replace '^<p>',"<p class='blurText'><input type='checkbox' id='ref-en-$refIndex'/><label for='ref-en-$refIndex'>"
+                $blockRefHtml = $blockRefHtml -replace '^<p>',"<p class='blurText'><input type='checkbox' id='$refId'/><label for='$refId'>"
                 $blockRefHtml = $blockRefHtml -replace '</p>$',"</label></p>"
 
                 Write-Output $blockText
@@ -75,6 +86,16 @@ function GenerateMarkdown($contentPath) {
             Write-Output ''
         }
     }
+}
+
+function GetIdPrefix($contentPath) {
+    # Strip .yaml extension
+    $base = Split-Path $contentPath -LeafBase
+    $ext = Split-Path $base -Extension
+    if ($ext -eq '.content') {
+        return (Split-Path $base -LeafBase)
+    }
+    return $null
 }
 
 function ConvertAnkiRubyToHtml($text) {
