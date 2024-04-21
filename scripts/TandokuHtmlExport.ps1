@@ -37,15 +37,40 @@ if ($Format -eq 'Book') {
     throw "Book format not fully implemented"
 } elseif ($Format -eq 'Slides') {
     # Create slidy html for each markdown file
-    $markdownFiles |
+    $htmlFiles = $markdownFiles |
         ForEach-Object {
             $fileNameBase = Split-Path $_ -LeafBase
             $htmlFilePath = Join-Path $tempDestination "$fileNameBase.html"
-            $sectionName = GetContentBaseName $_
-            pandoc $_ -f commonmark -o $htmlFilePath -t slidy --standalone --css ./styles/blurtext.css --variable=slidy-url:. --metadata title="$($volume.definition.title) - $sectionName" --metadata author="tandoku" --metadata lang=ja
+            $sectionTitle = GetContentBaseName $_
+            pandoc $_ -f commonmark -o $htmlFilePath -t slidy --standalone --css ./styles/blurtext.css --variable=slidy-url:. --metadata title="$($volume.definition.title) - $sectionTitle" --metadata author="tandoku" --metadata lang=ja
+            return [PSCustomObject]@{
+                SectionTitle = $sectionTitle
+                FileName = Split-Path $htmlFilePath -Leaf
+                Path = $htmlFilePath
+            }
         }
     
-    # TODO - Create index html
+    # Create index html
+    $listItemsHtml = $htmlFiles |
+        ForEach-Object {
+            return "<li><a href='$([Web.HttpUtility]::HtmlAttributeEncode($_.FileName))'>$([Web.HttpUtility]::HtmlEncode($_.SectionTitle))</a></li>"
+        } | Join-String -Separator ([Environment]::NewLine)
+
+    $indexHtml = @"
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>$($volume.definition.title)</title>
+    </head>
+    <body>
+        <h1>$($volume.definition.title)</h1>
+        <p>
+$listItemsHtml
+        </p>
+    </body>
+</html>
+"@
+    $indexHtmlPath = Join-Path $tempDestination 'index.html'
+    Set-Content $indexHtmlPath $indexHtml
 
     # Copy additional resources
     CreateDirectoryIfNotExists "$tempDestination/scripts"
