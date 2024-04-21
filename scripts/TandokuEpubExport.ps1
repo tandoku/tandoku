@@ -1,4 +1,10 @@
 param(
+    # TODO - implement Ruby options
+    # [Parameter()]
+    # [ValidateSet('Keep','Remove')]
+    # [String]
+    # $Ruby,
+
     [Parameter()]
     [String]
     $VolumePath
@@ -7,10 +13,7 @@ param(
 Import-Module "$PSScriptRoot/modules/tandoku-utils.psm1" -Scope Local
 
 function PrefixFootnotes($epubPath, $tempDestination, $prefix) {
-    if (Test-Path $tempDestination) {
-        Remove-Item $tempDestination -Recurse -Force
-    }
-    ExpandArchive -Path $epubPath -DestinationPath $tempDestination
+    ExpandArchive -Path $epubPath -DestinationPath $tempDestination -ClobberDestination
     Get-ChildItem "$tempDestination/EPUB/text" -Filter "ch*.xhtml" |
         ReplaceStringInFiles 'role="doc-(noteref|backlink)">(\d+)</a>' ('role="doc-$1">' + $prefix + '-$2</a>')
     Push-Location $tempDestination

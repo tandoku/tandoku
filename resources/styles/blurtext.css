@@ -1,9 +1,18 @@
 .blurText input {
   display: none
 }
-.blurText input + * {
+.blurText input + label {
   filter: blur(10px)
 }
-.blurText input:checked + * {
+.blurText input:checked + label {
+  filter: none
+}
+.blurRuby input {
+  display: none
+}
+.blurRuby input + label rt {
+  filter: blur(3px)
+}
+.blurRuby input:checked + label rt {
   filter: none
 }

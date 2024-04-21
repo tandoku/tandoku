@@ -9,7 +9,7 @@ param(
 
     [Parameter()]
     [Switch]
-    $UseReading
+    $UseReading # TODO - make this the default (invert to $PlainText)
 )
 
 $volume = TandokuVolumeInfo -VolumePath $VolumePath

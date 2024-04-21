@@ -8,9 +8,9 @@ param(
     $Combine,
 
     [Parameter()]
-    [ValidateSet('None', 'Expand', 'Remove')]
+    [ValidateSet('None', 'Html', 'BlurHtml', 'Remove')]
     [String]
-    $RubyBehavior = 'None', # TODO - this should probably be a separate transform step
+    $RubyBehavior = 'None',
 
     [Parameter()]
     [ValidateSet('None', 'Footnotes', 'BlurHtml')]
@@ -50,35 +50,31 @@ function GenerateMarkdown($contentPath) {
 
         # Text / Reference text
         $blockText = ProcessRubyText $block.text
+        $blockId = $idPrefix ? "$idPrefix-$blockIndex" : "$blockIndex"
+        if ($RubyBehavior -eq 'BlurHtml') {
+            $blockText = ConvertTextToBlurHtml $blockText $blockId -Ruby
+        }
         $blockRefText = $block.references.en.text
         if ($blockRefText) {
-            $refId = "ref-en-$blockIndex"
+            $blockRefId = "ref-en-$blockIndex"
             if ($idPrefix) {
-                $refId = "$idPrefix-$refId"
+                $blockRefId = "$idPrefix-$blockRefId"
             }
-            if ($ReferenceBehavior -eq 'Footnotes') {
-                Write-Output "$blockText [^$refId]"
-                Write-Output ''
-                Write-Output "[^$refId]: $blockRefText"
-                Write-Output ''
-            } elseif ($ReferenceBehavior -eq 'BlurHtml') {
-                # references
-                # - https://www.w3docs.com/snippets/css/how-to-create-a-blurry-text-in-css.html
-                # - https://bernholdtech.blogspot.com/2013/04/very-simple-pure-css-collapsible-list.html
 
-                $blockRefHtml = (ConvertFrom-Markdown -InputObject $blockRefText).Html
-                $blockRefHtml = $blockRefHtml -replace '^<p>',"<p class='blurText'><input type='checkbox' id='$refId'/><label for='$refId'>"
-                $blockRefHtml = $blockRefHtml -replace '</p>$',"</label></p>"
-
-                Write-Output $blockText
-                Write-Output ''
-                Write-Output $blockRefHtml
-            } else {
-                Write-Output $blockText
-                Write-Output ''
-                Write-Output $blockRefText
-                Write-Output ''
+            switch ($ReferenceBehavior) {
+                'Footnotes' {
+                    $blockText = "$blockText [^$blockRefId]"
+                    $blockRefText = "[^$blockRefId]: $blockRefText"
+                }
+                'BlurHtml' {
+                    $blockRefText = ConvertTextToBlurHtml $blockRefText $blockRefId
+                }
             }
+
+            Write-Output $blockText
+            Write-Output ''
+            Write-Output $blockRefText
+            Write-Output ''
         } else {
             Write-Output $blockText
             Write-Output ''
@@ -86,16 +82,33 @@ function GenerateMarkdown($contentPath) {
     }
 }
 
-function ProcessRubyText($text) {
+function ProcessRubyText([String]$text) {
     if ($RubyBehavior -ne 'None') {
         $rubyMatch = '(^| )([^ \[]+)\[(.+?)\]'
-        $rubyReplace = switch ($RubyBehavior) {
-            'Expand' { '<ruby><rb>$2</rb><rt>$3</rt></ruby>' }
+        $rubyReplace = switch -Wildcard ($RubyBehavior) {
+            '*Html' { '<ruby><rb>$2</rb><rt>$3</rt></ruby>' }
             'Remove' { '$2' }
         }
         return $text -replace $rubyMatch,$rubyReplace
     }
     return $text
+}
+
+function ConvertTextToBlurHtml([String]$text, [String]$id, [Switch]$Ruby) {
+    # references
+    # - https://www.w3docs.com/snippets/css/how-to-create-a-blurry-text-in-css.html
+    # - https://bernholdtech.blogspot.com/2013/04/very-simple-pure-css-collapsible-list.html
+
+    if ($Ruby -and (-not $text.Contains('<ruby>'))) {
+        return $text
+    }
+
+    $blurClass = $Ruby ? 'blurRuby' : 'blurText'
+
+    $html = (ConvertFrom-Markdown -InputObject $text).Html
+    $html = $html -replace '^<p>',"<p class='$blurClass'><input type='checkbox' id='$id'/><label for='$id'>"
+    $html = $html -replace '</p>$',"</label></p>"
+    return $html.TrimEnd()
 }
 
 function GetTargetDirectory($volumePath) {
@@ -104,6 +117,9 @@ function GetTargetDirectory($volumePath) {
     $tags = @()
     if ($Combine) {
         $tags += "combined"
+    }
+    if ($RubyBehavior -ne 'None') {
+        $tags += "ruby-$($RubyBehavior.ToLowerInvariant())"
     }
     if ($ReferenceBehavior -ne 'None') {
         $tags += "ref-$($ReferenceBehavior.ToLowerInvariant())"

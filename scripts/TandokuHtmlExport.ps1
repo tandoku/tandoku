@@ -5,11 +5,37 @@ param(
     $Format = 'Slides',
 
     [Parameter()]
+    [ValidateSet('Keep','Blur','Remove')]
+    [String]
+    $Ruby,
+
+    [Parameter()]
     [String]
     $VolumePath
 )
 
 Import-Module "$PSScriptRoot/modules/tandoku-utils.psm1" -Scope Local
+
+# TODO - share this between TandokuMarkdownExport/TandokuEpubExport/TandokuHtmlExport
+# GetMarkdownDirectory should take parameters for TandokuMarkdownExport
+function GetMarkdownDirectory($volumePath) {
+    $rubyTag = switch ($Ruby) {
+        'Keep' { 'ruby-html' }
+        'Blur' { 'ruby-blurhtml' }
+        'Remove' { 'ruby-remove' }
+    }
+    $refTag = 'ref-blurhtml'
+    $tagDir = @($rubyTag,$refTag) -join '-'
+    return "$volumePath/markdown/$tagDir"
+}
+
+function GetOutputTags {
+    if ($Ruby -ne 'Keep') {
+        $rubyTag = $Ruby.ToLowerInvariant()
+        return "ruby-$rubyTag"
+    }
+    return $null
+}
 
 $volume = TandokuVolumeInfo -VolumePath $VolumePath
 if (-not $volume) {
@@ -20,15 +46,20 @@ $volumePath = $volume.path
 $targetDirectory = "$volumePath/export"
 CreateDirectoryIfNotExists $targetDirectory
 
-$markdownFiles = Get-ChildItem "$volumePath/markdown/ref-blurhtml" -Filter *.md
+$markdownDirectory = GetMarkdownDirectory $volumePath
+$markdownFiles = Get-ChildItem $markdownDirectory -Filter *.md
 
 # TODO - add this as another property on volume info
 # also consider dropping the moniker from this (just the cleaned title)
 $volumeBaseFileName = Split-Path $volumePath -Leaf
+$outputTags = GetOutputTags
+if ($outputTags) {
+    $volumeBaseFileName = "$volumeBaseFileName.$outputTags"
+}
 $targetPath = Join-Path $targetDirectory "$volumeBaseFileName.html.zip"
 
 $tempDestination = "$volumePath/temp/html"
-CreateDirectoryIfNotExists $tempDestination
+CreateDirectoryIfNotExists $tempDestination -Clobber
 
 if ($Format -eq 'Book') {
     # TODO - either need to use footnotes or add blurtext.css stylesheet
