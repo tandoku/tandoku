@@ -50,27 +50,14 @@ if ($Format -eq 'Book') {
             }
         }
     
-    # Create index html
-    $listItemsHtml = $htmlFiles |
-        ForEach-Object {
-            return "<li><a href='$([Web.HttpUtility]::HtmlAttributeEncode($_.FileName))'>$([Web.HttpUtility]::HtmlEncode($_.SectionTitle))</a></li>"
-        } | Join-String -Separator ([Environment]::NewLine)
-
-    $indexHtml = @"
-<html xmlns="http://www.w3.org/1999/xhtml">
-    <head>
-        <title>$($volume.definition.title)</title>
-    </head>
-    <body>
-        <h1>$($volume.definition.title)</h1>
-        <p>
-$listItemsHtml
-        </p>
-    </body>
-</html>
-"@
+    # Create index html via markdown/pandoc
     $indexHtmlPath = Join-Path $tempDestination 'index.html'
-    Set-Content $indexHtmlPath $indexHtml
+    $htmlFiles |
+        ForEach-Object {
+            "- [$($_.SectionTitle)]($($_.FileName))"
+        } |
+        Join-String -Separator ([Environment]::NewLine) |
+        pandoc -f commonmark -o $indexHtmlPath -t html --standalone --metadata title="$($volume.definition.title)" --metadata author="tandoku" --metadata lang=ja
 
     # Copy additional resources
     CreateDirectoryIfNotExists "$tempDestination/scripts"
