@@ -1,13 +1,16 @@
 param(
     [Parameter()]
+    [String]
+    $InputPath,
+
+    [Parameter()]
+    [String]
+    $OutputPath,
+
+    [Parameter()]
     [ValidateSet('Slides', 'Book')]
     [String]
     $Format = 'Slides',
-
-    [Parameter()]
-    [ValidateSet('Keep','Blur','Remove')]
-    [String]
-    $Ruby,
 
     [Parameter()]
     [String]
@@ -16,47 +19,27 @@ param(
 
 Import-Module "$PSScriptRoot/modules/tandoku-utils.psm1" -Scope Local
 
-# TODO - share this between TandokuMarkdownExport/TandokuEpubExport/TandokuHtmlExport
-# GetMarkdownDirectory should take parameters for TandokuMarkdownExport
-function GetMarkdownDirectory($volumePath) {
-    $rubyTag = switch ($Ruby) {
-        'Keep' { 'ruby-html' }
-        'Blur' { 'ruby-blurhtml' }
-        'Remove' { 'ruby-remove' }
-    }
-    $refTag = 'ref-blurhtml'
-    $tagDir = @($rubyTag,$refTag) -join '-'
-    return "$volumePath/markdown/$tagDir"
-}
-
-function GetOutputTags {
-    if ($Ruby -ne 'Keep') {
-        $rubyTag = $Ruby.ToLowerInvariant()
-        return "ruby-$rubyTag"
-    }
-    return $null
-}
-
 $volume = TandokuVolumeInfo -VolumePath $VolumePath
 if (-not $volume) {
     return
 }
 $volumePath = $volume.path
 
-$targetDirectory = "$volumePath/export"
-CreateDirectoryIfNotExists $targetDirectory
-
-$markdownDirectory = GetMarkdownDirectory $volumePath
+$markdownDirectory = $InputPath ? $InputPath : "$volumePath/markdown"
 $markdownFiles = Get-ChildItem $markdownDirectory -Filter *.md
 
-# TODO - add this as another property on volume info
-# also consider dropping the moniker from this (just the cleaned title)
-$volumeBaseFileName = Split-Path $volumePath -Leaf
-$outputTags = GetOutputTags
-if ($outputTags) {
-    $volumeBaseFileName = "$volumeBaseFileName.$outputTags"
+if ($OutputPath) {
+    $targetDirectory = Split-Path $OutputPath -Parent
+    $targetPath = $OutputPath
+} else {
+    $targetDirectory = "$volumePath/export"
+
+    # TODO - add this as another property on volume info
+    # also consider dropping the moniker from this (just the cleaned title)
+    $volumeBaseFileName = Split-Path $volumePath -Leaf
+    $targetPath = Join-Path $targetDirectory "$volumeBaseFileName.html.zip"
 }
-$targetPath = Join-Path $targetDirectory "$volumeBaseFileName.html.zip"
+CreateDirectoryIfNotExists $targetDirectory
 
 $tempDestination = "$volumePath/temp/html"
 CreateDirectoryIfNotExists $tempDestination -Clobber
@@ -72,7 +55,7 @@ if ($Format -eq 'Book') {
         ForEach-Object {
             $fileNameBase = Split-Path $_ -LeafBase
             $htmlFilePath = Join-Path $tempDestination "$fileNameBase.html"
-            $sectionTitle = GetContentBaseName $_
+            $sectionTitle = GetContentBaseName $_ # TODO: read this from the content itself rather than using the filename
             pandoc $_ -f commonmark -o $htmlFilePath -t slidy --standalone --css ./styles/blurtext.css --variable=slidy-url:. --metadata title="$($volume.definition.title) - $sectionTitle" --metadata author="tandoku" --metadata lang=ja
             return [PSCustomObject]@{
                 SectionTitle = $sectionTitle
@@ -96,11 +79,12 @@ if ($Format -eq 'Book') {
 
     CreateDirectoryIfNotExists "$tempDestination/styles"
     Copy-Item "$PSScriptRoot/../resources/styles/slidy.css" "$tempDestination/styles"
+    # We could include blurtext.css only if input markdown needs it but doesn't seem worth having another option for this
     Copy-Item "$PSScriptRoot/../resources/styles/blurtext.css" "$tempDestination/styles"
 }
 
 CreateDirectoryIfNotExists "$tempDestination/images"
-$imageExtensions = @('.jpg','.jpeg')
+$imageExtensions = @('.jpg','.jpeg') # TODO: share this across scripts
 foreach ($imageExtension in $imageExtensions) {
     Copy-Item -Path "$volumePath/images/*$imageExtension" -Destination "$tempDestination/images/"
 }

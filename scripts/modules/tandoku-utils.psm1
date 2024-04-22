@@ -39,7 +39,7 @@ function CreateDirectoryIfNotExists([String]$Path, [Switch]$Clobber) {
     if (-not (Test-Path $Path)) {
         [void] (New-Item $Path -ItemType Directory)
     } elseif ($Clobber) {
-        Remove-Item $Path -Recurse -Force
+        Remove-Item "$Path/*" -Recurse -Force
     }
 }
 

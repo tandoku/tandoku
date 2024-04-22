@@ -1,7 +1,11 @@
 param(
     [Parameter()]
     [String]
-    $VolumePath,
+    $InputPath,
+
+    [Parameter()]
+    [String]
+    $OutputPath,
 
     [Parameter()]
     [Switch]
@@ -15,7 +19,11 @@ param(
     [Parameter()]
     [ValidateSet('None', 'Footnotes', 'BlurHtml')]
     [String]
-    $ReferenceBehavior = 'None'
+    $ReferenceBehavior = 'None',
+
+    [Parameter()]
+    [String]
+    $VolumePath
 )
 
 Import-Module "$PSScriptRoot/modules/tandoku-utils.psm1" -Scope Local
@@ -111,44 +119,36 @@ function ConvertTextToBlurHtml([String]$text, [String]$id, [Switch]$Ruby) {
     return $html.TrimEnd()
 }
 
-function GetTargetDirectory($volumePath) {
-    $targetDirectory = Join-Path $volumePath 'markdown'
-
-    $tags = @()
-    if ($Combine) {
-        $tags += "combined"
-    }
-    if ($RubyBehavior -ne 'None') {
-        $tags += "ruby-$($RubyBehavior.ToLowerInvariant())"
-    }
-    if ($ReferenceBehavior -ne 'None') {
-        $tags += "ref-$($ReferenceBehavior.ToLowerInvariant())"
-    }
-    if ($tags) {
-        $targetDirectory = Join-Path $targetDirectory ($tags -join '-')
-    }
-
-    return $targetDirectory
-}
-
 $volume = TandokuVolumeInfo -VolumePath $VolumePath
 if (-not $volume) {
     return
 }
 $volumePath = $volume.path
 
-$targetDirectory = GetTargetDirectory $volumePath
+$contentDirectory = $InputPath ? $InputPath : "$volumePath/content"
+$contentFiles =
+    @(Get-ChildItem $contentDirectory -Filter content.yaml) +
+    @(Get-ChildItem $contentDirectory -Filter *.content.yaml)
+
+if ($OutputPath) {
+    if ($Combine -and ([IO.Path]::GetExtension($OutputPath) -eq '.md')) {
+        $targetDirectory = Split-Path $OutputPath -Parent
+        $targetPath = $OutputPath
+    } else {
+        $targetDirectory = $OutputPath
+    }
+} else {
+    $targetDirectory = "$volumePath/markdown"
+}
 CreateDirectoryIfNotExists $targetDirectory
 
-$contentFiles =
-    @(Get-ChildItem "$volumePath/content" -Filter content.yaml) +
-    @(Get-ChildItem "$volumePath/content" -Filter *.content.yaml)
-
 if ($Combine) {
-    # TODO - add this as another property on volume info
-    # also consider dropping the moniker from this (just the cleaned title)
-    $volumeBaseFileName = Split-Path $volumePath -Leaf
-    $targetPath = Join-Path $targetDirectory "$volumeBaseFileName.md"
+    if (-not $targetPath) {
+        # TODO - add this as another property on volume info
+        # also consider dropping the moniker from this (just the cleaned title)
+        $volumeBaseFileName = Split-Path $volumePath -Leaf
+        $targetPath = Join-Path $targetDirectory "$volumeBaseFileName.md"
+    }
 
     $contentFiles |
         Foreach-Object { GenerateMarkdown $_ } |
