@@ -8,6 +8,10 @@ param(
     $OutputPath,
 
     [Parameter()]
+    [String]
+    $OutputPrefix, # TODO - consider a general-purpose build task to do this later instead (apply prefix to a set of files)
+
+    [Parameter()]
     [Switch]
     $Combine,
 
@@ -147,17 +151,21 @@ if ($Combine) {
         # TODO - add this as another property on volume info
         # also consider dropping the moniker from this (just the cleaned title)
         $volumeBaseFileName = Split-Path $volumePath -Leaf
-        $targetPath = Join-Path $targetDirectory "$volumeBaseFileName.md"
+        $targetPath = Join-Path $targetDirectory "$OutputPrefix$volumeBaseFileName.md"
     }
 
     $contentFiles |
         Foreach-Object { GenerateMarkdown $_ } |
         Set-Content $targetPath
+
+    Write-Output (Get-Item $targetPath)
 } else {
     $contentFiles |
         Foreach-Object {
             $contentBaseName = Split-Path $_ -LeafBase
-            $targetPath = Join-Path $targetDirectory "$contentBaseName.md"
+            $targetPath = Join-Path $targetDirectory "$OutputPrefix$contentBaseName.md"
             GenerateMarkdown $_ | Set-Content $targetPath
+
+            Write-Output (Get-Item $targetPath)
         }
 }

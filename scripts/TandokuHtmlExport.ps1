@@ -90,3 +90,5 @@ foreach ($imageExtension in $imageExtensions) {
 }
 
 CompressArchive -Path "$tempDestination/*" -DestinationPath $targetPath -Force
+
+Write-Output (Get-Item $targetPath)

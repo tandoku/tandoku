@@ -58,3 +58,5 @@ Pop-Location
 $refName = 'en'
 $tempDestination = "$volumePath/temp/epub"
 PrefixFootnotes $targetPath $tempDestination $refName
+
+Write-Output (Get-Item $targetPath)
