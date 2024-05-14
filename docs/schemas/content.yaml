@@ -1,1 +1,20 @@
-# TODO
+# TextBlock
+text: markdown
+contentKind: primary <default> | secondary | meta | sound-effect | on-screen-text | lyrics | dialogue | narration | heading
+actor: text
+image:
+  name: filename
+  regions: TODO
+references:
+  <ref-name>:
+    text: markdown
+    actor: text
+    image: image
+source:
+  block: text # TODO - rename this to something else
+  timecodes: {start: timespan, end: timespan}
+---
+# CompositeBlock
+blocks:
+  - TextBlock
+image: image
