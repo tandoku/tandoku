@@ -11,7 +11,7 @@ references:
     actor: text
     image: image
 source:
-  block: text # TODO - rename this to something else
+  block: text # TODO - rename this to something else, 'resource'?
   timecodes: {start: timespan, end: timespan}
 ---
 # CompositeBlock
