@@ -16,6 +16,8 @@ param(
     $UseReading
 )
 
+# TODO - call into TandokuCsvGenerateContent
+
 Import-Module "$PSScriptRoot/modules/tandoku-utils.psm1" -Scope Local
 
 function FormatCardText($text) {

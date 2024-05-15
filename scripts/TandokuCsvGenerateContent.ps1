@@ -39,6 +39,16 @@ param(
 
 Import-Module "$PSScriptRoot/modules/tandoku-utils.psm1" -Scope Local
 
+function ExtractValue($obj, $column) {
+    $colName = $column.Name
+    $value = $obj.$colName
+    if ($value -and $column.Extractor) {
+        return & $column.Extractor $value
+    } else {
+        return $value
+    }
+}
+
 $volume = TandokuVolumeInfo -VolumePath $VolumePath
 if (-not $volume) {
     return
@@ -76,14 +86,12 @@ $orderedColumns = $Columns.Keys |
 
 $sectionColumn = $orderedColumns |
     Where-Object Target -eq 'section' |
-    Select-Object -First 1 |
-    Foreach-Object { $_.Name }
+    Select-Object -First 1
 
 $dataGroups = $data |
     ForEach-Object { $i = 0; $section = $null } {
         if ($sectionColumn) {
-            # TODO - apply extractor if needed
-            $nextSection = $_.$sectionColumn
+            $nextSection = ExtractValue $_ $sectionColumn
             if ($nextSection -ne $section) {
                 $i = 0
                 $section = $nextSection
@@ -117,10 +125,7 @@ $dataGroups |
                         continue
                     }
 
-                    $colName = $column.Name
-
-                    # TODO - apply extractor if needed
-                    $value = $_.$colName
+                    $value = ExtractValue $_ $column
                     if (-not $value) {
                         continue
                     }
