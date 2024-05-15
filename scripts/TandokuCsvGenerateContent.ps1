@@ -28,8 +28,8 @@ param(
     $BaseFileName,
 
     # Columns: hashtable of column name to objects with these properties:
-    # - Target: section|text|actor|image.name|reference.en.text|reference.en.actor|source.resource
-    # - Order: int
+    # - Target: #section|text|actor|image.name|reference.en.text|reference.en.actor|source.resource
+    # - BlockOrder: int
     # - ContentKind: <see schemas/content.yaml>
     # - Extractor: scriptblock
     [Parameter()]
@@ -46,6 +46,21 @@ function ExtractValue($obj, $column) {
         return & $column.Extractor $value
     } else {
         return $value
+    }
+}
+
+function SetValueByPath($target, $path, $value) {
+    $targetPath = $path.Split('.')
+    for ($i = 0; $i -lt $targetPath.Count; $i++) {
+        $prop = $targetPath[$i]
+        if ($i -lt $targetPath.Count - 1) {
+            if (-not $target[$prop]) {
+                $target[$prop] = @{}
+            }
+            $target = $target[$prop]
+        } else {
+            $target[$prop] = $value
+        }
     }
 }
 
@@ -72,20 +87,20 @@ $data = $lines | ConvertFrom-Csv @csvParams
 CreateDirectoryIfNotExists "$volumePath/content"
 
 $orderedColumns = $Columns.Keys |
-    Sort-Object {$Columns[$_].Order} |
+    Sort-Object {$Columns[$_].BlockOrder} |
     ForEach-Object {
         $def = $Columns[$_]
         return [PSCustomObject]@{
             Name = $_
             Target = $def.Target
-            Order = $def.Order
+            BlockOrder = $def.BlockOrder
             ContentKind = $def.ContentKind
             Extractor = $def.Extractor
         }
     }
 
 $sectionColumn = $orderedColumns |
-    Where-Object Target -eq 'section' |
+    Where-Object Target -eq '#section' |
     Select-Object -First 1
 
 $dataGroups = $data |
@@ -118,10 +133,13 @@ $dataGroups |
 
         $_.Group |
             Foreach-Object {
-                $block = @{}
+                $rootBlock = @{}
+                $block = $null
+                $blockNum = $null
                 foreach ($column in $orderedColumns) {
-                    if ($column.Target -eq 'section') {
-                        # Handled above already
+                    $target = $column.Target
+                    if (-not $target -or $target -eq '#section') {
+                        # Ignore columns without a target; section is handled above already
                         continue
                     }
 
@@ -130,27 +148,34 @@ $dataGroups |
                         continue
                     }
 
-                    if ($column.ContentKind) {
-                        $block.contentKind = $column.ContentKind
+                    if ($column.BlockOrder) {
+                        if ($column.BlockOrder -ne $blockNum) {
+                            $block = @{}
+                            $blockNum = $column.BlockOrder
+                            if (-not $rootBlock.blocks) {
+                                $rootBlock.blocks = @()
+                            }
+                            $rootBlock.blocks += $block
+                        }
+                        $currentBlock = $block
+                    } else {
+                        $currentBlock = $rootBlock
                     }
 
-                    # TODO - factor this out to a function (set value on object via dotted-path)
-                    $targetPath = $column.Target -split '\.'
-                    $target = $block
-                    for ($i = 0; $i -lt $targetPath.Count; $i++) {
-                        $prop = $targetPath[$i]
-                        if ($i -lt $targetPath.Count - 1) {
-                            if (-not $target[$prop]) {
-                                $target[$prop] = @{}
-                            }
-                            $target = $target[$prop]
-                        } else {
-                            # TODO - handle composite blocks (value is already set)
-                            $target[$prop] = $value
-                        }
+                    if ($column.ContentKind) {
+                        $currentBlock.contentKind = $column.ContentKind
                     }
+
+                    SetValueByPath $currentBlock $target $value
                 }
-                (ConvertTo-Yaml $block).TrimEnd()
+
+                if ($rootBlock.blocks.Count -eq 1) {
+                    $block = $rootBlock.blocks[0]
+                    $rootBlock.Remove('blocks')
+                    $rootBlock += $block
+                }
+
+                (ConvertTo-Yaml $rootBlock).TrimEnd()
                 '---'
             } |
             Set-Content $contentPath
