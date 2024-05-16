@@ -16,8 +16,10 @@ if (-not $volume) {
 }
 $volumePath = $volume.path
 
-CreateDirectoryIfNotExists "$VolumePath/images"
-$target = Copy-Item -Path "$Path/*.jpeg" -Destination "$VolumePath/images/" -PassThru
-$target += Copy-Item -Path "$Path/*.jpg" -Destination "$VolumePath/images/" -PassThru
+$targetDirectory = "$VolumePath/images"
 
-TandokuVersionControlAdd -Path $target -Kind binary
+CreateDirectoryIfNotExists $targetDirectory
+$target = Copy-Item -Path "$Path/*.jpeg" -Destination "$targetDirectory/" -PassThru
+$target += Copy-Item -Path "$Path/*.jpg" -Destination "$targetDirectory/" -PassThru
+
+TandokuVersionControlAdd -Path $targetDirectory -Kind binary
