@@ -18,8 +18,9 @@ $volumePath = $volume.path
 
 $targetDirectory = "$VolumePath/images"
 
+# TODO - share imageExtensions across scripts
 CreateDirectoryIfNotExists $targetDirectory
-$target = Copy-Item -Path "$Path/*.jpeg" -Destination "$targetDirectory/" -PassThru
-$target += Copy-Item -Path "$Path/*.jpg" -Destination "$targetDirectory/" -PassThru
+Copy-Item -Path "$Path/*.jpeg" -Destination "$targetDirectory/"
+Copy-Item -Path "$Path/*.jpg" -Destination "$targetDirectory/"
 
 TandokuVersionControlAdd -Path $targetDirectory -Kind binary
