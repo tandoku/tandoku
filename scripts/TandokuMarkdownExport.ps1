@@ -45,7 +45,8 @@ function GenerateMarkdown($contentPath) {
         $blockIndex += 1
 
         # Heading
-        $heading = $block.source.block
+        # TODO - generalize this (markdown templates)
+        $heading = $block.source.note ?? $block.source.resource
         if ($heading) {
             Write-Output "# $heading"
             Write-Output ''
@@ -150,6 +151,7 @@ if ($Combine) {
     if (-not $targetPath) {
         # TODO - add this as another property on volume info
         # also consider dropping the moniker from this (just the cleaned title)
+        # -OR- just call this content.md
         $volumeBaseFileName = Split-Path $volumePath -Leaf
         $targetPath = Join-Path $targetDirectory "$OutputPrefix$volumeBaseFileName.md"
     }

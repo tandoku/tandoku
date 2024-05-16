@@ -18,7 +18,7 @@ param(
 
 # TODO - generalize as needed (other Jo-Mako decks - including audio, other Anki decks)
 
-$formatCardText = {
+$formatNoteText = {
     param($text)
 
     $newline = [Environment]::NewLine
@@ -42,12 +42,12 @@ $columns = @{
     }
     ref = @{
         Target = 'references.en.text'
-        Extractor = $formatCardText
+        Extractor = $formatNoteText
     }
 }
 $textColumn = @{
     Target = 'text'
-    Extractor = $formatCardText
+    Extractor = $formatNoteText
 }
 if ($UseReading) {
     $columns.nativeReading = $textColumn
@@ -62,7 +62,7 @@ $csvParams = @{
     SkipLines = 3
     Delimiter = "`t"
     Header = @('id','native','ref','nativeReading','img')
-    BaseFileName = 'cards'
+    BaseFileName = 'notes'
     Columns = $columns
 }
 
