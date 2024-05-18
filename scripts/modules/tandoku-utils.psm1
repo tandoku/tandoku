@@ -4,13 +4,12 @@
 
 function TestCommand {
     param(
-        [Parameter()]
+        [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
         [String]
         $Name
     )
-
-    return (Get-Command $Name -ErrorAction SilentlyContinue) ? $true : $false
+    return !!(Get-Command -Name $Name -ErrorAction SilentlyContinue)
 }
 
 function RequireCommand {
@@ -41,6 +40,40 @@ function CreateDirectoryIfNotExists([String]$Path, [Switch]$Clobber) {
     } elseif ($Clobber) {
         Remove-Item "$Path/*" -Recurse -Force
     }
+}
+
+function CopyItemIfNewer {
+    param(
+        [Parameter(Mandatory=$true)]
+        [String]
+        $Path,
+
+        [Parameter(Mandatory=$true)]
+        [String]
+        $Destination,
+
+        [Parameter()]
+        [Switch]
+        $Force,
+
+        [Parameter()]
+        [Switch]
+        $PassThru
+    )
+
+    Get-ChildItem $Path |
+        Foreach-Object {
+            # NOTE: this won't handle $Destination with wildcards
+            if (Test-Path $Destination -PathType Container) {
+                $targetPath = Join-Path $Destination (Split-Path $_ -Leaf)
+            } else {
+                $targetPath = $Destination
+            }
+            $target = (Test-Path $targetPath) ? (Get-Item -LiteralPath $targetPath) : $null
+            if (-not $target -or ($target.LastWriteTime -lt $_.LastWriteTime)) {
+                Copy-Item -LiteralPath $_ -Destination $Destination -Force:$Force -PassThru:$PassThru
+            }
+        }
 }
 
 function ReplaceStringInFiles {
@@ -137,6 +170,10 @@ function MapToPSDriveAlias {
     }
 
     return $path
+}
+
+function GetImageExtensions {
+    return @('.jpg','.jpeg','.png')
 }
 
 function GetContentBaseName($contentPath) {

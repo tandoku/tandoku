@@ -15,7 +15,7 @@ param(
 Import-Module "$PSScriptRoot/modules/tandoku-utils.psm1" -Scope Local
 
 $media = Get-Content "$path/media" | ConvertFrom-Json -AsHashtable
-$imageExtensions = @('.jpg','.jpeg') # TODO - share this across scripts
+$imageExtensions = GetImageExtensions
 
 CreateDirectoryIfNotExists $TempDestination
 

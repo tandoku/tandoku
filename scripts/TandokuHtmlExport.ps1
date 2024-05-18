@@ -84,7 +84,7 @@ if ($Format -eq 'Book') {
 }
 
 CreateDirectoryIfNotExists "$tempDestination/images"
-$imageExtensions = @('.jpg','.jpeg') # TODO: share this across scripts
+$imageExtensions = GetImageExtensions
 foreach ($imageExtension in $imageExtensions) {
     Copy-Item -Path "$volumePath/images/*$imageExtension" -Destination "$tempDestination/images/"
 }

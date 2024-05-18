@@ -17,10 +17,14 @@ if (-not $volume) {
 $volumePath = $volume.path
 
 $targetDirectory = "$VolumePath/images"
+$imageExtensions = GetImageExtensions
 
-# TODO - share imageExtensions across scripts
 CreateDirectoryIfNotExists $targetDirectory
-Copy-Item -Path "$Path/*.jpeg" -Destination "$targetDirectory/"
-Copy-Item -Path "$Path/*.jpg" -Destination "$targetDirectory/"
+$items = @()
+foreach ($imageExtension in $imageExtensions) {
+    $items += CopyItemIfNewer -Path "$Path/*$imageExtension" -Destination $targetDirectory -PassThru
+}
 
-TandokuVersionControlAdd -Path $targetDirectory -Kind binary
+if ($items) {
+    TandokuVersionControlAdd -Path $targetDirectory -Kind binary
+}
