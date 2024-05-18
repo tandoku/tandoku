@@ -64,6 +64,36 @@ function SetValueByPath($target, $path, $value) {
     }
 }
 
+function WritePipelineProgress {
+    param(
+        [Parameter(Mandatory, ValueFromPipeline)]
+        $InputObject,
+
+        [Parameter(Mandatory)]
+        [long]
+        $TotalCount,
+
+        [Parameter()]
+        [String]
+        $Activity = 'Processing',
+
+        [Parameter()]
+        [String]
+        $ItemName = 'item'
+    )
+    begin {
+        $itemNumber = 0
+    }
+    process {
+        $itemNumber++
+        Write-Progress -Activity $Activity -Status "$ItemName $itemNumber/$TotalCount" -PercentComplete (($itemNumber / $TotalCount) * 100)
+        $InputObject
+    }
+    end {
+        Write-Progress -Completed
+    }
+}
+
 function CreateDirectoryIfNotExists([String]$Path, [Switch]$Clobber) {
     if (-not (Test-Path $Path)) {
         [void] (New-Item $Path -ItemType Directory)

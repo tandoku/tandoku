@@ -144,12 +144,10 @@ $inputItems = @()
 foreach ($imageExtension in $imageExtensions) {
     $inputItems += Get-ChildItem -Path $path -Filter "*$imageExtension"
 }
-$i = 0
-$outputItems = $inputItems | Foreach-Object {
-    $i++
-    Write-Progress -Activity 'Recognizing text' -Status "image $i/$($inputItems.Count)" -PercentComplete (($i / $inputItems.Count) * 100)
-    AddAcvText -Path $_ -Language $volume.definition.language
-}
+
+$outputItems = $inputItems |
+    WritePipelineProgress -Activity 'Recognizing text' -ItemName 'image' -TotalCount $inputItems.Count |
+    AddAcvText -Language $volume.definition.language
 
 if ($outputItems) {
     TandokuVersionControlAdd -Path $path -Kind binary
