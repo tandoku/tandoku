@@ -49,21 +49,6 @@ function ExtractValue($obj, $column) {
     }
 }
 
-function SetValueByPath($target, $path, $value) {
-    $targetPath = $path.Split('.')
-    for ($i = 0; $i -lt $targetPath.Count; $i++) {
-        $prop = $targetPath[$i]
-        if ($i -lt $targetPath.Count - 1) {
-            if (-not $target[$prop]) {
-                $target[$prop] = @{}
-            }
-            $target = $target[$prop]
-        } else {
-            $target[$prop] = $value
-        }
-    }
-}
-
 $volume = TandokuVolumeInfo -VolumePath $VolumePath
 if (-not $volume) {
     return

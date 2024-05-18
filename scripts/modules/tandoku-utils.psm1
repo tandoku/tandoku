@@ -34,6 +34,36 @@ function ArgsToArray {
     return $args
 }
 
+function GetValueByPath($target, $path) {
+    $targetPath = $path.Split('.')
+    for ($i = 0; $i -lt $targetPath.Count; $i++) {
+        $prop = $targetPath[$i]
+        if ($i -lt $targetPath.Count - 1) {
+            if (-not $target.$prop) {
+                return
+            }
+            $target = $target.$prop
+        } else {
+            return $target.$prop
+        }
+    }
+}
+
+function SetValueByPath($target, $path, $value) {
+    $targetPath = $path.Split('.')
+    for ($i = 0; $i -lt $targetPath.Count; $i++) {
+        $prop = $targetPath[$i]
+        if ($i -lt $targetPath.Count - 1) {
+            if (-not $target.$prop) {
+                $target.$prop = @{}
+            }
+            $target = $target.$prop
+        } else {
+            $target.$prop = $value
+        }
+    }
+}
+
 function CreateDirectoryIfNotExists([String]$Path, [Switch]$Clobber) {
     if (-not (Test-Path $Path)) {
         [void] (New-Item $Path -ItemType Directory)
