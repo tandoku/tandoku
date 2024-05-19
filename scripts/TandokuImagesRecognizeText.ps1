@@ -43,7 +43,7 @@ function AddAcvText {
         $textDir = (Join-Path $source.Directory 'text')
         CreateDirectoryIfNotExists $textDir
 
-        $target = (Join-Path $textDir "$([IO.Path]::GetFilenameWithoutExtension($source.Name)).acv.json")
+        $target = (Join-Path $textDir "$([IO.Path]::GetFilenameWithoutExtension($source.Name)).acv4.json")
         if (-not (Test-Path $target)) {
             $body = [IO.File]::ReadAllBytes($source)
             $headers = @{
@@ -62,52 +62,20 @@ function AddAcvText {
                 $retryIntervalSec = 2
             }
 
-            $requestParams = $Language ? "?language=$Language" : $null
+            $requestParams = $Language ? "&language=$Language" : $null
             $response = Invoke-WebRequest `
               -Method POST `
               -Headers $headers `
-              -ContentType: 'application/octet-stream' `
               -Body $body `
               -MaximumRetryCount 3 `
               -RetryIntervalSec $retryIntervalSec `
-              -Uri "$script:acvEndpoint/vision/v3.2/read/analyze$requestParams" `
+              -Uri "$script:acvEndpoint/computervision/imageanalysis:analyze?api-version=2024-02-01&features=read$requestParams" `
+              -OutFile $target `
+              -PassThru `
               -ProgressAction SilentlyContinue
 
-            if ($response.StatusCode -eq 202) {
-                $resultUri = [string]$response.Headers.'Operation-Location'
-                $headers = @{
-                    'Ocp-Apim-Subscription-Key' = $script:acvApiKey
-                }
-
-                Write-Verbose "Resource location: $resultUri"
-
-                do {
-                    # Sleep between operations since free tier is limited to 20 calls per minute
-                    # (this isn't necessary if using S1 pricing tier)
-                    if ($FreeTier) {
-                        Write-Verbose "Waiting 3 seconds to avoid free tier request throttling..."
-                        Start-Sleep -Milliseconds 3100
-                    }
-
-                    Write-Verbose "Requesting resource..."
-                    $response = Invoke-WebRequest `
-                      -Method GET `
-                      -Headers $headers `
-                      -MaximumRetryCount 3 `
-                      -RetryIntervalSec $retryIntervalSec `
-                      -Uri $resultUri `
-                      -ProgressAction SilentlyContinue
-
-                    $responseJson = $response | ConvertFrom-Json
-                    Write-Verbose "Request status: $($responseJson.status)"
-                    if ($responseJson.status -eq 'succeeded') {
-                        $response.Content | Set-Content $target
-                    }
-                } while ($responseJson.status -in 'notStarted','running')
-
-                if ($responseJson -and $responseJson.status -eq 'failed') {
-                    Write-Error "Azure OCR failed: $responseJson"
-                }
+            if ($response.StatusCode -ne 200) {
+                Write-Error "Azure OCR failed: $response"
             }
 
             if (Test-Path $target) {
