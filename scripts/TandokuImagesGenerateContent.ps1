@@ -19,7 +19,7 @@ function GenerateBlocksFromAcvText {
         $ImagePath
     )
     process {
-        # TODO - should really share this with AddAcvText in TandokuImagesRecognizeText.ps1
+        # TODO - should really share this with AddAcvText in TandokuImagesAnalyze.ps1
         $source = [IO.FileInfo](Convert-Path $ImagePath)
         $textDir = (Join-Path $source.Directory 'text')
         $acvPath = (Join-Path $textDir "$([IO.Path]::GetFilenameWithoutExtension($source.Name)).acv4.json")
