@@ -154,6 +154,7 @@ $dataGroups |
                     SetValueByPath $currentBlock $target $value
                 }
 
+                # TODO - share this with TandokuImagesGenerateContent
                 if ($rootBlock.blocks.Count -eq 1) {
                     $block = $rootBlock.blocks[0]
                     $rootBlock.Remove('blocks')
