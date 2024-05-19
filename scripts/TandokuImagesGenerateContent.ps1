@@ -68,7 +68,7 @@ function SaveContentBlocks {
         $block = $BlockResult.Block
 
         if ($SplitByFileName -and $fileName -match $SplitByFileName) {
-            $contentBaseName = $Matches.Count -gt 0 ? $Matches[1] : $Matches[0]
+            $contentBaseName = $Matches.Count -gt 1 ? $Matches[1] : $Matches[0]
         } else {
             $contentBaseName = ''
         }
