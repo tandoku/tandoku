@@ -191,45 +191,8 @@ function ExpandArchive([String]$Path, [String]$DestinationPath, [Switch]$Clobber
     }
 }
 
-# TODO - replace this with [IO.Path]::GetRelativePath
-function ExtractRelativePath([String] $basePath, [String] $childPath) {
-    if ($basePath -eq $childPath) {
-        return '.'
-    }
-
-    $basePathWithSep = Join-Path $basePath /
-    $childPathWithSep = Join-Path $childPath /
-    if ($basePathWithSep -eq $childPathWithSep) {
-        return '.'
-    }
-
-    if ($childPath -like "$basePathWithSep*") {
-        return $childPath.Substring($basePathWithSep.length)
-    } else {
-        return $null
-    }
-}
-
-# TODO - drop support for mapping to PSDrives
-function MapToPSDriveAlias {
-    param(
-        [Parameter(Mandatory=$true)]
-        [ValidateNotNullorEmpty()]
-        [String]
-        $Path
-    )
-
-    $drives = Get-PSDrive -PSProvider FileSystem |
-        Sort-Object -Property Root -Descending
-
-    foreach ($drive in $drives) {
-        $relativePath = ExtractRelativePath $drive.Root $path
-        if ($relativePath) {
-            return (Join-Path "$($drive.Name):/" $relativePath -Resolve)
-        }
-    }
-
-    return $path
+function GetRelativePath([string]$basePath, [string]$path) {
+    return [IO.Path]::GetRelativePath($basePath, $path).Replace('\', '/')
 }
 
 function GetImageExtensions {
@@ -254,7 +217,7 @@ function InvokeTandokuCommand {
 
     $tandokuOut = (& 'tandoku' $tandokuArgs) | Out-String
     if ($tandokuOut) {
-        return (ConvertFrom-Json $tandokuOut)
+        return (ConvertFrom-Json $tandokuOut -AsHashtable)
     } else {
         # TODO: capture error output? (or just let it go to console?)
         return
