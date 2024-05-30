@@ -1,6 +1,7 @@
 ﻿namespace Tandoku.Yaml;
 
 using System.Buffers;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using YamlDotNet.Core;
@@ -8,13 +9,14 @@ using YamlDotNet.Core.Events;
 
 public sealed partial class YamlToJsonConverter
 {
-    private readonly JsonSerializerOptions? options;
     private ArrayBufferWriter<byte>? jsonBufferWriter;
 
     public YamlToJsonConverter(JsonSerializerOptions? options = null)
     {
-        this.options = options;
+        this.JsonOptions = options;
     }
+
+    public JsonSerializerOptions? JsonOptions { get; init; }
 
     public T DeserializeViaJson<T>(TextReader yamlReader) =>
         this.DeserializeViaJson<T>(new Parser(yamlReader));
@@ -22,37 +24,51 @@ public sealed partial class YamlToJsonConverter
     public T DeserializeViaJson<T>(IParser yamlParser)
     {
         this.jsonBufferWriter ??= CreateJsonBufferWriter();
-        return DeserializeViaJson<T>(yamlParser, this.options, this.jsonBufferWriter);
+        return DeserializeViaJson<T>(yamlParser, this.JsonOptions, this.jsonBufferWriter);
+    }
+
+    public JsonDocument ConvertToJsonDocument(TextReader yamlReader) =>
+        this.ConvertToJsonDocument(new Parser(yamlReader));
+
+    public JsonDocument ConvertToJsonDocument(IParser yamlParser)
+    {
+        this.jsonBufferWriter ??= CreateJsonBufferWriter();
+        return ConvertToJsonDocument(yamlParser, this.jsonBufferWriter);
     }
 
     public static T DeserializeViaJson<T>(
         TextReader yamlReader,
         JsonSerializerOptions? options = null,
-        ArrayBufferWriter<byte>? bufferWriter = null)
-    {
-        return DeserializeViaJson<T>(new Parser(yamlReader), options, bufferWriter);
-    }
+        ArrayBufferWriter<byte>? bufferWriter = null) =>
+        DeserializeViaJson<T>(new Parser(yamlReader), options, bufferWriter);
 
     public static T DeserializeViaJson<T>(
         IParser yamlParser,
         JsonSerializerOptions? options = null,
         ArrayBufferWriter<byte>? bufferWriter = null)
     {
-        if (bufferWriter is null)
-            bufferWriter = CreateJsonBufferWriter();
-        else
-            bufferWriter.Clear();
-
-        using (var jsonWriter = new Utf8JsonWriter(bufferWriter))
-            ConvertToJson(yamlParser, jsonWriter);
-
+        WriteToJsonWithBuffer(yamlParser, ref bufferWriter);
         return JsonSerializer.Deserialize<T>(bufferWriter.WrittenSpan, options) ??
             throw new InvalidDataException();
     }
-    public static void ConvertToJson(TextReader yamlReader, Utf8JsonWriter jsonWriter) =>
-        ConvertToJson(new Parser(yamlReader), jsonWriter);
 
-    public static void ConvertToJson(IParser yamlParser, Utf8JsonWriter jsonWriter)
+    public static JsonDocument ConvertToJsonDocument(
+        TextReader yamlReader,
+        ArrayBufferWriter<byte>? bufferWriter = null) =>
+        ConvertToJsonDocument(new Parser(yamlReader), bufferWriter);
+
+    public static JsonDocument ConvertToJsonDocument(
+        IParser yamlParser,
+        ArrayBufferWriter<byte>? bufferWriter = null)
+    {
+        WriteToJsonWithBuffer(yamlParser, ref bufferWriter);
+        return JsonDocument.Parse(bufferWriter.WrittenMemory);
+    }
+
+    public static void WriteToJson(TextReader yamlReader, Utf8JsonWriter jsonWriter) =>
+        WriteToJson(new Parser(yamlReader), jsonWriter);
+
+    public static void WriteToJson(IParser yamlParser, Utf8JsonWriter jsonWriter)
     {
         bool singleDocument = yamlParser.Accept<DocumentStart>(out _);
         var visitor = new ParsingEventVisitor(jsonWriter);
@@ -67,6 +83,19 @@ public sealed partial class YamlToJsonConverter
 
     private static ArrayBufferWriter<byte> CreateJsonBufferWriter() =>
         new(JsonSerializerOptions.Default.DefaultBufferSize);
+
+    private static void WriteToJsonWithBuffer(
+        IParser yamlParser,
+        [NotNull] ref ArrayBufferWriter<byte>? bufferWriter)
+    {
+        if (bufferWriter is null)
+            bufferWriter = CreateJsonBufferWriter();
+        else
+            bufferWriter.ResetWrittenCount();
+
+        using (var jsonWriter = new Utf8JsonWriter(bufferWriter))
+            WriteToJson(yamlParser, jsonWriter);
+    }
 
     private sealed partial class ParsingEventVisitor : IParsingEventVisitor
     {

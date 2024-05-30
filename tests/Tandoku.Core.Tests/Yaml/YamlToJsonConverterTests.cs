@@ -1,5 +1,6 @@
 ﻿namespace Tandoku.Tests.Yaml;
 
+using System.Buffers;
 using System.Text;
 using System.Text.Json;
 using Tandoku.Yaml;
@@ -53,7 +54,23 @@ public class YamlToJsonConverterTests
     private record TestObject(string Key1, long Key2, IReadOnlyList<long> Key3);
 
     [Fact]
-    public void ConvertYamlToJsonSimple()
+    public void ConvertToJsonDocument()
+    {
+        var yaml = """
+            key1: value1
+            key2: 42
+            """;
+
+        var json = """
+            {"key1":"value1","key2":42}
+            """;
+
+        var jsonDoc = YamlToJsonConverter.ConvertToJsonDocument(new StringReader(yaml));
+        jsonDoc.RootElement.ToString().Should().Be(json);
+    }
+
+    [Fact]
+    public void WriteToJson()
     {
         var yaml = """
             key1: value1
@@ -79,11 +96,11 @@ public class YamlToJsonConverterTests
             }
             """;
 
-        using var jsonStream = new MemoryStream();
-        using (var jsonWriter = new Utf8JsonWriter(jsonStream, new JsonWriterOptions { Indented = true }))
-            YamlToJsonConverter.ConvertToJson(new StringReader(yaml), jsonWriter);
+        var bufferWriter = new ArrayBufferWriter<byte>();
+        using (var jsonWriter = new Utf8JsonWriter(bufferWriter, new JsonWriterOptions { Indented = true }))
+            YamlToJsonConverter.WriteToJson(new StringReader(yaml), jsonWriter);
 
-        Encoding.UTF8.GetString(jsonStream.ToArray())
+        Encoding.UTF8.GetString(bufferWriter.WrittenSpan)
             .Should().Be(json);
     }
 }
