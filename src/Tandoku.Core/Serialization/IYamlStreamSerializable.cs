@@ -23,11 +23,11 @@ internal interface IYamlStreamSerializable<TSelf>
         var parser = new Parser(reader);
         parser.Consume<StreamStart>();
 
-        var options = SerializationFactory.JsonOptions;
+        var jsonConverter = new YamlToJsonConverter(SerializationFactory.JsonOptions);
 
         while (parser.Accept<DocumentStart>(out _))
         {
-            var block = YamlToJsonConverter.DeserializeViaJson<TSelf>(parser, options);
+            var block = jsonConverter.DeserializeViaJson<TSelf>(parser);
             if (block is not null)
                 yield return block;
         }

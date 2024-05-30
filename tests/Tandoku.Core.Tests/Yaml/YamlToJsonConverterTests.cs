@@ -3,7 +3,6 @@
 using System.Text;
 using System.Text.Json;
 using Tandoku.Yaml;
-using YamlDotNet.Core;
 
 public class YamlToJsonConverterTests
 {
@@ -24,6 +23,31 @@ public class YamlToJsonConverterTests
 
         obj.Should().BeEquivalentTo(
             new TestObject("value1", 42, [1, 2, 3]));
+    }
+
+    [Fact]
+    public void DeserializeViaJsonInstance()
+    {
+        var yaml1 = """
+            Key1: value1
+            Key2: 42
+            Key3: [1,2,3]
+            """;
+
+        var yaml2 = """
+            Key1: value2
+            Key2: 40
+            Key3: [4,5]
+            """;
+
+        var converter = new YamlToJsonConverter();
+        var obj1 = converter.DeserializeViaJson<TestObject>(new StringReader(yaml1));
+        var obj2 = converter.DeserializeViaJson<TestObject>(new StringReader(yaml2));
+
+        obj1.Should().BeEquivalentTo(
+            new TestObject("value1", 42, [1, 2, 3]));
+        obj2.Should().BeEquivalentTo(
+            new TestObject("value2", 40, [4, 5]));
     }
 
     private record TestObject(string Key1, long Key2, IReadOnlyList<long> Key3);

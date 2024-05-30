@@ -6,16 +6,43 @@ using System.Text.RegularExpressions;
 using YamlDotNet.Core;
 using YamlDotNet.Core.Events;
 
-// TODO: rename to YamlToJsonConverter, ConvertToJson and DeserializeViaJson<T> methods
-public static partial class YamlToJsonConverter
+public sealed partial class YamlToJsonConverter
 {
-    public static T DeserializeViaJson<T>(TextReader yamlReader, JsonSerializerOptions? options = null) =>
-        DeserializeViaJson<T>(new Parser(yamlReader), options);
+    private readonly JsonSerializerOptions? options;
+    private ArrayBufferWriter<byte>? jsonBufferWriter;
 
-    public static T DeserializeViaJson<T>(IParser yamlParser, JsonSerializerOptions? options = null)
+    public YamlToJsonConverter(JsonSerializerOptions? options = null)
     {
-        var bufferWriter = new ArrayBufferWriter<byte>(
-            JsonSerializerOptions.Default.DefaultBufferSize);
+        this.options = options;
+    }
+
+    public T DeserializeViaJson<T>(TextReader yamlReader) =>
+        this.DeserializeViaJson<T>(new Parser(yamlReader));
+
+    public T DeserializeViaJson<T>(IParser yamlParser)
+    {
+        this.jsonBufferWriter ??= CreateJsonBufferWriter();
+        return DeserializeViaJson<T>(yamlParser, this.options, this.jsonBufferWriter);
+    }
+
+    public static T DeserializeViaJson<T>(
+        TextReader yamlReader,
+        JsonSerializerOptions? options = null,
+        ArrayBufferWriter<byte>? bufferWriter = null)
+    {
+        return DeserializeViaJson<T>(new Parser(yamlReader), options, bufferWriter);
+    }
+
+    public static T DeserializeViaJson<T>(
+        IParser yamlParser,
+        JsonSerializerOptions? options = null,
+        ArrayBufferWriter<byte>? bufferWriter = null)
+    {
+        if (bufferWriter is null)
+            bufferWriter = CreateJsonBufferWriter();
+        else
+            bufferWriter.Clear();
+
         using (var jsonWriter = new Utf8JsonWriter(bufferWriter))
             ConvertToJson(yamlParser, jsonWriter);
 
@@ -38,10 +65,11 @@ public static partial class YamlToJsonConverter
         }
     }
 
+    private static ArrayBufferWriter<byte> CreateJsonBufferWriter() =>
+        new(JsonSerializerOptions.Default.DefaultBufferSize);
+
     private sealed partial class ParsingEventVisitor : IParsingEventVisitor
     {
-        private static Regex plainJsonValueRegex = GetPlainJsonValueRegex();
-
         private readonly Utf8JsonWriter jsonWriter;
         private readonly Stack<YamlContext> contextStack = new();
 
@@ -81,7 +109,7 @@ public static partial class YamlToJsonConverter
             }
             else
             {
-                if (e.IsPlainImplicit && plainJsonValueRegex.IsMatch(e.Value))
+                if (e.IsPlainImplicit && GetPlainJsonValueRegex().IsMatch(e.Value))
                 {
                     this.jsonWriter.WriteRawValue(e.Value);
                 }
