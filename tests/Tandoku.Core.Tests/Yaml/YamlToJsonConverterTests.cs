@@ -59,10 +59,11 @@ public class YamlToJsonConverterTests
         var yaml = """
             key1: value1
             key2: 42
+            key3: 
             """;
 
         var json = """
-            {"key1":"value1","key2":42}
+            {"key1":"value1","key2":42,"key3":null}
             """;
 
         var jsonDoc = YamlToJsonConverter.ConvertToJsonDocument(new StringReader(yaml));

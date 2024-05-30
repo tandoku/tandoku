@@ -142,6 +142,10 @@ public sealed partial class YamlToJsonConverter
                 {
                     this.jsonWriter.WriteRawValue(e.Value);
                 }
+                else if (e.IsPlainImplicit && string.IsNullOrEmpty(e.Value))
+                {
+                    this.jsonWriter.WriteNullValue();
+                }
                 else
                 {
                     this.jsonWriter.WriteStringValue(e.Value);

@@ -16,7 +16,6 @@ internal interface IYamlStreamSerializable<TSelf>
             yield return item;
     }
 
-    // NOTE: this method is currently synchronous as YamlDotNet does not have an async API
     static virtual async IAsyncEnumerable<TSelf> ReadYamlAsync(TextReader reader)
     {
         // Note: YamlDotNet Parser skips comments unless Scanner is explicitly created to include comments
@@ -27,11 +26,15 @@ internal interface IYamlStreamSerializable<TSelf>
 
         while (parser.Accept<DocumentStart>(out _))
         {
-            var block = jsonConverter.DeserializeViaJson<TSelf>(parser);
+            var block = await TSelf.DeserializeYamlDocumentAsync(parser, jsonConverter);
             if (block is not null)
                 yield return block;
         }
 
         parser.Consume<StreamEnd>();
     }
+
+    // NOTE: this method is currently synchronous as YamlDotNet does not have an async API
+    static virtual ValueTask<TSelf?> DeserializeYamlDocumentAsync(Parser yamlParser, YamlToJsonConverter jsonConverter) =>
+        ValueTask.FromResult(jsonConverter.DeserializeViaJson<TSelf?>(yamlParser));
 }
