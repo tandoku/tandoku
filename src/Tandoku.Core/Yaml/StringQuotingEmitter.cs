@@ -17,7 +17,6 @@
 namespace Tandoku.Yaml;
 
 using System.Text.RegularExpressions;
-using YamlDotNet;
 using YamlDotNet.Core;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.EventEmitters;
@@ -35,7 +34,7 @@ public class StringQuotingEmitter : ChainedEventEmitter
 
     public override void Emit(ScalarEventInfo eventInfo, IEmitter emitter)
     {
-        var typeCode = eventInfo.Source.Value != null ?
+        var typeCode = eventInfo.Source.Value is not null ?
             Type.GetTypeCode(eventInfo.Source.Type) :
             TypeCode.Empty;
 

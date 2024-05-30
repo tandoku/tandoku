@@ -26,6 +26,7 @@ function ResolveLinkedVolume([string]$Path, [string]$Moniker) {
         }
         return $linkedVolumeInfo
     } else {
+        # use `tandoku volume list --all --moniker="$Moniker"` to find volume
         throw "TODO: implement resolution by moniker"
     }
 }

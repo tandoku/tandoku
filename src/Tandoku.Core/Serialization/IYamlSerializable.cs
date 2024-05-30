@@ -1,12 +1,7 @@
 ﻿namespace Tandoku.Serialization;
 
-using System.Buffers;
 using System.IO.Abstractions;
-using System.Text.Json;
 using Tandoku.Yaml;
-using YamlDotNet.Core;
-using YamlDotNet.Serialization;
-using YamlDotNet.Serialization.NamingConventions;
 
 internal interface IYamlSerializable<TSelf>
     where TSelf : IYamlSerializable<TSelf>
@@ -56,27 +51,15 @@ internal interface IYamlSerializable<TSelf>
         }
         jsonStream.Position = 0;
 
-        var options = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        };
+        var options = SerializationFactory.JsonOptions;
         return JsonSerializer.Deserialize<TSelf>(jsonStream, options) ??
             throw new InvalidDataException();
 #else
         reader = reader as StringReader ??
             new StringReader(await reader.ReadToEndAsync());
 
-        var bufferWriter = new ArrayBufferWriter<byte>(
-            JsonSerializerOptions.Default.DefaultBufferSize);
-        using (var jsonWriter = new Utf8JsonWriter(bufferWriter))
-            YamlJsonWriter.Write(reader, jsonWriter);
-
-        var options = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        };
-        return JsonSerializer.Deserialize<TSelf>(bufferWriter.WrittenSpan, options) ??
-            throw new InvalidDataException();
+        var options = SerializationFactory.JsonOptions;
+        return YamlToJsonConverter.DeserializeViaJson<TSelf>(reader, options);
 #endif
     }
 
@@ -89,15 +72,7 @@ internal interface IYamlSerializable<TSelf>
 
     virtual Task WriteYamlAsync(TextWriter writer)
     {
-        var serializer = new SerializerBuilder()
-            .WithNamingConvention(CamelCaseNamingConvention.Instance)
-            .WithQuotingNecessaryStrings()
-            .ConfigureDefaultValuesHandling(
-                DefaultValuesHandling.OmitNull |
-                DefaultValuesHandling.OmitDefaults |
-                DefaultValuesHandling.OmitEmptyCollections)
-            .WithEventEmitter(next => new FlowStyleEventEmitter(next))
-            .Build();
+        var serializer = SerializationFactory.CreateYamlSerializer();
 
         if (writer is StringWriter)
         {
