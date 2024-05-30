@@ -4,14 +4,14 @@ contentKind: primary <default> | secondary | meta | sound-effect | on-screen-tex
 actor: text
 image:
   name: filename
-  regions: TODO
+  regions: TODO # or maybe region?
 references:
   <ref-name>:
     text: markdown
     actor: text
     image: image
 source:
-  block: text # TODO - rename this to something else, 'resource'?
+  resource: text
   timecodes: {start: timespan, end: timespan}
 ---
 # CompositeBlock
