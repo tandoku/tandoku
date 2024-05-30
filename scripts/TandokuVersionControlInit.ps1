@@ -1,6 +1,9 @@
-# TODO: Require-Command git, dvc
+Import-Module "$PSScriptRoot/modules/tandoku-utils.psm1" -Scope Local
+
 # Prerequisites:
 # scoop install dvc
+RequireCommand git
+RequireCommand dvc
 
 # Set up git if needed
 if (-not (Test-Path .git)) {
@@ -10,6 +13,7 @@ if (-not (Test-Path .git)) {
     git add library.yaml
 }
 
+Add-Content .gitignore **/cache/
 Add-Content .gitignore **/temp/
 Add-Content .gitignore *.epub
 Add-Content .gitignore *.html.zip
