@@ -76,6 +76,7 @@ public sealed class ContentLinker
 
                 textBlock = textBlock with
                 {
+                    // TODO add links (but keep copy to references as an option or separate command)
                     References = textBlock.References.AddRange(
                         CopyLinkedBlockToReferences(linkedBlock, linkName))
                 };

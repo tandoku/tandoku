@@ -4,7 +4,7 @@ contentKind: primary <default> | secondary | meta | sound-effect | on-screen-tex
 actor: text
 image:
   name: filename
-  regions: TODO # or maybe region?
+  regions: TODO # or maybe region? populate this on nested blocks from OCR?
 references:
   <ref-name>:
     text: markdown

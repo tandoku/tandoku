@@ -15,6 +15,10 @@ public abstract record ContentBlock : IYamlStreamSerializable<ContentBlock>
 
     public string? Id { get; init; }
 
+    public ContentImage? Image { get; init; }
+
+    public ContentSource? Source { get; init; }
+
 #if DEBUG // TODO remove this when contract is fully specified
     private string? OriginalJson { get; set; }
 #endif
@@ -48,6 +52,16 @@ public abstract record ContentBlock : IYamlStreamSerializable<ContentBlock>
             _ => throw new InvalidDataException($"Unexpected document value of type '{jsonDocument.RootElement.ValueKind}' in YAML stream"),
         };
     }
+}
+
+public sealed record ContentImage
+{
+    public string? Name { get; init; }
+}
+
+public sealed record ContentSource
+{
+    public string? Resource { get; init; }
 }
 
 public sealed record TextBlock : ContentBlock
