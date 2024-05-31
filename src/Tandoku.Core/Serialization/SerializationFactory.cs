@@ -1,5 +1,6 @@
 ﻿namespace Tandoku.Serialization;
 
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using Tandoku.Yaml;
 using YamlDotNet.Serialization;
@@ -24,7 +25,8 @@ internal static class SerializationFactory
     {
         var options = new JsonSerializerOptions
         {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping, // avoid escaping Japanese characters
         };
         options.MakeReadOnly(populateMissingResolver: true);
         return options;

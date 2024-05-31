@@ -1,5 +1,5 @@
 param(
-    [Parameter(Mandatory=$true)]
+    [Parameter()]
     [String]
     $Path,
 
@@ -15,6 +15,10 @@ if (-not $volume) {
     return
 }
 $volumePath = $volume.path
+
+if (-not $Path) {
+    $Path = "$volumePath/content"
+}
 
 $indexPath = "$volumePath/.tandoku-volume/cache/contentIndex"
 CreateDirectoryIfNotExists $indexPath -Clobber

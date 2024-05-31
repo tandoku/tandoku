@@ -3,9 +3,12 @@
 using System.Collections.Immutable;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Tandoku.Serialization;
 using Tandoku.Yaml;
 
+[JsonDerivedType(typeof(TextBlock))]
+[JsonDerivedType(typeof(CompositeBlock))]
 public abstract record ContentBlock : IYamlStreamSerializable<ContentBlock>
 {
     private static readonly ReadOnlyMemory<byte> blocksProperty = Encoding.UTF8.GetBytes("blocks");
@@ -16,30 +19,44 @@ public abstract record ContentBlock : IYamlStreamSerializable<ContentBlock>
     private string? OriginalJson { get; set; }
 #endif
 
+    public string ToJsonString() =>
+        JsonSerializer.Serialize(this, SerializationFactory.JsonOptions);
+
     static ValueTask<ContentBlock?> IYamlStreamSerializable<ContentBlock>.DeserializeYamlDocumentAsync(
         YamlDotNet.Core.Parser yamlParser,
         YamlToJsonConverter jsonConverter)
     {
         var jsonDoc = jsonConverter.ConvertToJsonDocument(yamlParser);
-        ContentBlock? block = jsonDoc.RootElement.ValueKind switch
-        {
-            JsonValueKind.Object => jsonDoc.RootElement.TryGetProperty(blocksProperty.Span, out _) ?
-                jsonDoc.Deserialize<CompositeBlock>(jsonConverter.JsonOptions) :
-                jsonDoc.Deserialize<TextBlock>(jsonConverter.JsonOptions),
-
-            JsonValueKind.Null => null,
-
-            _ => throw new InvalidDataException($"Unexpected document value of type '{jsonDoc.RootElement.ValueKind}' in YAML stream"),
-        };
+        var block = Deserialize(jsonDoc);
 #if DEBUG
         if (block is not null)
             block.OriginalJson = jsonDoc.RootElement.ToString();
 #endif
         return ValueTask.FromResult(block);
     }
+
+    internal static ContentBlock? Deserialize(JsonDocument jsonDocument)
+    {
+        return jsonDocument.RootElement.ValueKind switch
+        {
+            JsonValueKind.Object => jsonDocument.RootElement.TryGetProperty(blocksProperty.Span, out _) ?
+                jsonDocument.Deserialize<CompositeBlock>(SerializationFactory.JsonOptions) :
+                jsonDocument.Deserialize<TextBlock>(SerializationFactory.JsonOptions),
+
+            JsonValueKind.Null => null,
+
+            _ => throw new InvalidDataException($"Unexpected document value of type '{jsonDocument.RootElement.ValueKind}' in YAML stream"),
+        };
+    }
 }
 
 public sealed record TextBlock : ContentBlock
+{
+    public string? Text { get; init; }
+    public IImmutableDictionary<string, ContentReference> References { get; init; } = ImmutableDictionary<string, ContentReference>.Empty;
+}
+
+public sealed record ContentReference
 {
     public string? Text { get; init; }
 }
