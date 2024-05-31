@@ -53,7 +53,7 @@ public abstract record ContentBlock : IYamlStreamSerializable<ContentBlock>
 public sealed record TextBlock : ContentBlock
 {
     public string? Text { get; init; }
-    public IImmutableDictionary<string, ContentReference> References { get; init; } = ImmutableDictionary<string, ContentReference>.Empty;
+    public IImmutableDictionary<string, ContentReference> References { get; init; } = ImmutableSortedDictionary<string, ContentReference>.Empty;
 }
 
 public sealed record ContentReference
