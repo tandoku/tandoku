@@ -167,11 +167,19 @@ function ReplaceStringInFiles {
 }
 
 function CompressArchive([String[]]$Path, [String]$DestinationPath, [Switch]$Force) {
+    # Ensure destination directory exists (7z would do this automatically but Compress-Archive does not)
+    $destinationDir = Split-Path $DestinationPath -Parent
+    CreateDirectoryIfNotExists $destinationDir
+
     # Use 7z if available for performance reasons (Compress-Archive can be very slow)
     if (TestCommand 7z) {
         if ($Force -and (Test-Path $DestinationPath)) {
             Remove-Item $DestinationPath
         }
+        # Normalize destination path before passing to 7z
+        # NOTE - not normalizing $Path currently because it could have wildcards
+        # (both Resolve-Path and Convert-Path expand wildcards)
+        $DestinationPath = Join-Path (Resolve-Path $destinationDir) (Split-Path $DestinationPath -Leaf)
         7z a -tzip -r $DestinationPath $Path
     } else {
         Compress-Archive -Path $Path -DestinationPath $DestinationPath -Force:$Force
@@ -185,6 +193,7 @@ function ExpandArchive([String]$Path, [String]$DestinationPath, [Switch]$Clobber
 
     # Use 7z if available for performance reasons
     if (TestCommand 7z) {
+        # NOTE - not currently normalizing either of these paths (but could if needed)
         7z x -o"$DestinationPath" $Path
     } else {
         Expand-Archive -Path $Path -DestinationPath $DestinationPath
