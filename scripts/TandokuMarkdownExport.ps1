@@ -33,20 +33,26 @@ param(
 Import-Module "$PSScriptRoot/modules/tandoku-utils.psm1" -Scope Local
 
 function GenerateMarkdown($contentPath) {
-    $content = Get-Content $contentPath | ConvertFrom-Yaml -AllDocuments
+    $content = Get-Content $contentPath | ConvertFrom-Yaml -AllDocuments -Ordered
 
-    # Note that an id prefix is used anytime there are multiple input files, whether or not the output
+    # Note that a unique id prefix is used anytime there are multiple input files, whether or not the output
     # will be combined into a single markdown file.
     # Required by TandokuEpubExport which treats multiple markdown files as a single concatenated file.
     $idPrefix = GetContentBaseName $contentPath
+    if (-not $idPrefix) {
+        # Default id prefix - blockId may be used in HTML id attributes which must start with a letter
+        $idPrefix = 'block'
+    }
 
     $blockIndex = 0
     foreach ($block in $content) {
         $blockIndex += 1
+        $blockId = "$idPrefix-$blockIndex"
+
+        # TODO - generalize this (markdown templates)
 
         # Heading
-        # TODO - generalize this (markdown templates)
-        $heading = $block.source.note ?? $block.source.resource
+        $heading = GetHeading $block
         if ($heading) {
             Write-Output "# $heading"
             Write-Output ''
@@ -61,18 +67,44 @@ function GenerateMarkdown($contentPath) {
             Write-Output ''
         }
 
-        # Text / Reference text
-        $blockText = ProcessRubyText $block.text
-        $blockId = $idPrefix ? "$idPrefix-$blockIndex" : "$blockIndex"
-        if ($RubyBehavior -eq 'BlurHtml') {
-            $blockText = ConvertTextToBlurHtml $blockText $blockId -Ruby
-        }
-        $blockRefText = $block.references.en.text
-        if ($blockRefText) {
-            $blockRefId = "ref-en-$blockIndex"
-            if ($idPrefix) {
-                $blockRefId = "$idPrefix-$blockRefId"
+        if ($block.blocks) {
+            $nestedBlockIndex = 0
+            foreach ($nestedBlock in $block.blocks) {
+                $nestedBlockIndex += 1
+                $nestedBlockId = "$blockId-$nestedBlockIndex"
+                GenerateMarkdownForTextBlock $nestedBlock $nestedBlockId
             }
+        } else {
+            GenerateMarkdownForTextBlock $block $blockId
+        }
+    }
+}
+
+function GetHeading($block) {
+    $heading = $block.source.note ?? $block.source.resource
+    if ($heading) {
+        return $heading
+    }
+
+    if ($block.image.name) {
+        return (Split-Path $block.image.name -LeafBase)
+    }
+}
+
+function GenerateMarkdownForTextBlock($block, $blockId) {
+    # Text / Reference text
+
+    $blockText = ProcessRubyText $block.text
+    if ($RubyBehavior -eq 'BlurHtml') {
+        $blockText = ConvertTextToBlurHtml $blockText $blockId -Ruby
+    }
+
+    $blockRefTextBuilder = [Text.StringBuilder]::new()
+    foreach ($refName in $block.references.Keys) {
+        $ref = $block.references[$refName]
+        $blockRefText = $ref.text
+        if ($blockRefText) {
+            $blockRefId = "$blockId-ref-$refName"
 
             switch ($ReferenceBehavior) {
                 'Footnotes' {
@@ -84,14 +116,19 @@ function GenerateMarkdown($contentPath) {
                 }
             }
 
-            Write-Output $blockText
-            Write-Output ''
-            Write-Output $blockRefText
-            Write-Output ''
-        } else {
-            Write-Output $blockText
-            Write-Output ''
+            if ($ReferenceBehavior -ne 'Footnotes') {
+                $blockRefText = "$($refName): $blockRefText"
+            }
+
+            [void] $blockRefTextBuilder.AppendLine($blockRefText)
+            [void] $blockRefTextBuilder.AppendLine()
         }
+    }
+
+    Write-Output $blockText
+    Write-Output ''
+    if ($blockRefTextBuilder.Length -gt 0) {
+        Write-Output $blockRefTextBuilder
     }
 }
 

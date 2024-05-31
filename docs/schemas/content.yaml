@@ -11,7 +11,8 @@ references:
     actor: text
     image: image
 source:
-  resource: text
+  note: text # from Anki decks
+  resource: text # from video game text dumps
   timecodes: {start: timespan, end: timespan}
 ---
 # CompositeBlock
