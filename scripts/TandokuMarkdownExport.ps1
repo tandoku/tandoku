@@ -112,12 +112,11 @@ function GenerateMarkdownForTextBlock($block, $blockId) {
                     $blockRefText = "[^$blockRefId]: $blockRefText"
                 }
                 'BlurHtml' {
-                    $blockRefText = ConvertTextToBlurHtml $blockRefText $blockRefId
+                    $blockRefText = ConvertTextToBlurHtml $blockRefText $blockRefId -Label $refName
                 }
-            }
-
-            if ($ReferenceBehavior -ne 'Footnotes') {
-                $blockRefText = "$($refName): $blockRefText"
+                default {
+                    $blockRefText = "$($refName): $blockRefText"
+                }
             }
 
             [void] $blockRefTextBuilder.AppendLine($blockRefText)
@@ -144,21 +143,48 @@ function ProcessRubyText([String]$text) {
     return $text
 }
 
-function ConvertTextToBlurHtml([String]$text, [String]$id, [Switch]$Ruby) {
+function ConvertTextToBlurHtml([String]$text, [String]$id, [Switch]$Ruby, [String]$Label) {
     # references
     # - https://www.w3docs.com/snippets/css/how-to-create-a-blurry-text-in-css.html
     # - https://bernholdtech.blogspot.com/2013/04/very-simple-pure-css-collapsible-list.html
 
+    # notes
+    # - pandoc will corrupt HTML output if a markdown block contains an unclosed HTML element
+    #   but does not start with an HTML element. So the whole block needs to be HTML.
+    # - blur works for simple content only within <span> or <p> elements; it works for complex
+    #   content (e.g. <ol>) inside a div.
+    # - $element logic below tries to keep the label on the same line as the content, unless
+    #   there is complex content (in which case it will be rendered separately anyway).
+    # - slidy expects content to be in <p> elements for proper slide margins; <p> with a single
+    #   <div> seems to break the formatting although <p> containing mixed content seems fine.
+
     if ($Ruby -and (-not $text.Contains('<ruby>'))) {
+        if ($Label) {
+            return "$($Label): $text"
+        }
         return $text
     }
 
-    $blurClass = $Ruby ? 'blurRuby' : 'blurText'
+    $html = (ConvertFrom-Markdown -InputObject $text).Html.TrimEnd()
+    $isPara = ($html.StartsWith('<p>') -and $html.EndsWith('</p>'))
+    $element = $Label ? ($isPara ? 'span' : 'div') : 'p'
 
-    $html = (ConvertFrom-Markdown -InputObject $text).Html
-    $html = $html -replace '^<p>',"<p class='$blurClass'><input type='checkbox' id='$id'/><label for='$id'>"
-    $html = $html -replace '</p>$',"</label></p>"
-    return $html.TrimEnd()
+    $blurClass = $Ruby ? 'blurRuby' : 'blurText'
+    $initial = "<$element class='$blurClass'><input type='checkbox' id='$id'/><label for='$id'>"
+    $final = "</label></$element>"
+
+    if ($isPara) {
+        $html = $html -replace '^<p>',$initial
+        $html = $html -replace '</p>$',$final
+    } else {
+        $html = "$initial$html$final"
+    }
+
+    if ($Label) {
+        $html = "<p><span>$($Label):</span> $html</p>"
+    }
+
+    return $html
 }
 
 $volume = TandokuVolumeInfo -VolumePath $VolumePath
