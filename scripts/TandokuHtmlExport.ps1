@@ -22,6 +22,7 @@ param(
 )
 
 Import-Module "$PSScriptRoot/modules/tandoku-utils.psm1" -Scope Local
+Import-Module "$PSScriptRoot/modules/tandoku-html.psm1" -Scope Local
 
 $volume = TandokuVolumeInfo -VolumePath $VolumePath
 if (-not $volume) {
@@ -79,25 +80,15 @@ if ($Format -eq 'Book') {
     
     # Add previous/next file metadata to content html files to enable navigation
     # Note: could use pandoc --include-in-header to do this but would have to create a temporary file
-    if ($htmlFiles.Count -gt 1) {
-        for ($i = 0; $i -lt $htmlFiles.Count; $i++) {
-            $htmlFilePath = $htmlFiles[$i].Path
-            $html = ConvertFrom-Html -Path $htmlFilePath
-            $head = $html.SelectSingleNode('html/head')
-            if ($i -gt 0) {
-                $prevContent = [HtmlAgilityPack.HtmlNode]::CreateNode('<meta/>')
-                $prevContent.SetAttributeValue('name', 'previous-file')
-                $prevContent.SetAttributeValue('content', $htmlFiles[$i - 1].FileName)
-                $head.AppendChild($prevContent)
-            }
-            if ($i -lt $htmlFiles.Count - 1) {
-                $nextContent = [HtmlAgilityPack.HtmlNode]::CreateNode('<meta/>')
-                $nextContent.SetAttributeValue('name', 'next-file')
-                $nextContent.SetAttributeValue('content', $htmlFiles[$i + 1].FileName)
-                $head.AppendChild($nextContent)
-            }
-            Set-Content -Path $htmlFilePath -Value $html.OuterHtml
+    for ($i = 0; $i -lt $htmlFiles.Count; $i++) {
+        $meta = @{}
+        if ($i -gt 0) {
+            $meta['previous-file'] = $htmlFiles[$i - 1].FileName
         }
+        if ($i -lt $htmlFiles.Count - 1) {
+            $meta['next-file'] = $htmlFiles[$i + 1].FileName
+        }
+        AddMetaToXHtmlFile $htmlFiles[$i].Path $meta
     }
 
     # Create index html via markdown/pandoc
