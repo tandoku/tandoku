@@ -21,13 +21,13 @@
 4. Run `chmod +x tandoku-screenshot-export.sh` to make script executable.
 5. Install [Bash Shortcuts](https://github.com/Tormak9970/bash-shortcuts) plugin and configure shortcut to run the script.
 
-## Configure tandoku content import
+## Configure tandoku content sync
 Assuming that screenshots export has been configured already:
-1. Customize cloud path in the following script and save as `tandoku-content-import.sh`
+1. Customize cloud path in the following script and save as `tandoku-content-sync.sh`
 ```sh
 #!/bin/sh
-~/homebrew/plugins/decky-cloud-save/rclone copy backend:tandoku/staging/steam-deck/export/ ~/tandoku/ --progress
+~/homebrew/plugins/decky-cloud-save/rclone sync backend:tandoku/staging/steam-deck/export/ ~/tandoku/ --progress
 ```
-2. Run `chmod +x tandoku-content-import.sh` to make script executable.
+2. Run `chmod +x tandoku-content-sync.sh` to make script executable.
 3. Add read-only permission for Edge browser to /home/deck/tandoku (or use `~/Documents/tandoku` above instead)
 4. Configure shortcut in Bash Shortcuts to run the script.
