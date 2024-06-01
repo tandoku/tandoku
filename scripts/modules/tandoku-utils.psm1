@@ -108,6 +108,10 @@ function CopyItemIfNewer {
         [String]
         $Path,
 
+        [Parameter()]
+        [String]
+        $Filter,
+
         [Parameter(Mandatory=$true)]
         [String]
         $Destination,
@@ -121,7 +125,7 @@ function CopyItemIfNewer {
         $PassThru
     )
 
-    Get-ChildItem $Path |
+    Get-ChildItem $Path -Filter $Filter |
         Foreach-Object {
             # NOTE: this won't handle $Destination with wildcards
             if (Test-Path $Destination -PathType Container) {

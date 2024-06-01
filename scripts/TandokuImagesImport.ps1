@@ -22,7 +22,7 @@ $imageExtensions = GetImageExtensions
 CreateDirectoryIfNotExists $targetDirectory
 $items = @()
 foreach ($imageExtension in $imageExtensions) {
-    $items += CopyItemIfNewer -Path "$Path/*$imageExtension" -Destination $targetDirectory -PassThru
+    $items += CopyItemIfNewer -Path $Path -Filter "*$imageExtension" -Destination $targetDirectory -PassThru
 }
 
 if ($items) {

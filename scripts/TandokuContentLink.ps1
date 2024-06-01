@@ -34,3 +34,7 @@ foreach ($linkName in $linkedVolumes.Keys) {
 
     tandoku content link $InputPath $OutputPath --index-path $indexPath --link-name $linkName
 }
+
+# TODO TandokuVersionControlAdd for modified files in $OutputPath (should be returned by `tandoku content link`)
+# it is a useful part of my workflow though to add files to git staging, run a command, and diff any changes
+# against the staged files, so consider adding an override parameter to skip adding to version control

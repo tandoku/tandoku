@@ -208,3 +208,7 @@ if ($Combine) {
             Write-Output (Get-Item $targetPath)
         }
 }
+
+# TODO TandokuVersionControlAdd for modified files in $OutputPath
+# it is a useful part of my workflow though to add files to git staging, run a command, and diff any changes
+# against the staged files, so consider adding an override parameter to skip adding to version control
