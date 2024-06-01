@@ -640,6 +640,24 @@ var w3c_slidy = {
     return "";
   },
 
+  // <tandoku> find value from meta element
+  find_meta: function (metaName) {
+    var name, content;
+    var meta = document.getElementsByTagName("meta");
+
+    for (var i = 0; i < meta.length; ++i)
+    {
+      name = meta[i].getAttribute("name");
+      content = meta[i].getAttribute("content");
+
+      if (name == metaName)
+        return content;
+    }
+
+    return null;
+  },
+  // </tandoku>
+
   // find copyright text from meta element
   find_copyright: function () {
     var name, content;
@@ -884,6 +902,44 @@ var w3c_slidy = {
        counter = this.create_element("span")
        counter.innerHTML = this.localize("slide") + " n/m";
        right.appendChild(counter);
+
+       // <tandoku> add navigation between content files
+       var prev_file = this.find_meta("previous-file");
+       if (prev_file)
+       {
+         var prev_gap = document.createTextNode(" ");
+         right.appendChild(prev_gap);
+
+         var prev_link = this.create_element("a");
+         prev_link.setAttribute("href", prev_file);
+         prev_link.setAttribute("title", "previous section");
+         prev_link.innerText = "<<";
+         right.appendChild(prev_link);
+       }
+
+       var index_gap = document.createTextNode(" ");
+       right.appendChild(index_gap);
+
+       var index_link = this.create_element("a");
+       index_link.setAttribute("href", "index.html");
+       index_link.setAttribute("title", "section index");
+       index_link.innerHTML = "index";
+       right.appendChild(index_link);
+
+       var next_file = this.find_meta("next-file");
+       if (next_file)
+       {
+         var next_gap = document.createTextNode(" ");
+         right.appendChild(next_gap);
+
+         var next_link = this.create_element("a");
+         next_link.setAttribute("href", next_file);
+         next_link.setAttribute("title", "next section");
+         next_link.innerText = ">>";
+         right.appendChild(next_link);
+       }
+       // </tandoku>
+
        this.toolbar.appendChild(right);
 
        var left = this.create_element("div");

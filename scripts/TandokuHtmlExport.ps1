@@ -66,7 +66,10 @@ if ($Format -eq 'Book') {
             $fileNameBase = Split-Path $_ -LeafBase
             $htmlFilePath = Join-Path $targetDirectory "$fileNameBase.html"
             $sectionTitle = GetContentBaseName $_ # TODO: read this from the content itself rather than using the filename
-            pandoc $_ -f commonmark -o $htmlFilePath -t slidy --standalone --css ./styles/blurtext.css --variable=slidy-url:. --metadata title="$($volume.definition.title) - $sectionTitle" --metadata author="tandoku" --metadata lang=ja
+            pandoc $_ -f commonmark -o $htmlFilePath -t slidy --standalone `
+                --css ./styles/blurtext.css --variable=slidy-url:. `
+                --metadata title="$($volume.definition.title) - $sectionTitle" `
+                --metadata author="tandoku" --metadata lang=ja
             return [PSCustomObject]@{
                 SectionTitle = $sectionTitle
                 FileName = Split-Path $htmlFilePath -Leaf
@@ -74,6 +77,29 @@ if ($Format -eq 'Book') {
             }
         }
     
+    # Add previous/next file metadata to content html files to enable navigation
+    # Note: could use pandoc --include-in-header to do this but would have to create a temporary file
+    if ($htmlFiles.Count -gt 1) {
+        for ($i = 0; $i -lt $htmlFiles.Count; $i++) {
+            $htmlFilePath = $htmlFiles[$i].Path
+            $html = ConvertFrom-Html -Path $htmlFilePath
+            $head = $html.SelectSingleNode('html/head')
+            if ($i -gt 0) {
+                $prevContent = [HtmlAgilityPack.HtmlNode]::CreateNode('<meta/>')
+                $prevContent.SetAttributeValue('name', 'previous-file')
+                $prevContent.SetAttributeValue('content', $htmlFiles[$i - 1].FileName)
+                $head.AppendChild($prevContent)
+            }
+            if ($i -lt $htmlFiles.Count - 1) {
+                $nextContent = [HtmlAgilityPack.HtmlNode]::CreateNode('<meta/>')
+                $nextContent.SetAttributeValue('name', 'next-file')
+                $nextContent.SetAttributeValue('content', $htmlFiles[$i + 1].FileName)
+                $head.AppendChild($nextContent)
+            }
+            Set-Content -Path $htmlFilePath -Value $html.OuterHtml
+        }
+    }
+
     # Create index html via markdown/pandoc
     $indexHtmlPath = Join-Path $targetDirectory 'index.html'
     $htmlFiles |
@@ -81,7 +107,9 @@ if ($Format -eq 'Book') {
             "- [$($_.SectionTitle)]($($_.FileName))"
         } |
         Join-String -Separator ([Environment]::NewLine) |
-        pandoc -f commonmark -o $indexHtmlPath -t html --standalone --metadata title="$($volume.definition.title)" --metadata author="tandoku" --metadata lang=ja
+        pandoc -f commonmark -o $indexHtmlPath -t html --standalone `
+            --metadata title="$($volume.definition.title)" `
+            --metadata author="tandoku" --metadata lang=ja
 
     # Copy additional resources
     CreateDirectoryIfNotExists "$targetDirectory/scripts"
@@ -89,7 +117,7 @@ if ($Format -eq 'Book') {
 
     CreateDirectoryIfNotExists "$targetDirectory/styles"
     Copy-Item "$PSScriptRoot/../resources/styles/slidy.css" "$targetDirectory/styles"
-    # We could include blurtext.css only if input markdown needs it but doesn't seem worth having another option for this
+    # Could include blurtext.css only if input markdown needs it but doesn't seem worth having another option for this
     Copy-Item "$PSScriptRoot/../resources/styles/blurtext.css" "$targetDirectory/styles"
 }
 
