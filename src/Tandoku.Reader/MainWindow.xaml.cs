@@ -38,11 +38,9 @@ namespace reader
 
             (_dictionaryIndex, _dictionarySearcher) = OpenDictionary();
 
-            _image.Source = new BitmapImage(new Uri(
-                @"C:\Data\OneDrive\Tandoku Import\Pikake School\Experiment-mupdf\nov1.png"));
+            _image.Source = new BitmapImage(new Uri(@"experiment-mupdf/nov1.png"));
 
-            var doc = PdfDocument.Load(
-                @"C:\Data\OneDrive\Tandoku Import\Pikake School\Experiment-mupdf\nov.xml");
+            var doc = PdfDocument.Load(@"experiment-mupdf/nov.xml");
 
             var contentWriter = new StringWriter();
             doc.Pages![0].WriteTo(contentWriter);

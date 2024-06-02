@@ -11,7 +11,7 @@ namespace Tandoku.CommandLine
 {
     internal static class TokenizerDemo
     {
-        internal static void Dump()
+        internal static void Dump(bool dict = false)
         {
             if (!Console.IsInputRedirected)
             {
@@ -57,16 +57,22 @@ namespace Tandoku.CommandLine
                     Console.Write($" {Align(readingAttr.GetPronunciation(), 10)} / {Align(readingAttr.GetReading(), 10)}");
                     Console.WriteLine();
 
-                    if (DictionaryLookupDemo.TryLookupKanji(termAttr.ToString(), out var entries) ||
-                        DictionaryLookupDemo.TryLookupReading(termAttr.ToString(), out entries))
-                    {
-                        foreach (var entry in entries)
-                        {
-                            Console.WriteLine($"    {string.Join("; ", entry.Glosses)}");
-                        }
-                    }
+                    if (dict)
+                        RunDictionaryLookup(termAttr.ToString());
                 }
                 tokenizer.End();
+            }
+        }
+
+        private static void RunDictionaryLookup(string term)
+        {
+            if (DictionaryLookupDemo.TryLookupKanji(term, out var entries) ||
+                DictionaryLookupDemo.TryLookupReading(term, out entries))
+            {
+                foreach (var entry in entries)
+                {
+                    Console.WriteLine($"    {string.Join("; ", entry.Glosses)}");
+                }
             }
         }
 

@@ -35,8 +35,8 @@ internal static class Demos
         DictionaryLookupDemo.Run();
     }
 
-    private static void RunTokenizerDemo()
+    private static void RunTokenizerDemo(bool dict)
     {
-        TokenizerDemo.Dump();
+        TokenizerDemo.Dump(dict);
     }
 }

@@ -41,7 +41,7 @@ namespace Tandoku.CommandLine
             {
                 IsStored = true,
             };
-            foreach (var entry in DictionaryXmlReader.ReadEntries(@"C:\Data\OneDrive\Study & Practice\Japanese\JMdict\JMdict_e.xml"))
+            foreach (var entry in DictionaryXmlReader.ReadEntries(DictionaryLookupDemo.JMDictPath))
             {
                 var doc = new Document();
                 /*
@@ -108,7 +108,7 @@ namespace Tandoku.CommandLine
             Console.WriteLine("Loading JMdict...");
             stopwatch.Start();
 
-            var store = DictionaryStore.Load(@"C:\Data\OneDrive\Study & Practice\Japanese\JMdict\JMdict_e.xml");
+            var store = DictionaryStore.Load(DictionaryLookupDemo.JMDictPath);
 
             stopwatch.Stop();
             Console.WriteLine($"Loaded JMdict in {stopwatch.Elapsed}.");

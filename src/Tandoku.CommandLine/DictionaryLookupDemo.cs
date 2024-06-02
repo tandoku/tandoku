@@ -10,6 +10,10 @@ namespace Tandoku.CommandLine
 {
     internal static class DictionaryLookupDemo
     {
+        internal static readonly string JMDictPath = Path.Join(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            "OneDrive/tandoku/resources/dictionaries/jmdict/JMdict_e.xml");
+
         private static DictionaryStore _store = LoadStore();
 
         internal static void Run()
@@ -52,7 +56,7 @@ namespace Tandoku.CommandLine
             Console.WriteLine("Loading JMdict...");
             stopwatch.Start();
 
-            var store = DictionaryStore.Load(@"C:\Data\OneDrive\Study & Practice\Japanese\JMdict\JMdict_e.xml");
+            var store = DictionaryStore.Load(JMDictPath);
 
             stopwatch.Stop();
             Console.WriteLine($"Loaded JMdict in {stopwatch.Elapsed}.");
