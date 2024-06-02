@@ -26,6 +26,11 @@ param(
     $ReferenceBehavior = 'None',
 
     [Parameter()]
+    [ValidateSet('Default','Always')]
+    [String]
+    $ReferenceLabels = 'Default',
+
+    [Parameter()]
     [String]
     $VolumePath
 )
@@ -100,6 +105,7 @@ function GenerateMarkdownForTextBlock($block, $blockId) {
     }
 
     $blockRefTextBuilder = [Text.StringBuilder]::new()
+    $refLabels = ($block.references.Count -gt 1 -or $ReferenceLabels -eq 'Always')
     foreach ($refName in $block.references.Keys) {
         $ref = $block.references[$refName]
         $blockRefText = $ref.text
@@ -112,10 +118,12 @@ function GenerateMarkdownForTextBlock($block, $blockId) {
                     $blockRefText = "[^$blockRefId]: $blockRefText"
                 }
                 'BlurHtml' {
-                    $blockRefText = ConvertTextToBlurHtml $blockRefText $blockRefId -Label $refName
+                    $blockRefText = ConvertTextToBlurHtml $blockRefText $blockRefId -Label ($refLabels ? $refName : $null)
                 }
                 default {
-                    $blockRefText = "$($refName): $blockRefText"
+                    if ($refLabels) {
+                        $blockRefText = "$($refName): $blockRefText"
+                    }
                 }
             }
 
@@ -174,8 +182,8 @@ function ConvertTextToBlurHtml([String]$text, [String]$id, [Switch]$Ruby, [Strin
     $final = "</label></$element>"
 
     if ($isPara) {
-        $html = $html -replace '^<p>',$initial
-        $html = $html -replace '</p>$',$final
+        # use single-line mode so . matches newlines as well
+        $html = $html -replace '(?s)^<p>(.*)</p>$',"$initial`$1$final"
     } else {
         $html = "$initial$html$final"
     }
