@@ -15,8 +15,7 @@ if (-not (Test-Path .git)) {
 
 Add-Content .gitignore **/cache/
 Add-Content .gitignore **/temp/
-Add-Content .gitignore *.epub
-Add-Content .gitignore *.html.zip
+Add-Content .gitignore **/export/
 git add .gitignore
 
 # Set up dvc
