@@ -159,12 +159,12 @@ function ConvertTextToBlurHtml([String]$text, [String]$id, [Switch]$Ruby, [Strin
     # notes
     # - pandoc will corrupt HTML output if a markdown block contains an unclosed HTML element
     #   but does not start with an HTML element. So the whole block needs to be HTML.
-    # - blur works for simple content only within <span> or <p> elements; it works for complex
-    #   content (e.g. <ol>) inside a div.
+    # - blur works only for simple content within <span> or <p> elements; it works for complex
+    #   content (e.g. <ol>) inside a <div> but not a <span> or <p>.
     # - $element logic below tries to keep the label on the same line as the content, unless
     #   there is complex content (in which case it will be rendered separately anyway).
-    # - slidy expects content to be in <p> elements for proper slide margins; <p> with a single
-    #   <div> seems to break the formatting although <p> containing mixed content seems fine.
+    # - margins for slides are incorrect for simple content in a <span> or <div> without a <p>.
+    #   Complex content (<ol>) is fine in a <div> though.
 
     if ($Ruby -and (-not $text.Contains('<ruby>'))) {
         if ($Label) {
@@ -175,7 +175,7 @@ function ConvertTextToBlurHtml([String]$text, [String]$id, [Switch]$Ruby, [Strin
 
     $html = (ConvertFrom-Markdown -InputObject $text).Html.TrimEnd()
     $isPara = ($html.StartsWith('<p>') -and $html.EndsWith('</p>'))
-    $element = $Label ? ($isPara ? 'span' : 'div') : 'p'
+    $element = $isPara ? ($Label ? 'span' : 'p') : 'div'
 
     $blurClass = $Ruby ? 'blurRuby' : 'blurText'
     $initial = "<$element class='$blurClass'><input type='checkbox' id='$id'/><label for='$id'>"
