@@ -18,6 +18,7 @@ internal static class SerializationFactory
                 DefaultValuesHandling.OmitNull |
                 DefaultValuesHandling.OmitDefaults |
                 DefaultValuesHandling.OmitEmptyCollections)
+            .DisableAliases()
             .WithEventEmitter(next => new FlowStyleEventEmitter(next))
             .Build();
 

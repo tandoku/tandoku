@@ -4,63 +4,24 @@ using System.IO.Abstractions;
 using Lucene.Net.Index;
 using Lucene.Net.Search;
 using Lucene.Net.Store;
-using Tandoku.Serialization;
 using System.Text.Json;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 
-public sealed class ContentLinker
+public sealed class ContentLinker(IFileSystem? fileSystem = null)
 {
     private static readonly string DoubleNewLine = $"{Environment.NewLine}{Environment.NewLine}";
 
-    private readonly IFileSystem fileSystem;
-
-    public ContentLinker(IFileSystem? fileSystem = null)
-    {
-        this.fileSystem = fileSystem ?? new FileSystem();
-        // TODO: add LuceneIndexFactory abstraction that wraps Directory implementation for unit testing
-    }
-
     public async Task LinkAsync(string inputPath, string outputPath, string indexPath, string linkName)
     {
+        // TODO: add LuceneIndexFactory abstraction that wraps Directory implementation for unit testing
         using var indexDir = FSDirectory.Open(indexPath);
         using var indexReader = DirectoryReader.Open(indexDir);
         var searcher = new IndexSearcher(indexReader);
         var analyzer = LuceneFactory.CreateAnalyzer();
         var queryParser = LuceneFactory.CreateQueryParser(ContentIndex.FieldNames.Text, analyzer);
 
-        // TODO restructure this as common content transform?
-        var inputDir = this.fileSystem.GetDirectory(inputPath);
-        var outputDir = this.fileSystem.GetDirectory(outputPath);
-        outputDir.Create();
-        foreach (var inputFile in inputDir.EnumerateFiles("*.content.yaml")) // TODO share with ContentIndexBuilder
-        {
-            var outputFile = outputDir.GetFile(inputFile.Name);
-            await YamlSerializer.WriteStreamAsync(outputFile, LinkBlocks(inputFile));
-        }
-
-        async IAsyncEnumerable<ContentBlock> LinkBlocks(IFileInfo inputFile)
-        {
-            await foreach (var block in YamlSerializer.ReadStreamAsync<ContentBlock>(inputFile))
-            {
-                switch (block)
-                {
-                    case TextBlock textBlock:
-                        yield return LinkTextBlock(textBlock);
-                        break;
-
-                    case CompositeBlock compositeBlock:
-                        yield return compositeBlock with
-                        {
-                            Blocks = compositeBlock.Blocks.Select(LinkTextBlock).ToImmutableList(),
-                        };
-                        break;
-
-                    default:
-                        throw new InvalidDataException();
-                }
-            }
-        }
+        var transformer = new ContentTransformer(fileSystem);
+        await transformer.Transform(inputPath, outputPath, LinkTextBlock);
 
         TextBlock LinkTextBlock(TextBlock textBlock)
         {
@@ -74,7 +35,7 @@ public sealed class ContentLinker
                 var linkedBlock = ContentBlock.Deserialize(blockJsonDoc) ??
                     throw new InvalidDataException();
 
-                textBlock = textBlock with
+                return textBlock with
                 {
                     // TODO add links (but keep copy to references as an option or separate command)
                     References = textBlock.References.AddRange(
@@ -84,8 +45,8 @@ public sealed class ContentLinker
             else
             {
                 // TODO look into blocks with no matches
+                return textBlock;
             }
-            return textBlock;
         }
     }
 

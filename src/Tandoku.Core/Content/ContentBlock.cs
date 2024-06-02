@@ -26,6 +26,8 @@ public abstract record ContentBlock : IYamlStreamSerializable<ContentBlock>
     public string ToJsonString() =>
         JsonSerializer.Serialize(this, SerializationFactory.JsonOptions);
 
+    internal abstract T Accept<T>(ContentBlockVisitor<T> visitor);
+
     static ValueTask<ContentBlock?> IYamlStreamSerializable<ContentBlock>.DeserializeYamlDocumentAsync(
         YamlDotNet.Core.Parser yamlParser,
         YamlToJsonConverter jsonConverter)
@@ -68,6 +70,8 @@ public sealed record TextBlock : ContentBlock
 {
     public string? Text { get; init; }
     public IImmutableDictionary<string, ContentReference> References { get; init; } = ImmutableSortedDictionary<string, ContentReference>.Empty;
+
+    internal override T Accept<T>(ContentBlockVisitor<T> visitor) => visitor.Visit(this);
 }
 
 public sealed record ContentReference
@@ -78,4 +82,6 @@ public sealed record ContentReference
 public sealed record CompositeBlock : ContentBlock
 {
     public IImmutableList<TextBlock> Blocks { get; init; } = [];
+
+    internal override T Accept<T>(ContentBlockVisitor<T> visitor) => visitor.Visit(this);
 }

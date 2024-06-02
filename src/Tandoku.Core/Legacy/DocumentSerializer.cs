@@ -15,8 +15,9 @@ public class DocumentSerializerBase
     {
         return new SerializerBuilder()
             .WithNamingConvention(CamelCaseNamingConvention.Instance)
+            .WithQuotingNecessaryStrings()
             .WithEventEmitter(next => new Yaml.FlowStyleEventEmitter(next))
-            .WithEventEmitter(next => new Yaml.StringQuotingEmitter(next))
+            .DisableAliases()
             .ConfigureDefaultValuesHandling(
                 DefaultValuesHandling.OmitDefaults |
                 DefaultValuesHandling.OmitEmptyCollections |
