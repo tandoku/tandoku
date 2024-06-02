@@ -1,6 +1,14 @@
 param(
     [Parameter()]
     [String]
+    $InputPath,
+
+    [Parameter()]
+    [String]
+    $OutputPath,
+
+    [Parameter()]
+    [String]
     $SplitByFileName,
 
     # TODO - $MaxBlocksPerFile
@@ -57,6 +65,9 @@ function GenerateBlocksFromAcvText {
 # TODO - consider factoring this out and reusing in TandokuCsvGenerateContent
 function SaveContentBlocks {
     param(
+        [Parameter(Mandatory=$true)]
+        $Path,
+
         [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
         $BlockResult
     )
@@ -82,8 +93,8 @@ function SaveContentBlocks {
             $contentFileName = $contentBaseName ?
                 "$contentBaseName.content.yaml" :
                 'content.yaml'
-            $contentPath = "$volumePath/content/$contentFileName"
-            CreateDirectoryIfNotExists "$volumePath/content"
+            $contentPath = "$Path/$contentFileName"
+            CreateDirectoryIfNotExists $Path
             $writer = [IO.File]::CreateText($contentPath)
         }
 
@@ -104,18 +115,23 @@ if (-not $volume) {
 }
 $volumePath = $volume.path
 
-$path = "$VolumePath/images"
-$imageExtensions = GetImageExtensions
+if (-not $InputPath) {
+    $InputPath = "$volumePath/images"
+}
+if (-not $OutputPath) {
+    $OutputPath = "$volumePath/content"
+}
 
+$imageExtensions = GetImageExtensions
 $images = @()
 foreach ($imageExtension in $imageExtensions) {
-    $images += Get-ChildItem -Path $path -Filter "*$imageExtension"
+    $images += Get-ChildItem -Path $InputPath -Filter "*$imageExtension"
 }
 
 $outputItems = $images |
     WritePipelineProgress -Activity 'Generating content' -ItemName 'image' -TotalCount $images.Count |
     GenerateBlocksFromAcvText |
-    SaveContentBlocks
+    SaveContentBlocks $OutputPath
 
 if ($outputItems) {
     TandokuVersionControlAdd -Path $outputItems -Kind text
