@@ -58,8 +58,8 @@ public sealed partial class Program
         command.SetHandler(async (inputPath, outputPath, indexPath, linkName) =>
         {
             var linker = new ContentLinker(this.fileSystem);
-            await linker.LinkAsync(inputPath.FullName, outputPath.FullName, indexPath.FullName, linkName);
-            this.console.WriteLine($"Linked content output to {outputPath}");
+            var stats = await linker.LinkAsync(inputPath.FullName, outputPath.FullName, indexPath.FullName, linkName);
+            this.console.WriteLine($"Linked {stats.LinkedBlocks}/{stats.TotalBlocks} blocks ({stats.LinkedBlocks / (double)stats.TotalBlocks:p2})");
         }, inputPathArgument, outputPathArgument, indexPathOption, linkNameOption);
 
         return command;
@@ -88,7 +88,7 @@ public sealed partial class Program
         command.SetHandler(async (inputPath, outputPath) =>
         {
             var transformer = new ContentTransformer(this.fileSystem);
-            await transformer.Transform(inputPath.FullName, outputPath.FullName, new RemoveNonJapaneseTextTransform());
+            await transformer.TransformAsync(inputPath.FullName, outputPath.FullName, new RemoveNonJapaneseTextTransform());
         }, inputPathArgument, outputPathArgument);
 
         return command;

@@ -12,7 +12,7 @@ public sealed class ContentTransformer
         this.fileSystem = fileSystem ?? new FileSystem();
     }
 
-    public async Task Transform(string inputPath, string outputPath, IContentBlockTransform transform)
+    public async Task TransformAsync(string inputPath, string outputPath, IContentBlockTransform transform)
     {
         var inputDir = this.fileSystem.GetDirectory(inputPath);
         var outputDir = this.fileSystem.GetDirectory(outputPath);
@@ -20,10 +20,10 @@ public sealed class ContentTransformer
         foreach (var inputFile in inputDir.EnumerateFiles("*.content.yaml")) // TODO share with ContentIndexBuilder
         {
             var outputFile = outputDir.GetFile(inputFile.Name);
-            await YamlSerializer.WriteStreamAsync(outputFile, TransformBlocks(inputFile));
+            await YamlSerializer.WriteStreamAsync(outputFile, TransformBlocksAsync(inputFile));
         }
 
-        async IAsyncEnumerable<ContentBlock> TransformBlocks(IFileInfo inputFile)
+        async IAsyncEnumerable<ContentBlock> TransformBlocksAsync(IFileInfo inputFile)
         {
             await foreach (var block in YamlSerializer.ReadStreamAsync<ContentBlock>(inputFile))
             {
@@ -34,8 +34,8 @@ public sealed class ContentTransformer
         }
     }
 
-    public Task Transform(string inputPath, string outputPath, Func<TextBlock, TextBlock?> transform) =>
-        this.Transform(inputPath, outputPath, new TextBlockRewriter(transform));
+    public Task TransformAsync(string inputPath, string outputPath, Func<TextBlock, TextBlock?> transform) =>
+        this.TransformAsync(inputPath, outputPath, new TextBlockRewriter(transform));
 
     private sealed class TextBlockRewriter(Func<TextBlock, TextBlock?> transform) : ContentBlockRewriter
     {

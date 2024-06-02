@@ -11,7 +11,11 @@ public sealed class ContentLinker(IFileSystem? fileSystem = null)
 {
     private static readonly string DoubleNewLine = $"{Environment.NewLine}{Environment.NewLine}";
 
-    public async Task LinkAsync(string inputPath, string outputPath, string indexPath, string linkName)
+    public async Task<(int LinkedBlocks, int TotalBlocks)> LinkAsync(
+        string inputPath,
+        string outputPath,
+        string indexPath,
+        string linkName)
     {
         // TODO: add LuceneIndexFactory abstraction that wraps Directory implementation for unit testing
         using var indexDir = FSDirectory.Open(indexPath);
@@ -20,8 +24,13 @@ public sealed class ContentLinker(IFileSystem? fileSystem = null)
         var analyzer = LuceneFactory.CreateAnalyzer();
         var queryParser = LuceneFactory.CreateQueryParser(ContentIndex.FieldNames.Text, analyzer);
 
+        int matchedBlocks = 0;
+        int unmatchedBlocks = 0;
+
         var transformer = new ContentTransformer(fileSystem);
-        await transformer.Transform(inputPath, outputPath, LinkTextBlock);
+        await transformer.TransformAsync(inputPath, outputPath, LinkTextBlock);
+
+        return (matchedBlocks, matchedBlocks + unmatchedBlocks);
 
         TextBlock LinkTextBlock(TextBlock textBlock)
         {
@@ -35,6 +44,7 @@ public sealed class ContentLinker(IFileSystem? fileSystem = null)
                 var linkedBlock = ContentBlock.Deserialize(blockJsonDoc) ??
                     throw new InvalidDataException();
 
+                matchedBlocks++;
                 return textBlock with
                 {
                     // TODO add links (but keep copy to references as an option or separate command)
@@ -45,6 +55,7 @@ public sealed class ContentLinker(IFileSystem? fileSystem = null)
             else
             {
                 // TODO look into blocks with no matches
+                unmatchedBlocks++;
                 return textBlock;
             }
         }
