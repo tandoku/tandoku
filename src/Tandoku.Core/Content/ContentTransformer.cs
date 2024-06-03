@@ -6,16 +6,20 @@ using Tandoku.Serialization;
 public sealed class ContentTransformer
 {
     private readonly IFileSystem fileSystem;
+    private readonly string inputPath;
+    private readonly string outputPath;
 
-    public ContentTransformer(IFileSystem? fileSystem = null)
+    public ContentTransformer(string inputPath, string outputPath, IFileSystem? fileSystem = null)
     {
         this.fileSystem = fileSystem ?? new FileSystem();
+        this.inputPath = inputPath;
+        this.outputPath = outputPath;
     }
 
-    public async Task TransformAsync(string inputPath, string outputPath, IContentBlockTransform transform)
+    public async Task TransformAsync(IContentBlockTransform transform)
     {
-        var inputDir = this.fileSystem.GetDirectory(inputPath);
-        var outputDir = this.fileSystem.GetDirectory(outputPath);
+        var inputDir = this.fileSystem.GetDirectory(this.inputPath);
+        var outputDir = this.fileSystem.GetDirectory(this.outputPath);
         outputDir.Create();
         foreach (var inputFile in inputDir.EnumerateFiles("*.content.yaml")) // TODO share with ContentIndexBuilder
         {
@@ -34,8 +38,8 @@ public sealed class ContentTransformer
         }
     }
 
-    public Task TransformAsync(string inputPath, string outputPath, Func<TextBlock, TextBlock?> transform) =>
-        this.TransformAsync(inputPath, outputPath, new TextBlockRewriter(transform));
+    public Task TransformAsync(Func<TextBlock, TextBlock?> transform) =>
+        this.TransformAsync(new TextBlockRewriter(transform));
 
     private sealed class TextBlockRewriter(Func<TextBlock, TextBlock?> transform) : ContentBlockRewriter
     {

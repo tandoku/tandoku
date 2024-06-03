@@ -1,6 +1,7 @@
 ﻿namespace Tandoku.CommandLine;
 
 using System.CommandLine;
+using System.CommandLine.Binding;
 using Tandoku.Content;
 using Tandoku.Content.Transforms;
 
@@ -11,14 +12,14 @@ public sealed partial class Program
         {
             this.CreateContentIndexCommand(),
             this.CreateContentLinkCommand(),
-            this.CreateContentTransformCommand(),
+            new ContentTransforms(this).CreateContentTransformCommand(),
         };
 
     private Command CreateContentIndexCommand()
     {
         var pathArgument = new Argument<DirectoryInfo>("path", "Path of content directory to index") { Arity = ArgumentArity.ExactlyOne }
             .LegalFilePathsOnly();
-        var indexPathOption = new Option<DirectoryInfo>("--index-path", "Path of the index to build") { Arity = ArgumentArity.ExactlyOne }
+        var indexPathOption = new Option<DirectoryInfo>("--index-path", "Path of the index to build") { IsRequired = true }
             .LegalFilePathsOnly();
 
         var command = new Command("index", "Indexes the specified content")
@@ -43,9 +44,9 @@ public sealed partial class Program
             .LegalFilePathsOnly();
         var outputPathArgument = new Argument<DirectoryInfo>("output-path", "Path of output content directory") { Arity = ArgumentArity.ExactlyOne }
             .LegalFilePathsOnly();
-        var indexPathOption = new Option<DirectoryInfo>("--index-path", "Path of the index to build") { Arity = ArgumentArity.ExactlyOne }
+        var indexPathOption = new Option<DirectoryInfo>("--index-path", "Path of the index to build") { IsRequired = true }
             .LegalFilePathsOnly();
-        var linkNameOption = new Option<string>("--link-name", "Name of the link") { Arity = ArgumentArity.ExactlyOne };
+        var linkNameOption = new Option<string>("--link-name", "Name of the link") { IsRequired = true };
 
         var command = new Command("link", "Links the specified content to content in linked volumes")
         {
@@ -65,32 +66,88 @@ public sealed partial class Program
         return command;
     }
 
-    private Command CreateContentTransformCommand() =>
-        new("transform", "Commands for transforming tandoku content streams")
-        {
-            this.CreateContentTransformRemoveNonJapaneseTextCommand(),
-        };
-
-    private Command CreateContentTransformRemoveNonJapaneseTextCommand()
+    private sealed class ContentTransforms(Program program)
     {
-        // TODO - factor out common parts
-        var inputPathArgument = new Argument<DirectoryInfo>("input-path", "Path of input content directory") { Arity = ArgumentArity.ExactlyOne }
-            .LegalFilePathsOnly();
-        var outputPathArgument = new Argument<DirectoryInfo>("output-path", "Path of output content directory") { Arity = ArgumentArity.ExactlyOne }
-            .LegalFilePathsOnly();
+        internal Command CreateContentTransformCommand() =>
+            new("transform", "Commands for transforming tandoku content streams")
+            {
+                this.CreateRemoveNonJapaneseTextCommand(),
+                this.CreateLowConfidenceTextCommand(),
+            };
 
-        var command = new Command("remove-non-japanese-text", "Removes text blocks without any Japanese text")
+        private Command CreateRemoveNonJapaneseTextCommand()
         {
-            inputPathArgument,
-            outputPathArgument,
-        };
+            var commonArgsBinder = new CommonArgsBinder();
 
-        command.SetHandler(async (inputPath, outputPath) =>
+            var command = new Command("remove-non-japanese-text", "Removes text blocks without any Japanese text")
+            {
+                commonArgsBinder,
+            };
+
+            command.SetHandler(async (commonArgs) =>
+            {
+                await this.RunContentTransformAsync(
+                    commonArgs,
+                    t => t.TransformAsync(new RemoveNonJapaneseTextTransform()));
+            }, commonArgsBinder);
+
+            return command;
+        }
+
+        private Command CreateLowConfidenceTextCommand()
         {
-            var transformer = new ContentTransformer(this.fileSystem);
-            await transformer.TransformAsync(inputPath.FullName, outputPath.FullName, new RemoveNonJapaneseTextTransform());
-        }, inputPathArgument, outputPathArgument);
+            const double DefaultConfidenceThreshold = 0.8;
 
-        return command;
+            var commonArgsBinder = new CommonArgsBinder();
+            var confidenceThresholdOption = new Option<double>(
+                ["--confidence-threshold", "--confidence", "-c"],
+                description: "Confidence threshold for text to retain from image segments",
+                getDefaultValue: () => DefaultConfidenceThreshold);
+
+            var command = new Command("remove-low-confidence-text", "Removes text from low confidence image segments")
+            {
+                commonArgsBinder,
+                confidenceThresholdOption,
+            };
+
+            command.SetHandler(async (commonArgs, confidenceThreshold) =>
+            {
+                await this.RunContentTransformAsync(
+                    commonArgs,
+                    t => t.TransformAsync(new RemoveLowConfidenceTextTransform(confidenceThreshold)));
+            }, commonArgsBinder, confidenceThresholdOption);
+
+            return command;
+        }
+
+        private Task RunContentTransformAsync(CommonArgs args, Func<ContentTransformer, Task> transform) =>
+            transform(new ContentTransformer(args.InputPath.FullName, args.OutputPath.FullName, program.fileSystem));
+
+        private sealed record CommonArgs(DirectoryInfo InputPath, DirectoryInfo OutputPath);
+
+        private sealed class CommonArgsBinder : BinderBase<CommonArgs>, ICommandBinder
+        {
+            private readonly Argument<DirectoryInfo> inputPathArgument = new Argument<DirectoryInfo>(
+                "input-path",
+                "Path of input content directory") { Arity = ArgumentArity.ExactlyOne }
+                .LegalFilePathsOnly();
+            private readonly Argument<DirectoryInfo> outputPathArgument = new Argument<DirectoryInfo>(
+                "output-path",
+                "Path of output content directory") { Arity = ArgumentArity.ExactlyOne }
+                .LegalFilePathsOnly();
+
+            public void AddToCommand(Command command)
+            {
+                command.Add(this.inputPathArgument);
+                command.Add(this.outputPathArgument);
+            }
+
+            protected override CommonArgs GetBoundValue(BindingContext bindingContext)
+            {
+                var inputPath = bindingContext.ParseResult.GetValueForArgument(this.inputPathArgument);
+                var outputPath = bindingContext.ParseResult.GetValueForArgument(this.outputPathArgument);
+                return new CommonArgs(inputPath, outputPath);
+            }
+        }
     }
 }

@@ -39,7 +39,14 @@ function GenerateBlocksFromAcvText {
                     name = $source.Name
                 }
                 blocks = @($acv.readResult.blocks.lines | ForEach-Object {
-                    return @{ text = $_.text }
+                    return @{
+                        text  = $_.text
+                        image = @{
+                            region = @{
+                                segments = @($_.words | Select-Object text, confidence)
+                            }
+                        }
+                    }
                 })
             }
 
@@ -47,6 +54,11 @@ function GenerateBlocksFromAcvText {
                 if ($rootBlock.blocks.Count -eq 1) {
                     $block = $rootBlock.blocks[0]
                     $rootBlock.Remove('blocks')
+                    # TODO - generalize this (merge hashtables with nesting support)
+                    if ($rootBlock.image -and $block.image) {
+                        $rootBlock.image += $block.image
+                        $block.Remove('image')
+                    }
                     $rootBlock += $block
                 }
 

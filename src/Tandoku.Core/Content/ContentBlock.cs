@@ -59,6 +59,19 @@ public abstract record ContentBlock : IYamlStreamSerializable<ContentBlock>
 public sealed record ContentImage
 {
     public string? Name { get; init; }
+    public ContentImageRegion? Region { get; init; }
+}
+
+public sealed record ContentImageRegion
+{
+    // TODO BoundingBox
+    public IImmutableList<ContentRegionSegment> Segments { get; init; } = [];
+}
+
+public sealed record ContentRegionSegment
+{
+    public required string Text { get; init; }
+    public double Confidence { get; init; }
 }
 
 public sealed record ContentSource

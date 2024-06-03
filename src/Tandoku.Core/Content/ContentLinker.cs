@@ -27,8 +27,8 @@ public sealed class ContentLinker(IFileSystem? fileSystem = null)
         int matchedBlocks = 0;
         int unmatchedBlocks = 0;
 
-        var transformer = new ContentTransformer(fileSystem);
-        await transformer.TransformAsync(inputPath, outputPath, LinkTextBlock);
+        var transformer = new ContentTransformer(inputPath, outputPath, fileSystem);
+        await transformer.TransformAsync(LinkTextBlock);
 
         return (matchedBlocks, matchedBlocks + unmatchedBlocks);
 
@@ -113,4 +113,3 @@ public sealed class ContentLinker(IFileSystem? fileSystem = null)
         }
     }
 }
-

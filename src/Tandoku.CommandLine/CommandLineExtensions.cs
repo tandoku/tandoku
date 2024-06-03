@@ -6,6 +6,11 @@ using System.CommandLine.IO;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 
+internal interface ICommandBinder
+{
+    void AddToCommand(Command command);
+}
+
 internal static class CommandLineExtensions
 {
     private const string NullOutputString = "<none>";
@@ -16,6 +21,8 @@ internal static class CommandLineExtensions
         command.Handler = handler;
         return command;
     }
+
+    internal static void Add(this Command command, ICommandBinder binder) => binder.AddToCommand(command);
 
     internal static void Write(this IConsole console, string value) => console.Out.Write(value);
     internal static void WriteLine(this IConsole console) => console.Out.WriteLine();

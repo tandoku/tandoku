@@ -51,8 +51,10 @@ public sealed partial class Program
     {
         var volumeBinder = this.CreateVolumeBinder();
 
-        var command = new Command("info", "Displays information about the current or specified volume");
-        volumeBinder.AddToCommand(command);
+        var command = new Command("info", "Displays information about the current or specified volume")
+        {
+            volumeBinder,
+        };
 
         command.SetHandler(async (volumeDirectory, jsonOutput) =>
         {
@@ -96,8 +98,8 @@ public sealed partial class Program
         {
             propertyArgument,
             valueArgument,
+            volumeBinder,
         };
-        volumeBinder.AddToCommand(command);
 
         command.SetHandler(async (property, value, volumeDirectory) =>
         {
@@ -118,8 +120,10 @@ public sealed partial class Program
     {
         var volumeBinder = this.CreateVolumeBinder();
 
-        var command = new Command("rename", "Renames the current or specified volume to match definition metadata");
-        volumeBinder.AddToCommand(command);
+        var command = new Command("rename", "Renames the current or specified volume to match definition metadata")
+        {
+            volumeBinder,
+        };
 
         command.SetHandler(async (volumeDirectory, jsonOutput) =>
         {
@@ -177,42 +181,28 @@ public sealed partial class Program
 
     // TODO: change this to return a VolumeContext (or maybe VolumeLocation) wrapper object rather than IDirectoryInfo
     // (VolumeManager APIs should all accept this instead)
-    private sealed class VolumeBinder : BinderBase<IDirectoryInfo>
+    private sealed class VolumeBinder(IFileSystem fileSystem, Func<VolumeManager> createVolumeManager) :
+        BinderBase<IDirectoryInfo>, ICommandBinder
     {
-        private readonly IFileSystem fileSystem;
-        private readonly Func<VolumeManager> createVolumeManager;
-        private readonly Option<DirectoryInfo?> volumeOption;
+        private readonly Option<DirectoryInfo?> volumeOption = new Option<DirectoryInfo?>(
+            ["--volume", "-v"],
+            "Volume directory path")
+            .LegalFilePathsOnly();
 
-        internal VolumeBinder(IFileSystem fileSystem, Func<VolumeManager> createVolumeManager)
-        {
-            this.fileSystem = fileSystem;
-            this.createVolumeManager = createVolumeManager;
-
-            this.volumeOption = new Option<DirectoryInfo?>(
-                new[] { "--volume", "-v" },
-                "Volume directory path")
-                .LegalFilePathsOnly();
-        }
-
-        // TODO: have this implement an interface and expose an extension method on command that can add multiple binders at once
-        // i.e. command.Add(volumeBinder) => calls volumeBinder.AddToCommand(command)
-        public void AddToCommand(Command command)
-        {
-            command.Add(this.volumeOption);
-        }
+        public void AddToCommand(Command command) => command.Add(this.volumeOption);
 
         protected override IDirectoryInfo GetBoundValue(BindingContext bindingContext)
         {
             var directoryInfo = bindingContext.ParseResult.GetValueForOption(this.volumeOption);
 
-            var volumeManager = this.createVolumeManager();
+            var volumeManager = createVolumeManager();
 
             var volumeDirectoryPath = directoryInfo is not null ?
                 volumeManager.ResolveVolumeDirectoryPath(directoryInfo.FullName) :
-                volumeManager.ResolveVolumeDirectoryPath(this.fileSystem.Directory.GetCurrentDirectory(), checkAncestors: true);
+                volumeManager.ResolveVolumeDirectoryPath(fileSystem.Directory.GetCurrentDirectory(), checkAncestors: true);
 
             return volumeDirectoryPath is not null ?
-                this.fileSystem.GetDirectory(volumeDirectoryPath) :
+                fileSystem.GetDirectory(volumeDirectoryPath) :
                 throw new ArgumentException("The specified path does not contain a tandoku volume.");
         }
     }
