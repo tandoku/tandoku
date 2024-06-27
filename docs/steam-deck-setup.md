@@ -69,6 +69,16 @@ export PATH="$PATH:/home/deck/.dotnet/tools"
 EOF
 ```
 
+### powershell-yaml
+```pwsh
+Install-Module powershell-yaml
+```
+
+### pandoc
+```
+brew install pandoc
+```
+
 ### dvc
 ```
 brew install dvc

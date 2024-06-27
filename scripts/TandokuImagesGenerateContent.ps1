@@ -13,6 +13,11 @@ param(
 
     # TODO - $MaxBlocksPerFile
 
+    [Parameter(Mandatory=$true)]
+    [ValidateSet('acv4','easyocr')]
+    [String]
+    $Provider,
+
     [Parameter()]
     [String]
     $VolumePath
@@ -20,7 +25,7 @@ param(
 
 Import-Module "$PSScriptRoot/modules/tandoku-utils.psm1" -Scope Local
 
-function GenerateBlocksFromAcvText {
+function GenerateBlocksFromOcrText {
     param(
         [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
         [String]
@@ -30,24 +35,15 @@ function GenerateBlocksFromAcvText {
         # TODO - should really share this with AddAcvText in TandokuImagesAnalyze.ps1
         $source = [IO.FileInfo](Convert-Path $ImagePath)
         $textDir = (Join-Path $source.Directory 'text')
-        $acvPath = (Join-Path $textDir "$([IO.Path]::GetFilenameWithoutExtension($source.Name)).acv4.json")
-        if (Test-Path $acvPath) {
-            $acv = Get-Content $acvPath | ConvertFrom-Json
+        $ocrPath = (Join-Path $textDir "$([IO.Path]::GetFilenameWithoutExtension($source.Name)).$Provider.json")
+        if (Test-Path $ocrPath) {
+            $ocr = Get-Content $ocrPath | ConvertFrom-Json
 
             $rootBlock = @{
                 image = @{
                     name = $source.Name
                 }
-                blocks = @($acv.readResult.blocks.lines | ForEach-Object {
-                    return @{
-                        text  = $_.text
-                        image = @{
-                            region = @{
-                                segments = @($_.words | Select-Object text, confidence)
-                            }
-                        }
-                    }
-                })
+                blocks = ReadBlocksFromOcr $ocr
             }
 
             if ($rootBlock.blocks.Count -gt 0) {
@@ -69,7 +65,44 @@ function GenerateBlocksFromAcvText {
                 Write-Output $result
             }
         } else {
-            Write-Warning "Skipping $ImagePath because $acvPath is missing"
+            Write-Warning "Skipping $ImagePath because $ocrPath is missing"
+        }
+    }
+}
+
+function ReadBlocksFromOcr($ocr) {
+    switch ($Provider) {
+        'acv4' {
+            return @($ocr.readResult.blocks.lines | ForEach-Object {
+                return @{
+                    text  = $_.text
+                    image = @{
+                        region = @{
+                            segments = @($_.words | Select-Object text, confidence)
+                        }
+                    }
+                }
+            })
+        }
+        'easyocr' {
+            return @($ocr.readResult | ForEach-Object {
+                return @{
+                    text  = $_.text
+                    image = @{
+                        region = @{
+                            segments = @(
+                                @{
+                                    text = $_.text
+                                    confidence = $_.confident
+                                }
+                            )
+                        }
+                    }
+                }
+            })
+        }
+        default {
+            throw "Unexpected provider '$Provider'"
         }
     }
 }
@@ -142,7 +175,7 @@ foreach ($imageExtension in $imageExtensions) {
 
 $outputItems = $images |
     WritePipelineProgress -Activity 'Generating content' -ItemName 'image' -TotalCount $images.Count |
-    GenerateBlocksFromAcvText |
+    GenerateBlocksFromOcrText |
     SaveContentBlocks $OutputPath
 
 if ($outputItems) {
