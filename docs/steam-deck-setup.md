@@ -31,3 +31,51 @@ Assuming that screenshots export has been configured already:
 2. Run `chmod +x tandoku-content-sync.sh` to make script executable.
 3. Add read-only permission for Edge browser to /home/deck/tandoku (or use `~/Documents/tandoku` above instead)
 4. Configure shortcut in Bash Shortcuts to run the script.
+
+## Set up tandoku dependencies
+
+### brew
+Follow instructions to Install Homebrew at [brew.sh](https://brew.sh)
+
+### gh
+```
+brew install gh
+```
+
+### tandoku repo
+```
+mkdir ~/repos
+cd ~/repos
+gh repo clone tandoku/tandoku
+```
+
+### dotnet
+```
+brew install dotnet
+
+cat << \EOF >> ~/.bashrc
+# Allow apps to find .NET Core SDK
+export DOTNET_ROOT="/home/linuxbrew/.linuxbrew/opt/dotnet/libexec"
+EOF
+```
+
+### pwsh (as dotnet global tool)
+```
+dotnet tool install --global PowerShell
+
+cat << \EOF >> ~/.bashrc
+# Add .NET Core SDK tools
+export PATH="$PATH:/home/deck/.dotnet/tools"
+EOF
+```
+
+### dvc
+```
+brew install dvc
+```
+
+## Build tandoku
+```
+cd ~/repos/tandoku/src/Tandoku.CommandLine
+dotnet build
+```
