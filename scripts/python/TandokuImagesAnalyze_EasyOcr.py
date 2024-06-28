@@ -1,29 +1,10 @@
+# Note: some modules are lazily-imported within functions below
 import os
-import hashlib
 import json
-from easyocr import Reader
 import sys
 
-def compute_md5(file_path):
-    # Compute the MD5 hash of a file.
-    hasher = hashlib.md5()
-    with open(file_path, 'rb') as f:
-        while chunk := f.read(8192):
-            hasher.update(chunk)
-    return hasher.hexdigest()
-
-def get_model_hashes():
-    # Compute MD5 hashes for all .pth files in ~/.EasyOCR/model.
-    model_hashes = {}
-    models_dir = os.path.expanduser('~/.EasyOCR/model')
-    for model_file in os.listdir(models_dir):
-        if model_file.endswith('.pth'):
-            model_path = os.path.join(models_dir, model_file)
-            model_hashes[model_file] = compute_md5(model_path)
-    return model_hashes
-
 def process_images(path, language):
-    model_hashes = get_model_hashes()
+    model_hashes = None
     reader = None
 
     for root, _, files in os.walk(path):
@@ -40,8 +21,10 @@ def process_images(path, language):
                 json_path = os.path.join(text_subdir, json_filename)
 
                 if not os.path.exists(json_path):
+                    if not model_hashes:
+                        model_hashes = get_model_hashes()
                     if not reader:
-                        reader = Reader([language])
+                        reader = get_easyocr_reader(language)
 
                     # Perform OCR and get the list of JSON strings
                     json_strings = reader.readtext(image_path, output_format='json')
@@ -59,7 +42,41 @@ def process_images(path, language):
                         json.dump(wrapper, json_file, ensure_ascii=False, indent=None)
                     print(f"{json_path}")
                     print(f"Processed {filename} and saved results to text/{json_filename}", file=sys.stderr)
-                    
+
+def get_model_hashes():
+    # Compute MD5 hashes for all .pth files in ~/.EasyOCR/model.
+    models_dir = os.path.expanduser('~/.EasyOCR/model')
+
+    model_hashes_cache = os.path.join(models_dir, 'model_hashes.json')
+    if os.path.exists(model_hashes_cache):
+        with open(model_hashes_cache, 'r') as cache_file:
+            model_hashes = json.load(cache_file)
+        return model_hashes
+
+    model_hashes = {}
+    for model_file in os.listdir(models_dir):
+        if model_file.endswith('.pth'):
+            model_path = os.path.join(models_dir, model_file)
+            model_hashes[model_file] = compute_md5(model_path)
+
+    with open(model_hashes_cache, 'w') as cache_file:
+        json.dump(model_hashes, cache_file, ensure_ascii=False, indent=None)
+
+    return model_hashes
+
+def compute_md5(file_path):
+    import hashlib
+    # Compute the MD5 hash of a file.
+    hasher = hashlib.md5()
+    with open(file_path, 'rb') as f:
+        while chunk := f.read(8192):
+            hasher.update(chunk)
+    return hasher.hexdigest()
+
+def get_easyocr_reader(language):
+    from easyocr import Reader
+    return Reader([language])
+
 if __name__ == "__main__":
     if len(sys.argv) != 3:
         print("Usage: python TandokuImagesAnalyze_EasyOcr.py /path/to/your/images language")
