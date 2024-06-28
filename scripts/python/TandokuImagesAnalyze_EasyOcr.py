@@ -21,8 +21,6 @@ def process_images(path, language):
                 json_path = os.path.join(text_subdir, json_filename)
 
                 if not os.path.exists(json_path):
-                    if not model_hashes:
-                        model_hashes = get_model_hashes()
                     if not reader:
                         reader = get_easyocr_reader(language)
 
@@ -32,14 +30,19 @@ def process_images(path, language):
                     # Deserialize each JSON string to a Python object
                     results = [json.loads(json_str) for json_str in json_strings]
 
-                    # Create the wrapper object
-                    wrapper = {
+                    # Wait to get model hashes until after running OCR
+                    # since models may be downloaded the very first time
+                    # reader.readtext is called
+                    if not model_hashes:
+                        model_hashes = get_model_hashes()
+
+                    resultWrapper = {
                         "models": model_hashes,
                         "readResult": results
                     }
 
                     with open(json_path, 'w') as json_file:
-                        json.dump(wrapper, json_file, ensure_ascii=False, indent=None)
+                        json.dump(resultWrapper, json_file, ensure_ascii=False, indent=None)
                     print(f"{json_path}")
                     print(f"Processed {filename} and saved results to text/{json_filename}", file=sys.stderr)
 
