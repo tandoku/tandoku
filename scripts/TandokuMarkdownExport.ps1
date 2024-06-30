@@ -122,7 +122,8 @@ function GenerateMarkdownForTextBlock($block, $blockId) {
                 }
                 default {
                     if ($refLabels) {
-                        $blockRefText = "$($refName): $blockRefText"
+                        # TODO - indentation as separate style?
+                        $blockRefText = "> $($refName): $blockRefText"
                     }
                 }
             }
