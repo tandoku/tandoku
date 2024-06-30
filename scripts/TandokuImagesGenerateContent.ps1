@@ -43,7 +43,7 @@ function GenerateBlocksFromOcrText {
                 image = @{
                     name = $source.Name
                 }
-                blocks = ReadBlocksFromOcr $ocr
+                blocks = @(ReadBlocksFromOcr $ocr)
             }
 
             if ($rootBlock.blocks.Count -gt 0) {
