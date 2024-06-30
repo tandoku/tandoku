@@ -11,10 +11,27 @@ internal interface IYamlStreamSerializable<TSelf>
 {
     static virtual async IAsyncEnumerable<TSelf> ReadYamlAsync(IFileInfo file)
     {
+        // TODO - consider moving the exception handling into ReadYamlAsync(TextReader...)
+        // and include context from the TextReader (ideally via base class but maybe StreamReader)
+        // Then we can keep this simple with the await foreach pattern
+
         // Note: this method must be 'async' so reader is not disposed prematurely
         using var reader = file.OpenText();
-        await foreach (var item in TSelf.ReadYamlAsync(reader))
-            yield return item;
+        await using var enumerator = TSelf.ReadYamlAsync(reader).GetAsyncEnumerator();
+        while (true)
+        {
+            try
+            {
+                if (!(await enumerator.MoveNextAsync()))
+                    break;
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidDataException($"{ex.Message}{Environment.NewLine}File: {file}", ex);
+            }
+
+            yield return enumerator.Current;
+        }
     }
 
     static virtual async IAsyncEnumerable<TSelf> ReadYamlAsync(TextReader reader)

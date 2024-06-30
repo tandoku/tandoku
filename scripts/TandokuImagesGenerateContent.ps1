@@ -73,33 +73,39 @@ function GenerateBlocksFromOcrText {
 function ReadBlocksFromOcr($ocr) {
     switch ($Provider) {
         'acv4' {
-            return @($ocr.readResult.blocks.lines | ForEach-Object {
-                return @{
-                    text  = $_.text
-                    image = @{
-                        region = @{
-                            segments = @($_.words | Select-Object text, confidence)
+            return @($ocr.readResult.blocks.lines |
+                Where-Object { -not [string]::IsNullOrWhiteSpace($_.text) } |
+                ForEach-Object {
+                    return @{
+                        text  = $_.text
+                        image = @{
+                            region = @{
+                                segments = @($_.words | Select-Object text, confidence)
+                            }
                         }
                     }
                 }
-            })
+            )
         }
         'easyocr' {
-            return @($ocr.readResult | ForEach-Object {
-                return @{
-                    text  = $_.text
-                    image = @{
-                        region = @{
-                            segments = @(
-                                @{
-                                    text = $_.text
-                                    confidence = $_.confident
-                                }
-                            )
+            return @($ocr.readResult |
+                Where-Object { -not [string]::IsNullOrWhiteSpace($_.text) } |
+                ForEach-Object {
+                    return @{
+                        text  = $_.text
+                        image = @{
+                            region = @{
+                                segments = @(
+                                    @{
+                                        text = $_.text
+                                        confidence = $_.confident
+                                    }
+                                )
+                            }
                         }
                     }
                 }
-            })
+            )
         }
         default {
             throw "Unexpected provider '$Provider'"
