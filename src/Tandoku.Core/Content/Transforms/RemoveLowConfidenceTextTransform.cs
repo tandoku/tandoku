@@ -10,7 +10,8 @@ public sealed class RemoveLowConfidenceTextTransform(double confidenceThreshold)
     public override ContentBlock? Visit(TextBlock block)
     {
         if (!string.IsNullOrWhiteSpace(block.Text) &&
-            block.Image?.Region?.Segments.Any(s => s.Confidence < confidenceThreshold) == true)
+            block.Image?.Region?.Segments.Count > 0 &&
+            block.Image?.Region?.Segments[0].Confidence < confidenceThreshold)
         {
             var textIndex = 0;
             var textBuilder = new StringBuilder(block.Text.Length);
