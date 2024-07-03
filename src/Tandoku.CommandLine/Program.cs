@@ -54,9 +54,21 @@ public sealed partial class Program
         // TODO: the [debug] directive is missing in latest CommandLine library
 
         return new CommandLineBuilder(this.CreateRootCommand())
-#if !DEBUG // TODO: consider catching only known app-specific exceptions instead (is ArgumentException thrown by System.CommandLine parsing?)
+#if DEBUG
             .AddMiddleware(async (context, next) =>
             {
+                this.console.WriteLine($"There are {context.ParseResult.Directives.Count()} directives");
+                this.console.WriteLine(string.Join("|", context.ParseResult.Directives.Select(p => p.Key)));
+                if (context.ParseResult.Directives.Contains("debug"))
+                {
+                    System.Diagnostics.Debugger.Launch();
+                }
+                await next(context);
+            })
+#else
+            .AddMiddleware(async (context, next) =>
+            {
+                // TODO: consider catching only known app-specific exceptions instead (is ArgumentException thrown by System.CommandLine parsing?)
                 try
                 {
                     await next(context);

@@ -112,6 +112,7 @@ public sealed partial class Program
 
             command.SetHandler(async (commonArgs, confidenceThreshold) =>
             {
+                System.Diagnostics.Debugger.Launch();
                 await this.RunContentTransformAsync(
                     commonArgs,
                     t => t.TransformAsync(new RemoveLowConfidenceTextTransform(confidenceThreshold)));

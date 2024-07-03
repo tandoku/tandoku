@@ -43,16 +43,23 @@ public abstract record ContentBlock : IYamlStreamSerializable<ContentBlock>
 
     internal static ContentBlock? Deserialize(JsonDocument jsonDocument)
     {
-        return jsonDocument.RootElement.ValueKind switch
+        try
         {
-            JsonValueKind.Object => jsonDocument.RootElement.TryGetProperty(blocksProperty.Span, out _) ?
-                jsonDocument.Deserialize<CompositeBlock>(SerializationFactory.JsonOptions) :
-                jsonDocument.Deserialize<TextBlock>(SerializationFactory.JsonOptions),
+            return jsonDocument.RootElement.ValueKind switch
+            {
+                JsonValueKind.Object => jsonDocument.RootElement.TryGetProperty(blocksProperty.Span, out _) ?
+                    jsonDocument.Deserialize<CompositeBlock>(SerializationFactory.JsonOptions) :
+                    jsonDocument.Deserialize<TextBlock>(SerializationFactory.JsonOptions),
 
-            JsonValueKind.Null => null,
+                JsonValueKind.Null => null,
 
-            _ => throw new InvalidDataException($"Unexpected document value of type '{jsonDocument.RootElement.ValueKind}' in YAML stream"),
-        };
+                _ => throw new InvalidDataException($"Unexpected document value of type '{jsonDocument.RootElement.ValueKind}' in YAML stream"),
+            };
+        }
+        catch (Exception ex)
+        {
+            throw;
+        }
     }
 }
 
