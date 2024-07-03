@@ -73,7 +73,7 @@ function GenerateBlocksFromOcrText {
 function ReadBlocksFromOcr($ocr) {
     switch ($Provider) {
         'acv4' {
-            return @($ocr.readResult.blocks.lines |
+            return $ocr.readResult.blocks.lines |
                 Where-Object { -not [string]::IsNullOrWhiteSpace($_.text) } |
                 ForEach-Object {
                     return @{
@@ -85,10 +85,9 @@ function ReadBlocksFromOcr($ocr) {
                         }
                     }
                 }
-            )
         }
         'easyocr' {
-            return @($ocr.readResult |
+            return $ocr.readResult |
                 Where-Object { -not [string]::IsNullOrWhiteSpace($_.text) } |
                 ForEach-Object {
                     return @{
@@ -105,7 +104,6 @@ function ReadBlocksFromOcr($ocr) {
                         }
                     }
                 }
-            )
         }
         default {
             throw "Unexpected provider '$Provider'"
