@@ -34,10 +34,6 @@ function AddAcvText {
         $FreeTier
     )
     process {
-        if ((-not $script:acvApiKey) -or (-not $script:acvEndpoint)) {
-            throw 'Missing required variables, call InitAcv first'
-        }
-
         $source = [IO.FileInfo](Convert-Path $Path)
 
         $textDir = (Join-Path $source.Directory 'text')
@@ -45,6 +41,10 @@ function AddAcvText {
 
         $target = (Join-Path $textDir "$([IO.Path]::GetFilenameWithoutExtension($source.Name)).acv4.json")
         if (-not (Test-Path $target)) {
+            if ((-not $script:acvApiKey) -or (-not $script:acvEndpoint)) {
+                InitAcv
+            }
+
             $body = [IO.File]::ReadAllBytes($source)
             $headers = @{
                 'Content-Type' = (GetMimeType $source)
@@ -75,7 +75,7 @@ function AddAcvText {
               -ProgressAction SilentlyContinue
 
             if ($response.StatusCode -ne 200) {
-                Write-Error "Azure OCR failed: $response"
+                Write-Error "Azure Computer Vision failed: $response"
             }
 
             if (Test-Path $target) {
@@ -96,8 +96,6 @@ function GetMimeType($fileName) {
         '.tiff' {'image/tiff'}
     }
 }
-
-InitAcv
 
 $volume = TandokuVolumeInfo -VolumePath $VolumePath
 if (-not $volume) {
