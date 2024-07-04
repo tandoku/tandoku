@@ -2,8 +2,6 @@ param(
     [Parameter()]
     [String]
     $VolumePath
-
-    # TODO: $Provider parameter ('Acv','EasyOcr')
 )
 
 Import-Module "$PSScriptRoot/modules/tandoku-utils.psm1" -Scope Local
@@ -23,7 +21,7 @@ foreach ($imageExtension in $imageExtensions) {
 }
 
 # TODO - pass imageExtensions to python script
-$outputItems = python $PSScriptRoot/python/TandokuImagesAnalyze_EasyOcr.py $path $volume.definition.language
+$outputItems = python $PSScriptRoot/python/TandokuImagesAnalyze_easyocr.py $path $volume.definition.language
 
 if ($outputItems) {
     TandokuVersionControlAdd -Path $path -Kind binary
