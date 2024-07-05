@@ -46,6 +46,7 @@ public sealed class ContentLinker(IFileSystem? fileSystem = null)
                     var booleanQuery = new BooleanQuery();
                     using (var tokenStream = analyzer.GetTokenStream(ContentIndex.FieldNames.Text, textBlock.Text))
                     {
+                        tokenStream.Reset();
                         while (tokenStream.IncrementToken())
                         {
                             var token = tokenStream.GetAttribute<ICharTermAttribute>().ToString();

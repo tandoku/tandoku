@@ -11,6 +11,7 @@ public sealed partial class Program
         new("content", "Commands for working with tandoku content streams")
         {
             this.CreateContentIndexCommand(),
+            this.CreateContentSearchCommand(),
             this.CreateContentLinkCommand(),
             new ContentTransforms(this).CreateContentTransformCommand(),
         };
@@ -38,13 +39,42 @@ public sealed partial class Program
         return command;
     }
 
+    private Command CreateContentSearchCommand()
+    {
+        var searchQueryArgument = new Argument<string[]>("search-query", "Terms or phrase to search for") { Arity = ArgumentArity.OneOrMore };
+        var maxHitsOption = new Option<int>(["--max-hits", "-n"], "Maximum number of results to return");
+        var indexPathOption = new Option<DirectoryInfo>("--index-path", "Path of the index to use") { IsRequired = true }
+            .LegalFilePathsOnly();
+
+        var command = new Command("search", "Searches the specified content index")
+        {
+            searchQueryArgument,
+            maxHitsOption,
+            indexPathOption,
+        };
+
+        command.SetHandler(async (searchQuery, maxHits, indexPath) =>
+        {
+            var indexSearcher = new ContentIndexSearcher(this.fileSystem);
+            var matchedBlockCount = 0;
+            await foreach(var matchedBlock in indexSearcher.FindBlocksAsync(string.Join(' ', searchQuery), indexPath.FullName, maxHits))
+            {
+                matchedBlockCount++;
+                this.console.WriteLine($"Matched {matchedBlock}");
+            }
+            this.console.WriteLine($"Matched {matchedBlockCount} total blocks");
+        }, searchQueryArgument, maxHitsOption, indexPathOption);
+
+        return command;
+    }
+
     private Command CreateContentLinkCommand()
     {
         var inputPathArgument = new Argument<DirectoryInfo>("input-path", "Path of input content directory") { Arity = ArgumentArity.ExactlyOne }
             .LegalFilePathsOnly();
         var outputPathArgument = new Argument<DirectoryInfo>("output-path", "Path of output content directory") { Arity = ArgumentArity.ExactlyOne }
             .LegalFilePathsOnly();
-        var indexPathOption = new Option<DirectoryInfo>("--index-path", "Path of the index to build") { IsRequired = true }
+        var indexPathOption = new Option<DirectoryInfo>("--index-path", "Path of the index to use") { IsRequired = true }
             .LegalFilePathsOnly();
         var linkNameOption = new Option<string>("--link-name", "Name of the link") { IsRequired = true };
 
