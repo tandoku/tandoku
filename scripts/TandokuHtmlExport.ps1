@@ -115,7 +115,7 @@ if ($Format -eq 'Book') {
 CreateDirectoryIfNotExists "$targetDirectory/images"
 $imageExtensions = GetImageExtensions
 foreach ($imageExtension in $imageExtensions) {
-    Copy-Item -Path "$volumePath/images/*$imageExtension" -Destination "$targetDirectory/images/"
+    CopyItemIfNewer -Path "$volumePath/images/*$imageExtension" -Destination "$targetDirectory/images/"
 }
 
 if ($ZipArchive) {

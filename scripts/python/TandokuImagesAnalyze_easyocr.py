@@ -41,7 +41,7 @@ def process_images(path, language):
                         "readResult": results
                     }
 
-                    with open(json_path, 'w') as json_file:
+                    with open(json_path, 'w', encoding='utf-8') as json_file:
                         json.dump(resultWrapper, json_file, ensure_ascii=False, indent=None)
                     print(f"{json_path}")
                     print(f"Processed {filename} and saved results to text/{json_filename}", file=sys.stderr)
@@ -78,7 +78,10 @@ def compute_md5(file_path):
 
 def get_easyocr_reader(language):
     from easyocr import Reader
-    return Reader([language])
+    if language == 'en':
+        return Reader([language])
+    else:
+        return Reader([language, 'en'])
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
