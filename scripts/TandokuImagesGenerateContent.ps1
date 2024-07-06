@@ -147,6 +147,7 @@ function SaveContentBlocks {
             $writer = [IO.File]::CreateText($contentPath)
         }
 
+        # TODO - fix instability in property ordering
         $writer.WriteLine((ConvertTo-Yaml $block).TrimEnd())
         $writer.WriteLine('---')
     }
@@ -158,6 +159,7 @@ function SaveContentBlocks {
     }
 }
 
+# TODO - VolumePath should be optional if InputPath/OutputPath specified?
 $volume = TandokuVolumeInfo -VolumePath $VolumePath
 if (-not $volume) {
     return
