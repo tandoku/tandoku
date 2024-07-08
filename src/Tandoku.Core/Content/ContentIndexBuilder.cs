@@ -3,7 +3,6 @@
 using System.IO.Abstractions;
 using Lucene.Net.Documents;
 using Lucene.Net.Index;
-using Lucene.Net.Store;
 using Tandoku.Serialization;
 
 public sealed class ContentIndexBuilder
@@ -18,7 +17,7 @@ public sealed class ContentIndexBuilder
 
     public async Task BuildAsync(string contentPath, string indexPath)
     {
-        using var indexDir = FSDirectory.Open(indexPath);
+        using var indexDir = LuceneFactory.OpenDirectory(indexPath);
         var analyzer = LuceneFactory.CreateAnalyzer();
         var indexConfig = LuceneFactory.CreateIndexWriterConfig(analyzer);
         using var writer = new IndexWriter(indexDir, indexConfig);

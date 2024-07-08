@@ -29,7 +29,8 @@ public sealed class ContentLinker(IFileSystem? fileSystem = null)
         int unmatchedBlocks = 0;
 
         var transformer = new ContentTransformer(inputPath, outputPath, fileSystem);
-        await transformer.TransformAsync(LinkTextBlock);
+        var blockLinker = new ContentBlockLinker();
+        await transformer.TransformAsync(blockLinker);
 
         return (matchedBlocks, matchedBlocks + unmatchedBlocks);
 
@@ -131,6 +132,23 @@ public sealed class ContentLinker(IFileSystem? fileSystem = null)
                 if (!string.IsNullOrEmpty(reference.Text))
                     yield return KeyValuePair.Create($"{linkName}-{refName}", reference.Text);
             }
+        }
+    }
+
+    private sealed class ContentBlockLinker : ContentBlockRewriter
+    {
+        // TODO - pass in ContentIndexSearcher instance to ctor
+
+        public override ContentBlock? Visit(TextBlock block)
+        {
+            // TODO - find best match for single text block
+            return base.Visit(block);
+        }
+
+        public override IEnumerable<TextBlock> VisitNestedBlocks(IEnumerable<TextBlock> blocks)
+        {
+            // TODO - iterate over blocks and keep hashset of intersected docIDs
+            return base.VisitNestedBlocks(blocks);
         }
     }
 }
