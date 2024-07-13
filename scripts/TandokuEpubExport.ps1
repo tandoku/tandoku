@@ -37,17 +37,22 @@ if (-not $markdownFiles) {
 }
 
 if ($OutputPath) {
+    # $OutputPath may need to be resolved to a concrete path (e.g. if using ~)
+    # TODO - add util function to do this
     $targetDirectory = Split-Path $OutputPath -Parent
-    $targetPath = $OutputPath
+    $targetFileName = Split-Path $OutputPath -Leaf
+    CreateDirectoryIfNotExists $targetDirectory
+    $targetDirectory = Resolve-Path $targetDirectory
+    $targetPath = Join-Path $targetDirectory $targetFileName
 } else {
     $targetDirectory = "$volumePath/export"
+    CreateDirectoryIfNotExists $targetDirectory
 
     # TODO - add this as another property on volume info
     # also consider dropping the moniker from this (just the cleaned title)
     $volumeBaseFileName = Split-Path $volumePath -Leaf
     $targetPath = Join-Path $targetDirectory "$volumeBaseFileName.epub"
 }
-CreateDirectoryIfNotExists $targetDirectory
 
 # pandoc resolves references to resources (e.g. images, audio) based on the current working directory,
 # not the directory of the input files
