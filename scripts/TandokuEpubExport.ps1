@@ -31,6 +31,10 @@ $volumePath = $volume.path
 
 $markdownDirectory = $InputPath ? $InputPath : "$volumePath/markdown"
 $markdownFiles = Get-ChildItem $markdownDirectory -Filter *.md
+if (-not $markdownFiles) {
+    Write-Warning "No markdown files found in $markdownDirectory, nothing to do"
+    return
+}
 
 if ($OutputPath) {
     $targetDirectory = Split-Path $OutputPath -Parent

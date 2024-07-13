@@ -75,7 +75,7 @@ public sealed class ContentIndexBuilder
     private async IAsyncEnumerable<(ContentBlock Block, IFileInfo File)> GetAllContentBlocksAsync(string contentPath)
     {
         var contentDir = this.fileSystem.GetDirectory(contentPath);
-        foreach (var contentFile in contentDir.EnumerateFiles("*.content.yaml"))
+        foreach (var contentFile in contentDir.EnumerateContentFiles())
         {
             await foreach (var block in YamlSerializer.ReadStreamAsync<ContentBlock>(contentFile))
                 yield return (block, contentFile);

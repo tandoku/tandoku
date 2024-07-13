@@ -206,6 +206,10 @@ $contentDirectory = $InputPath ? $InputPath : "$volumePath/content"
 $contentFiles =
     @(Get-ChildItem $contentDirectory -Filter content.yaml) +
     @(Get-ChildItem $contentDirectory -Filter *.content.yaml)
+if (-not $contentFiles) {
+    Write-Warning "No content files found in $contentDirectory, nothing to do"
+    return
+}
 
 if ($OutputPath) {
     if ($Combine -and ([IO.Path]::GetExtension($OutputPath) -eq '.md')) {

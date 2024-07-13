@@ -21,7 +21,7 @@ public sealed class ContentTransformer
         var inputDir = this.fileSystem.GetDirectory(this.inputPath);
         var outputDir = this.fileSystem.GetDirectory(this.outputPath);
         outputDir.Create();
-        foreach (var inputFile in inputDir.EnumerateFiles("*.content.yaml")) // TODO share with ContentIndexBuilder
+        foreach (var inputFile in inputDir.EnumerateContentFiles())
         {
             var outputFile = outputDir.GetFile(inputFile.Name);
             await YamlSerializer.WriteStreamAsync(outputFile, TransformBlocksAsync(inputFile));
