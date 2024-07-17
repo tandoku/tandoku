@@ -8,6 +8,10 @@ internal static class YamlSerializer
         where T : IYamlStreamSerializable<T> =>
         T.ReadYamlAsync(file);
 
+    internal static IAsyncEnumerable<T> ReadStreamAsync<T>(TextReader reader)
+        where T : IYamlStreamSerializable<T> =>
+        T.ReadYamlAsync(reader);
+
     internal static Task WriteStreamAsync<T>(IFileInfo file, IAsyncEnumerable<T> items)
         where T : IYamlStreamSerializable<T> =>
         T.WriteYamlAsync(file, items);

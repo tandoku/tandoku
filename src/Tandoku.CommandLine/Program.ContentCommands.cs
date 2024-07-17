@@ -103,6 +103,7 @@ public sealed partial class Program
             {
                 this.CreateRemoveNonJapaneseTextCommand(),
                 this.CreateLowConfidenceTextCommand(),
+                this.CreateGenerateExplanationCommand(),
             };
 
         private Command CreateRemoveNonJapaneseTextCommand()
@@ -150,6 +151,25 @@ public sealed partial class Program
             return command;
         }
 
+        private Command CreateGenerateExplanationCommand()
+        {
+            var commonArgsBinder = new CommonArgsBinder();
+
+            var command = new Command("generate-explanation", "Uses OpenAI to generate an explanation for each content block")
+            {
+                commonArgsBinder,
+            };
+
+            command.SetHandler(async (commonArgs) =>
+            {
+                using var transform = new GenerateExplanationTransform();
+                await this.RunContentTransformAsync(
+                    commonArgs,
+                    t => t.TransformAsync(transform));
+            }, commonArgsBinder);
+
+            return command;
+        }
         private Task RunContentTransformAsync(CommonArgs args, Func<ContentTransformer, Task> transform) =>
             transform(new ContentTransformer(args.InputPath.FullName, args.OutputPath.FullName, program.fileSystem));
 

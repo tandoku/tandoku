@@ -1,0 +1,21 @@
+Give a brief explanation for each word or grammar in each line of text. Respond with YAML in the following format:
+line: <line1>
+words:
+- <word1> - <English explanation>
+- <word2> - <English explanation>
+translation: <line1 translation>
+---
+line: <line2>
+words:
+- <word1> - <English explanation>
+translation: <line2 translation>
+
+# Example
+line: こしをいためてしまってね
+words:
+- こし (腰) - Lower back or waist.
+- を - Object marker. Used to indicate the direct object of a verb.
+- いためて (痛めて) - From the verb 痛める, which means "to hurt" or "to injure." The て-form is used here to connect clauses or indicate a continuing action/state.
+- しまって - From the verb しまう, which can mean "to finish" or "to do something completely" and often implies regret. The て-form is used here to indicate completion or an unintended consequence.
+- ね - A sentence-ending particle that adds a sense of seeking confirmation or agreement, similar to "right?" or "isn't it?" in English.
+translation: I hurt my back.

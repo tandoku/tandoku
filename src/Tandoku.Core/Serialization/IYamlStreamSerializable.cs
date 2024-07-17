@@ -1,7 +1,6 @@
 ﻿namespace Tandoku.Serialization;
 
 using System.IO.Abstractions;
-using Tandoku.Content;
 using Tandoku.Yaml;
 using YamlDotNet.Core;
 using YamlDotNet.Core.Events;
@@ -22,7 +21,7 @@ internal interface IYamlStreamSerializable<TSelf>
         {
             try
             {
-                if (!(await enumerator.MoveNextAsync()))
+                if (!await enumerator.MoveNextAsync())
                     break;
             }
             catch (Exception ex)

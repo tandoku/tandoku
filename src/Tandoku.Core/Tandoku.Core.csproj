@@ -23,6 +23,7 @@
     <PackageReference Include="Lucene.Net.QueryParser" Version="4.8.0-beta00016" />
     <PackageReference Include="Markdig" Version="0.31.0" />
     <PackageReference Include="MathNet.Numerics" Version="5.0.0" />
+    <PackageReference Include="OpenAI" Version="2.0.0-beta.7" />
     <PackageReference Include="SubtitlesParser" Version="1.5.1" />
     <PackageReference Include="TestableIO.System.IO.Abstractions" Version="19.2.16" />
     <PackageReference Include="TestableIO.System.IO.Abstractions.Wrappers" Version="19.2.16" />
