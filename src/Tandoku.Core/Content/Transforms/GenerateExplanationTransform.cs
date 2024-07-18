@@ -19,8 +19,11 @@ public sealed partial class GenerateExplanationTransform : ContentBlockRewriter,
 
     public GenerateExplanationTransform()
     {
+        // TODO - cacheOnly option to only return completions from cache
+        // AND/OR redesign the whole system of capturing output so we can actually check in the raw completions
         //System.Diagnostics.Debugger.Launch();
         this.chatClient = new ChatClientWrapper(OpenAIModel);
+        // TODO - "sentence" variation of prompt for input that is already in paragraph blocks
         this.systemMessage = new SystemChatMessage(File.ReadAllText(@"c:\users\aaron\repos\tandoku\resources\prompts\explanation.txt"));
         this.chatCompletionOptions = new ChatCompletionOptions
         {
@@ -39,18 +42,23 @@ public sealed partial class GenerateExplanationTransform : ContentBlockRewriter,
         var text = string.Join('\n', block.Blocks.Select(b => b.Text));
 
         this.blockCount++;
-        //if (this.blockCount > 5)
-        //{
-        //    Console.Error.WriteLine($"Skipping block {this.blockCount}");
-        //    return block;
-        //}
+        if (this.blockCount > 6)
+        {
+            Console.Error.WriteLine($"Skipping block {this.blockCount}");
+            return block;
+        }
         Console.Error.WriteLine($"Processing block {this.blockCount}");
         foreach (var nestedBlock in block.Blocks)
             Console.Error.WriteLine($"  {nestedBlock.Text}");
 
         var userMessage = new UserChatMessage(text);
         var resultText = this.chatClient.CompleteChat([this.systemMessage, userMessage], this.chatCompletionOptions);
+        if (string.IsNullOrEmpty(resultText))
+            return block;
+
+        // TODO - switch to using regex to extract all content (and add ** back around words)
         var yaml = ExtractYamlRegex().Match(resultText).Groups[2].Value;
+
         var blockEnumerator = block.Blocks.GetEnumerator();
         var newBlocks = ImmutableList.CreateBuilder<TextBlock>();
         foreach (var explanation in YamlSerializer.ReadStreamAsync<ExplanationDocument>(new StringReader(yaml)).ToBlockingEnumerable())
@@ -132,6 +140,8 @@ public sealed partial class GenerateExplanationTransform : ContentBlockRewriter,
             {
                 return resultText;
             }
+
+            // TODO - cache only option
 
             var result = this.chatClient.CompleteChat(messages, options);
             resultText = result.Value.ToString();

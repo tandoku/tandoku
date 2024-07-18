@@ -6,6 +6,8 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Tandoku.Serialization;
 using Tandoku.Yaml;
+using YamlDotNet.Core;
+using YamlDotNet.Serialization;
 
 [JsonDerivedType(typeof(TextBlock))]
 [JsonDerivedType(typeof(CompositeBlock))]
@@ -81,6 +83,7 @@ public sealed record ContentSource
 
 public sealed record TextBlock : ContentBlock
 {
+    [YamlMember(ScalarStyle = ScalarStyle.Literal)]
     public string? Text { get; init; }
     public IImmutableDictionary<string, ContentReference> References { get; init; } = ImmutableSortedDictionary<string, ContentReference>.Empty;
 
@@ -89,6 +92,7 @@ public sealed record TextBlock : ContentBlock
 
 public sealed record ContentReference
 {
+    [YamlMember(ScalarStyle = ScalarStyle.Literal)]
     public string? Text { get; init; }
 }
 

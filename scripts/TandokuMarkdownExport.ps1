@@ -16,6 +16,10 @@ param(
     $Combine,
 
     [Parameter()]
+    [Switch]
+    $NoHeadings,
+
+    [Parameter()]
     [ValidateSet('None', 'Html', 'BlurHtml', 'Remove')]
     [String]
     $RubyBehavior = 'None',
@@ -58,7 +62,7 @@ function GenerateMarkdown($contentPath) {
 
         # Heading
         $heading = GetHeading $block
-        if ($heading) {
+        if ($heading -and -not $NoHeadings) {
             Write-Output "# $heading"
             Write-Output ''
         }
@@ -115,7 +119,7 @@ function GenerateMarkdownForTextBlock($block, $blockId) {
             switch ($ReferenceBehavior) {
                 'Footnotes' {
                     $blockText = "$blockText [^$blockRefId]"
-                    $blockRefText = "[^$blockRefId]: $blockRefText"
+                    $blockRefText = "[^$blockRefId]: $($blockRefText -replace "`n","`n    ")"
                 }
                 'BlurHtml' {
                     $blockRefText = ConvertTextToBlurHtml $blockRefText $blockRefId -Label ($refLabels ? $refName : $null)
