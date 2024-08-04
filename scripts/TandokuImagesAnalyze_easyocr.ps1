@@ -21,7 +21,7 @@ foreach ($imageExtension in $imageExtensions) {
 }
 
 # TODO - pass imageExtensions to python script
-$outputItems = python $PSScriptRoot/python/TandokuImagesAnalyze_easyocr.py $path $volume.definition.language
+$outputItems = python3 $PSScriptRoot/python/TandokuImagesAnalyze_easyocr.py $path $volume.definition.language
 
 if ($outputItems) {
     TandokuVersionControlAdd -Path $path -Kind binary
