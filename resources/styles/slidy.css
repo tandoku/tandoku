@@ -160,6 +160,8 @@ div.toc-heading {
 
 img {
   image-rendering: optimize-quality;
+  max-width: 100%;
+  height: auto;
 }
 
 pre {
