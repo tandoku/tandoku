@@ -39,7 +39,7 @@ function GenerateBlocksFromOcrText {
         if (Test-Path $ocrPath) {
             $ocr = Get-Content $ocrPath | ConvertFrom-Json
 
-            $rootBlock = @{
+            $rootBlock = [ordered]@{
                 image = @{
                     name = $source.Name
                 }
@@ -76,7 +76,7 @@ function ReadBlocksFromOcr($ocr) {
             return $ocr.readResult.blocks.lines |
                 Where-Object { -not [string]::IsNullOrWhiteSpace($_.text) } |
                 ForEach-Object {
-                    return @{
+                    return [ordered]@{
                         text  = $_.text
                         image = @{
                             region = @{
@@ -90,7 +90,7 @@ function ReadBlocksFromOcr($ocr) {
             return $ocr.readResult |
                 Where-Object { -not [string]::IsNullOrWhiteSpace($_.text) } |
                 ForEach-Object {
-                    return @{
+                    return [ordered]@{
                         text  = $_.text
                         image = @{
                             region = @{
@@ -147,7 +147,6 @@ function SaveContentBlocks {
             $writer = [IO.File]::CreateText($contentPath)
         }
 
-        # TODO - fix instability in property ordering
         $writer.WriteLine((ConvertTo-Yaml $block).TrimEnd())
         $writer.WriteLine('---')
     }
