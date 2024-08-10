@@ -123,12 +123,19 @@ function GenerateMarkdownForTextBlock($block, $blockId) {
                 default {
                     if ($refLabels) {
                         # TODO - indentation as separate style?
-                        $blockRefText = "> $($refName): $blockRefText"
+                        $lines = @(StringToLines $blockRefText)
+                        $lines[0] = "$($refName): $($lines[0])"
+                        foreach ($line in $lines) {
+                            [void] $blockRefTextBuilder.AppendLine("> $line")
+                        }
+                        $blockRefText = $null
                     }
                 }
             }
 
-            [void] $blockRefTextBuilder.AppendLine($blockRefText)
+            if ($blockRefText) {
+                [void] $blockRefTextBuilder.AppendLine($blockRefText)
+            }
             [void] $blockRefTextBuilder.AppendLine()
         }
     }

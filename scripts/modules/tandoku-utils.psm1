@@ -34,6 +34,18 @@ function ArgsToArray {
     return $args
 }
 
+function StringToLines($s) {
+    $r = [IO.StringReader]::new($s)
+    while ($true) {
+        $line = $r.ReadLine()
+        if ($line -eq $null) {
+            return
+        } else {
+            $line
+        }
+    }
+}
+
 function GetValueByPath($target, $path) {
     $targetPath = $path.Split('.')
     for ($i = 0; $i -lt $targetPath.Count; $i++) {
