@@ -40,7 +40,7 @@ function GenerateBlocksFromOcrText {
             $ocr = Get-Content $ocrPath | ConvertFrom-Json
 
             $rootBlock = [ordered]@{
-                image = @{
+                image = [ordered]@{
                     name = $source.Name
                 }
                 blocks = @(ReadBlocksFromOcr $ocr)
@@ -77,12 +77,12 @@ function ReadBlocksFromOcr($ocr) {
                 Where-Object { -not [string]::IsNullOrWhiteSpace($_.text) } |
                 ForEach-Object {
                     return [ordered]@{
-                        text  = $_.text
-                        image = @{
-                            region = @{
+                        image = [ordered]@{
+                            region = [ordered]@{
                                 segments = @($_.words | Select-Object text, confidence)
                             }
                         }
+                        text  = $_.text
                     }
                 }
         }
@@ -91,17 +91,17 @@ function ReadBlocksFromOcr($ocr) {
                 Where-Object { -not [string]::IsNullOrWhiteSpace($_.text) } |
                 ForEach-Object {
                     return [ordered]@{
-                        text  = $_.text
-                        image = @{
-                            region = @{
+                        image = [ordered]@{
+                            region = [ordered]@{
                                 segments = @(
-                                    @{
+                                    [ordered]@{
                                         text = $_.text
                                         confidence = $_.confident
                                     }
                                 )
                             }
                         }
+                        text  = $_.text
                     }
                 }
         }
