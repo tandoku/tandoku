@@ -32,9 +32,6 @@ $targetVideos = $sourceVideos | ForEach-Object {
     }
 }
 
-if ($sourceVideos.Count -ne $targetVideos.Count) {
-    Write-Error "$($targetVideos.Count) videos copied from $($sourceVideos.Count) videos in source. Adjust file qualifier if needed."
-    return
+if ($targetVideos) {
+    TandokuVersionControlAdd -Path $targetVideos -Kind binary
 }
-
-TandokuVersionControlAdd -Path $targetVideos -Kind binary
