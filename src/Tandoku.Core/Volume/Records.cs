@@ -2,6 +2,7 @@
 
 public sealed record VolumeInfo(
     string Path,
+    string Slug,
     VolumeVersion Version,
     string DefinitionPath,
     VolumeDefinition Definition);

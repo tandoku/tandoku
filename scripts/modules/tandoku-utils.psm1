@@ -242,7 +242,9 @@ function InvokeTandokuCommand {
 
     $tandokuOut = (& 'tandoku' $tandokuArgs) | Out-String
     if ($tandokuOut) {
-        return (ConvertFrom-Json $tandokuOut -AsHashtable)
+        # NOTE: not using ConvertFrom-Json -AsHashtable as this returns a *case-sensitive* hashtable as of PowerShell 7.3
+        # see also https://github.com/PowerShell/PowerShell/issues/19928
+        return (ConvertFrom-Json $tandokuOut)
     } else {
         # TODO: capture error output? (or just let it go to console?)
         return

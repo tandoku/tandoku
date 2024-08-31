@@ -54,7 +54,7 @@ public sealed partial class Program
         // TODO: the [debug] directive is missing in latest CommandLine library
 
         return new CommandLineBuilder(this.CreateRootCommand())
-#if !DEBUG // TODO: consider catching only known app-specific exceptions instead (is ArgumentException thrown by System.CommandLine parsing?)
+//#if !DEBUG // TODO: consider catching only known app-specific exceptions instead (is ArgumentException thrown by System.CommandLine parsing?)
             .AddMiddleware(async (context, next) =>
             {
                 try
@@ -70,11 +70,11 @@ public sealed partial class Program
                     HandleKnownException(exception, context);
                 }
             }, MiddlewareOrder.ExceptionHandler)
-#endif
+//#endif
             .UseDefaults()
             .Build();
 
-#if !DEBUG
+//#if !DEBUG
         static void HandleKnownException(Exception exception, InvocationContext context)
         {
             var terminal = context.Console.GetTerminal(preferVirtualTerminal: false);
@@ -94,7 +94,7 @@ public sealed partial class Program
 
             context.ExitCode = 1;
         }
-#endif
+//#endif
     }
 
     private RootCommand CreateRootCommand()

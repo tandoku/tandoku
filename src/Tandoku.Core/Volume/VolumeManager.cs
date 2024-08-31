@@ -45,7 +45,7 @@ public sealed class VolumeManager
         }
         var definitionFile = await packager.WritePackagePart(volumeDirectory, VolumeDefinitionFileName, definition);
 
-        return new VolumeInfo(volumeDirectory.FullName, version, definitionFile.FullName, definition);
+        return new VolumeInfo(volumeDirectory.FullName, volumeDirectory.Name, version, definitionFile.FullName, definition);
     }
 
     public async Task<VolumeInfo> GetInfoAsync(string volumePath)
@@ -64,7 +64,7 @@ public sealed class VolumeManager
             VolumeDefinitionFileName,
             VolumeDefinitionPartName);
 
-        return (new VolumeInfo(volumeDirectory.FullName, version, definitionFile.FullName, definition), volumeDirectory);
+        return (new VolumeInfo(volumeDirectory.FullName, volumeDirectory.Name, version, definitionFile.FullName, definition), volumeDirectory);
     }
 
     public async Task SetDefinitionAsync(string volumePath, VolumeDefinition definition)
