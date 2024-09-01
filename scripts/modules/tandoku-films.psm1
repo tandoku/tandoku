@@ -6,3 +6,14 @@ function GetKnownVideoExtensions([Switch]$FileMask) {
     $prefix = $FileMask ? '*' : ''
     return "$prefix.mkv","$prefix.mp4"
 }
+
+function GetKnownSubtitleExtensions([Switch]$FileMask, [String]$Language, [Switch]$MatchLanguagePrefix) {
+    $prefix = $FileMask ? '*' : ''
+    if ($Language) {
+        $prefix = "$prefix.$Language"
+        if ($MatchLanguagePrefix) {
+            $prefix = "$prefix*"
+        }
+    }
+    return "$prefix.ass","$prefix.srt","$prefix.vtt"
+}

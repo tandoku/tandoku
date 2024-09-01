@@ -26,7 +26,7 @@ $targetVideos = $sourceVideos | ForEach-Object {
     $fileName = "$($Volume.Slug)$qualifier$extension"
     $targetPath = "$targetDir/$fileName"
     if (-not (Test-Path $targetPath)) {
-        Copy-Item $_ $targetPath -PassThru
+        Copy-Item -LiteralPath $_ $targetPath -PassThru
     } else {
         Write-Warning "$targetPath already exists, skipping"
     }
