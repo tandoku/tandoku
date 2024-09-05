@@ -11,15 +11,16 @@ param(
     $Volume
 )
 
+Import-Module "$PSScriptRoot/modules/tandoku-utils.psm1" -Scope Local
+Import-Module "$PSScriptRoot/modules/tandoku-volume.psm1" -Scope Local
+Import-Module "$PSScriptRoot/modules/tandoku-films.psm1" -Scope Local
+
 # prerequisites:
 # scoop install SubtitleEdit
 # Note that SubtitleEdit is Windows-only / netfx but look into
 # https://github.com/SubtitleEdit/subtitleedit-cli
 # for cross-platform net6+ cli when needed
-
-Import-Module "$PSScriptRoot/modules/tandoku-utils.psm1" -Scope Local
-Import-Module "$PSScriptRoot/modules/tandoku-volume.psm1" -Scope Local
-Import-Module "$PSScriptRoot/modules/tandoku-films.psm1" -Scope Local
+RequireCommand SubtitleEdit
 
 $Volume = ResolveVolume $Volume
 if (-not $Volume) {

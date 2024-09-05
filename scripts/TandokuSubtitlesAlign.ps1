@@ -15,12 +15,13 @@ param(
     $Volume
 )
 
-# prerequisites:
-# scoop install alass
-
 Import-Module "$PSScriptRoot/modules/tandoku-utils.psm1" -Scope Local
 Import-Module "$PSScriptRoot/modules/tandoku-volume.psm1" -Scope Local
 Import-Module "$PSScriptRoot/modules/tandoku-films.psm1" -Scope Local
+
+# prerequisites:
+# scoop install alass
+RequireCommand alass
 
 $Volume = ResolveVolume $Volume
 if (-not $Volume) {
@@ -34,14 +35,15 @@ if (-not $sourceSubtitles) {
 }
 
 CreateDirectoryIfNotExists $OutputPath
-# TODO - rewrite as foreach and let alass return its output
-$targetSubtitles = $sourceSubtitles | ForEach-Object {
-    $fileName = Split-Path $_ -Leaf
+
+$targetSubtitles = @()
+foreach ($sourceSubtitle in $sourceSubtitles) {
+    $fileName = Split-Path $sourceSubtitle -Leaf
     $targetPath = Join-Path $OutputPath $fileName
     $videoFilePath = GetVideoForSubtitle $fileName $VideoPath
-    $alassOutput = alass $videoFilePath $_ $targetPath
+    alass $videoFilePath $sourceSubtitle $targetPath
     if (Test-Path $targetPath) {
-        $targetPath
+        $targetSubtitles += $targetPath
     }
 }
 
