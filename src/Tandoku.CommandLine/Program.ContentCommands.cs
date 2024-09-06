@@ -107,19 +107,19 @@ public sealed partial class Program
 
         private Command CreateRemoveNonJapaneseTextCommand()
         {
-            var commonArgsBinder = new CommonArgsBinder();
+            var pathArgsBinder = new InputOutputPathArgsBinder();
 
             var command = new Command("remove-non-japanese-text", "Removes text blocks without any Japanese text")
             {
-                commonArgsBinder,
+                pathArgsBinder,
             };
 
-            command.SetHandler(async (commonArgs) =>
+            command.SetHandler(async (pathArgs) =>
             {
                 await this.RunContentTransformAsync(
-                    commonArgs,
+                    pathArgs,
                     t => t.TransformAsync(new RemoveNonJapaneseTextTransform()));
-            }, commonArgsBinder);
+            }, pathArgsBinder);
 
             return command;
         }
@@ -128,7 +128,7 @@ public sealed partial class Program
         {
             const double DefaultConfidenceThreshold = 0.8;
 
-            var commonArgsBinder = new CommonArgsBinder();
+            var pathArgsBinder = new InputOutputPathArgsBinder();
             var confidenceThresholdOption = new Option<double>(
                 ["--confidence-threshold", "--confidence", "-c"],
                 description: "Confidence threshold for text to retain from image segments",
@@ -136,48 +136,21 @@ public sealed partial class Program
 
             var command = new Command("remove-low-confidence-text", "Removes text from low confidence image segments")
             {
-                commonArgsBinder,
+                pathArgsBinder,
                 confidenceThresholdOption,
             };
 
-            command.SetHandler(async (commonArgs, confidenceThreshold) =>
+            command.SetHandler(async (pathArgs, confidenceThreshold) =>
             {
                 await this.RunContentTransformAsync(
-                    commonArgs,
+                    pathArgs,
                     t => t.TransformAsync(new RemoveLowConfidenceTextTransform(confidenceThreshold)));
-            }, commonArgsBinder, confidenceThresholdOption);
+            }, pathArgsBinder, confidenceThresholdOption);
 
             return command;
         }
 
-        private Task RunContentTransformAsync(CommonArgs args, Func<ContentTransformer, Task> transform) =>
+        private Task RunContentTransformAsync(InputOutputPathArgs args, Func<ContentTransformer, Task> transform) =>
             transform(new ContentTransformer(args.InputPath.FullName, args.OutputPath.FullName, program.fileSystem));
-
-        private sealed record CommonArgs(DirectoryInfo InputPath, DirectoryInfo OutputPath);
-
-        private sealed class CommonArgsBinder : BinderBase<CommonArgs>, ICommandBinder
-        {
-            private readonly Argument<DirectoryInfo> inputPathArgument = new Argument<DirectoryInfo>(
-                "input-path",
-                "Path of input content directory") { Arity = ArgumentArity.ExactlyOne }
-                .LegalFilePathsOnly();
-            private readonly Argument<DirectoryInfo> outputPathArgument = new Argument<DirectoryInfo>(
-                "output-path",
-                "Path of output content directory") { Arity = ArgumentArity.ExactlyOne }
-                .LegalFilePathsOnly();
-
-            public void AddToCommand(Command command)
-            {
-                command.Add(this.inputPathArgument);
-                command.Add(this.outputPathArgument);
-            }
-
-            protected override CommonArgs GetBoundValue(BindingContext bindingContext)
-            {
-                var inputPath = bindingContext.ParseResult.GetValueForArgument(this.inputPathArgument);
-                var outputPath = bindingContext.ParseResult.GetValueForArgument(this.outputPathArgument);
-                return new CommonArgs(inputPath, outputPath);
-            }
-        }
     }
 }

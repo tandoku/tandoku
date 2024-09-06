@@ -105,6 +105,7 @@ public sealed partial class Program
             this.CreateVolumeCommand(),
             this.CreateSourceCommand(),
             this.CreateContentCommand(),
+            this.CreateSubtitlesCommand(),
 
             // Legacy commands
             CreateGenerateCommand(),
