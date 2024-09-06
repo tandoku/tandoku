@@ -26,25 +26,27 @@ public sealed class SubtitleContentGenerator
         outputDir.Create();
         foreach (var inputFile in inputDir.EnumerateSubtitleFiles())
         {
-            var targetName = this.fileSystem.Path.ChangeExtension(inputFile.Name, ".content.yaml");
+            // Note - strip both subtitle extension and language code from filename (i.e. abc.ja.srt -> abc.content.yaml)
+            var baseName = this.fileSystem.Path.GetFileNameWithoutExtension(inputFile.Name);
+            var targetName = this.fileSystem.Path.ChangeExtension(baseName, ".content.yaml");
             var outputFile = outputDir.GetFile(targetName);
             await YamlSerializer.WriteStreamAsync(outputFile, GenerateContentBlocksAsync(inputFile));
         }
+    }
 
-        async IAsyncEnumerable<ContentBlock> GenerateContentBlocksAsync(IFileInfo inputFile)
+    private static async IAsyncEnumerable<ContentBlock> GenerateContentBlocksAsync(IFileInfo inputFile)
+    {
+        var subtitle = Subtitle.Parse(inputFile.FullName);
+        foreach (var para in subtitle.Paragraphs)
         {
-            var subtitle = Subtitle.Parse(inputFile.FullName);
-            foreach (var para in subtitle.Paragraphs)
+            yield return new TextBlock
             {
-                yield return new TextBlock
+                Text = ConvertSubtitleText(para.Text),
+                Source = new ContentSource
                 {
-                    Text = ConvertSubtitleText(para.Text),
-                    Source = new ContentSource
-                    {
-                        Timecodes = new TimecodePair(para.StartTime.TimeSpan, para.EndTime.TimeSpan),
-                    },
-                };
-            }
+                    Timecodes = new TimecodePair(para.StartTime.TimeSpan, para.EndTime.TimeSpan),
+                },
+            };
         }
     }
 

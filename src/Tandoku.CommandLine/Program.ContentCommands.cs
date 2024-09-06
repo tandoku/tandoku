@@ -1,7 +1,6 @@
 ﻿namespace Tandoku.CommandLine;
 
 using System.CommandLine;
-using System.CommandLine.Binding;
 using Tandoku.Content;
 using Tandoku.Content.Transforms;
 

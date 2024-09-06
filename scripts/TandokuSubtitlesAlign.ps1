@@ -40,10 +40,14 @@ $targetSubtitles = @()
 foreach ($sourceSubtitle in $sourceSubtitles) {
     $fileName = Split-Path $sourceSubtitle -Leaf
     $targetPath = Join-Path $OutputPath $fileName
-    $videoFilePath = GetVideoForSubtitle $fileName $VideoPath
-    alass $videoFilePath $sourceSubtitle $targetPath
     if (Test-Path $targetPath) {
-        $targetSubtitles += $targetPath
+        Write-Warning "$targetPath already exists, skipping subtitle alignment"
+    } else {
+        $videoFilePath = GetVideoForSubtitle $fileName $VideoPath
+        alass $videoFilePath $sourceSubtitle $targetPath
+        if (Test-Path $targetPath) {
+            $targetSubtitles += $targetPath
+        }
     }
 }
 
