@@ -118,7 +118,7 @@ function GenerateMarkdownForTextBlock($block, $blockId) {
                     $lines = @(StringToLines $blockRefText)
                     $lines[0] = "[^$blockRefId]: $($lines[0])"
                     foreach ($line in $lines) {
-                        if ($blockRefTextBuilder.Length -gt 0) {
+                        if ($line -and $blockRefTextBuilder.Length -gt 0) {
                             [void] $blockRefTextBuilder.AppendLine("    $line")
                         } else {
                             [void] $blockRefTextBuilder.AppendLine($line)
