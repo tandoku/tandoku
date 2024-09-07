@@ -13,8 +13,9 @@ public sealed class TimecodeContentAligner(string refName) :
         IAsyncEnumerable<TextBlock> refBlocks)
     {
         var inputList = await inputBlocks.ToList();
-        var refList = await refBlocks.ToList<TextBlock?>();
+        var refList = await refBlocks.ToList();
         var aligned = new List<(TextBlock? Block, List<TextBlock> RefBlocks)>();
+        var usedRefs = new bool[refList.Count];
 
         // GetMostOverlappingBlock requires sorted lists
         inputList.Sort(b => b.Source?.Timecodes);
@@ -28,8 +29,9 @@ public sealed class TimecodeContentAligner(string refName) :
 
             if (overlapIndex >= 0)
             {
-                aligned.Add((block, [refList[overlapIndex]!]));
-                refList[overlapIndex] = null;
+                var refBlock = refList[overlapIndex];
+                aligned.Add((block, [refBlock]));
+                usedRefs[overlapIndex] = true;
             }
             else
             {
@@ -38,10 +40,12 @@ public sealed class TimecodeContentAligner(string refName) :
         }
 
         nextSearchIndex = 0;
-        foreach (var refBlock in refList)
+        for (int i = 0; i < refList.Count; i++)
         {
-            if (refBlock is null)
+            if (usedRefs[i])
                 continue;
+
+            var refBlock = refList[i];
 
             (var overlapIndex, nextSearchIndex) =
                 GetMostOverlappingBlock(refBlock, aligned, nextSearchIndex, n => n.Block);
@@ -80,6 +84,7 @@ public sealed class TimecodeContentAligner(string refName) :
         var sourceTimecodes = block.Source.Timecodes.Value;
         var sourceStart = sourceTimecodes.Start.TotalMilliseconds;
         var sourceEnd = sourceTimecodes.End.TotalMilliseconds;
+        var sourceDuration = sourceEnd - sourceStart;
 
         int nextSearchIndex = -1;
         int resultIndex = -1;
@@ -96,11 +101,8 @@ public sealed class TimecodeContentAligner(string refName) :
             var searchEnd = searchTimecodes.End.TotalMilliseconds;
             var overlapStart = Math.Max(sourceStart, searchStart);
             var overlapEnd = Math.Min(sourceEnd, searchEnd);
-            var overallStart = Math.Min(sourceStart, searchStart);
-            var overallEnd = Math.Max(sourceEnd, searchEnd);
             var overlapDuration = overlapEnd - overlapStart;
-            var overallDuration = overallEnd - overallStart;
-            var overlapPct = overlapDuration / overallDuration;
+            var overlapPct = overlapDuration / sourceDuration;
 
             if (nextSearchIndex < 0 && searchEnd >= sourceStart)
                 nextSearchIndex = i;
