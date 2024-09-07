@@ -82,7 +82,7 @@ public sealed class ContentLinker(IFileSystem? fileSystem = null)
         }
     }
 
-    private static IEnumerable<KeyValuePair<string, ContentReference>> CopyLinkedBlockToReferences(ContentBlock linkedBlock, string linkName)
+    private static IEnumerable<KeyValuePair<string, ContentTextReference>> CopyLinkedBlockToReferences(ContentBlock linkedBlock, string linkName)
     {
         switch (linkedBlock)
         {
@@ -91,7 +91,7 @@ public sealed class ContentLinker(IFileSystem? fileSystem = null)
                 {
                     yield return KeyValuePair.Create(
                         reference.Key,
-                        new ContentReference { Text = reference.Value });
+                        new ContentTextReference { Text = reference.Value });
                 }
                 break;
 
@@ -113,7 +113,7 @@ public sealed class ContentLinker(IFileSystem? fileSystem = null)
                 {
                     yield return KeyValuePair.Create(
                         reference.Key,
-                        new ContentReference { Text = string.Join(DoubleNewLine, reference.Value) });
+                        new ContentTextReference { Text = string.Join(DoubleNewLine, reference.Value) });
                 }
                 break;
 

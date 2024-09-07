@@ -92,12 +92,18 @@ public sealed record TextBlock : ContentBlock
 {
     [YamlMember(ScalarStyle = ScalarStyle.Literal)]
     public string? Text { get; init; }
-    public IImmutableDictionary<string, ContentReference> References { get; init; } = ImmutableSortedDictionary<string, ContentReference>.Empty;
+    public IImmutableDictionary<string, ContentTextReference> References { get; init; } = ImmutableSortedDictionary<string, ContentTextReference>.Empty;
 
     internal override T Accept<T>(ContentBlockVisitor<T> visitor) => visitor.Visit(this);
 }
 
-public sealed record ContentReference
+public record ContentReference
+{
+    public ContentImage? Image { get; init; }
+    public ContentSource? Source { get; init; }
+}
+
+public sealed record ContentTextReference : ContentReference
 {
     [YamlMember(ScalarStyle = ScalarStyle.Literal)]
     public string? Text { get; init; }
@@ -106,6 +112,7 @@ public sealed record ContentReference
 public sealed record CompositeBlock : ContentBlock
 {
     public IImmutableList<TextBlock> Blocks { get; init; } = [];
+    public IImmutableDictionary<string, ContentReference> References { get; init; } = ImmutableSortedDictionary<string, ContentReference>.Empty;
 
     internal override T Accept<T>(ContentBlockVisitor<T> visitor) => visitor.Visit(this);
 }

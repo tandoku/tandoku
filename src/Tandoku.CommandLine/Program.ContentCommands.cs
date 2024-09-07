@@ -2,6 +2,7 @@
 
 using System.CommandLine;
 using Tandoku.Content;
+using Tandoku.Content.Alignment;
 using Tandoku.Content.Transforms;
 
 public sealed partial class Program
@@ -12,6 +13,7 @@ public sealed partial class Program
             this.CreateContentIndexCommand(),
             this.CreateContentSearchCommand(),
             this.CreateContentLinkCommand(),
+            this.CreateContentMergeCommand(),
             new ContentTransforms(this).CreateContentTransformCommand(),
         };
 
@@ -93,6 +95,50 @@ public sealed partial class Program
         }, inputPathArgument, outputPathArgument, indexPathOption, linkNameOption);
 
         return command;
+    }
+
+    private Command CreateContentMergeCommand()
+    {
+        var inputPathArgument = new Argument<DirectoryInfo>("input-path", "Path of input content directory") { Arity = ArgumentArity.ExactlyOne }
+            .LegalFilePathsOnly();
+        var refPathArgument = new Argument<DirectoryInfo>("ref-path", "Path of reference content directory") { Arity = ArgumentArity.ExactlyOne }
+            .LegalFilePathsOnly();
+        var outputPathArgument = new Argument<DirectoryInfo>("output-path", "Path of output content directory") { Arity = ArgumentArity.ExactlyOne }
+            .LegalFilePathsOnly();
+        var alignOption = new Option<ContentAlignmentKind>("--align", "Alignment algorithm") { IsRequired = true };
+        var refNameOption = new Option<string>(["--ref", "--reference-name"], "Name of reference in merged content") { IsRequired = true };
+
+        var command = new Command("merge", "Merges the specified content with reference content")
+        {
+            inputPathArgument,
+            refPathArgument,
+            outputPathArgument,
+            alignOption,
+            refNameOption,
+        };
+
+        command.SetHandler(async (inputPath, refPath, outputPath, alignmentKind, refName) =>
+        {
+            var merger = new ContentMerger(this.fileSystem);
+            var aligner = CreateContentAligner(alignmentKind, refName);
+            await merger.MergeAsync(inputPath.FullName, refPath.FullName, outputPath.FullName, aligner);
+        }, inputPathArgument, refPathArgument, outputPathArgument, alignOption, refNameOption);
+
+        return command;
+    }
+
+    private static IContentAligner CreateContentAligner(ContentAlignmentKind alignmentKind, string refName)
+    {
+        return alignmentKind switch
+        {
+            ContentAlignmentKind.Timecodes => new TimecodeContentAligner(refName),
+            _ => throw new ArgumentOutOfRangeException(nameof(alignmentKind)),
+        };
+    }
+
+    private enum ContentAlignmentKind
+    {
+        Timecodes,
     }
 
     private sealed class ContentTransforms(Program program)
