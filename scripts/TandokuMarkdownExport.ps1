@@ -115,7 +115,16 @@ function GenerateMarkdownForTextBlock($block, $blockId) {
             switch ($ReferenceBehavior) {
                 'Footnotes' {
                     $blockText = "$blockText [^$blockRefId]"
-                    $blockRefText = "[^$blockRefId]: $blockRefText"
+                    $lines = @(StringToLines $blockRefText)
+                    $lines[0] = "[^$blockRefId]: $($lines[0])"
+                    foreach ($line in $lines) {
+                        if ($blockRefTextBuilder.Length -gt 0) {
+                            [void] $blockRefTextBuilder.AppendLine("    $line")
+                        } else {
+                            [void] $blockRefTextBuilder.AppendLine($line)
+                        }
+                    }
+                    $blockRefText = $null
                 }
                 'BlurHtml' {
                     $blockRefText = ConvertTextToBlurHtml $blockRefText $blockRefId -Label ($refLabels ? $refName : $null)
