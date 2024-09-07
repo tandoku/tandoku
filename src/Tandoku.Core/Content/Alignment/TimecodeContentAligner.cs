@@ -12,12 +12,20 @@ public sealed class TimecodeContentAligner(string refName) :
         IAsyncEnumerable<TextBlock> inputBlocks,
         IAsyncEnumerable<TextBlock> refBlocks)
     {
+        var inputList = await inputBlocks.ToList();
         var refList = await refBlocks.ToList<TextBlock?>();
         var aligned = new List<(TextBlock? Block, List<TextBlock> RefBlocks)>();
 
-        await foreach (var block in inputBlocks)
+        // GetMostOverlappingBlock requires sorted lists
+        inputList.Sort(b => b.Source?.Timecodes);
+        refList.Sort(b => b?.Source?.Timecodes);
+
+        int nextSearchIndex = 0;
+        foreach (var block in inputList)
         {
-            var overlapIndex = GetMostOverlappingBlock(block, refList, b => b);
+            (var overlapIndex, nextSearchIndex) =
+                GetMostOverlappingBlock(block, refList, nextSearchIndex, b => b);
+
             if (overlapIndex >= 0)
             {
                 aligned.Add((block, [refList[overlapIndex]!]));
@@ -29,12 +37,15 @@ public sealed class TimecodeContentAligner(string refName) :
             }
         }
 
+        nextSearchIndex = 0;
         foreach (var refBlock in refList)
         {
             if (refBlock is null)
                 continue;
 
-            var overlapIndex = GetMostOverlappingBlock(refBlock, aligned, n => n.Block);
+            (var overlapIndex, nextSearchIndex) =
+                GetMostOverlappingBlock(refBlock, aligned, nextSearchIndex, n => n.Block);
+
             if (overlapIndex >= 0)
             {
                 aligned[overlapIndex].RefBlocks.Add(refBlock);
@@ -45,38 +56,36 @@ public sealed class TimecodeContentAligner(string refName) :
             }
         }
 
-        var alignedSorted = aligned.OrderBy(
-            n => n.Block?.Source?.Timecodes?.Start ?? n.RefBlocks.FirstOrDefault()?.Source?.Timecodes?.Start);
+        aligned.Sort(
+            n => n.Block?.Source?.Timecodes ??
+                 n.RefBlocks.FirstOrDefault()?.Source?.Timecodes);
 
-        foreach (var result in alignedSorted)
+        foreach (var result in aligned)
         {
             yield return this.MergeBlocks(
                 result.Block,
-                result.RefBlocks.OrderBy(b => b.Source?.Timecodes?.Start));
+                result.RefBlocks.OrderBy(b => b.Source?.Timecodes));
         }
     }
 
-    private static int GetMostOverlappingBlock<T>(
+    private static (int mostOverlapIndex, int nextSearchIndex) GetMostOverlappingBlock<T>(
         TextBlock block,
         IReadOnlyList<T> searchList,
+        int startIndex,
         Func<T, TextBlock?> getSearchBlock)
     {
         if (block.Source?.Timecodes is null)
-            return -1;
+            return (-1, startIndex);
 
         var sourceTimecodes = block.Source.Timecodes.Value;
         var sourceStart = sourceTimecodes.Start.TotalMilliseconds;
         var sourceEnd = sourceTimecodes.End.TotalMilliseconds;
 
+        int nextSearchIndex = -1;
         int resultIndex = -1;
         var mostOverlapPct = 0.0;
 
-        // TODO - This currently iterates over the entire list for every search.
-        // Assuming that searchList is sorted by timecode, this can be optimized by
-        // returning the first overlapping timecode (along with the best one) and using
-        // that as the start of the next search, and stopping once a timecode with no
-        // overlap is reached.
-        for (int i = 0; i < searchList.Count; i++)
+        for (int i = startIndex; i < searchList.Count; i++)
         {
             var searchBlock = getSearchBlock(searchList[i]);
             if (searchBlock?.Source?.Timecodes is null)
@@ -93,12 +102,17 @@ public sealed class TimecodeContentAligner(string refName) :
             var overallDuration = overallEnd - overallStart;
             var overlapPct = overlapDuration / overallDuration;
 
+            if (nextSearchIndex < 0 && searchEnd >= sourceStart)
+                nextSearchIndex = i;
+            else if (searchStart >= sourceEnd)
+                break;
+
             if (overlapPct > OverlapThreshold && overlapPct > mostOverlapPct)
             {
                 resultIndex = i;
                 mostOverlapPct = overlapPct;
             }
         }
-        return resultIndex;
+        return (resultIndex, nextSearchIndex);
     }
 }

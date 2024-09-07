@@ -82,10 +82,16 @@ public sealed record ContentSource
     public TimecodePair? Timecodes { get; init; }
 }
 
-public readonly record struct TimecodePair(TimeSpan Start, TimeSpan End)
+public readonly record struct TimecodePair(TimeSpan Start, TimeSpan End) : IComparable<TimecodePair>
 {
     [YamlIgnore]
     public readonly TimeSpan Duration => this.End - this.Start;
+
+    public int CompareTo(TimecodePair other)
+    {
+        var result = this.Start.CompareTo(other.Start);
+        return result != 0 ? result : this.End.CompareTo(other.End);
+    }
 }
 
 public sealed record TextBlock : ContentBlock
