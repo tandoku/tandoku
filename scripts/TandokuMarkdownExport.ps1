@@ -15,6 +15,12 @@ param(
     [Switch]
     $Combine,
 
+    # TODO - more specific or incorporated into another option
+    # this is really "do not promote images to headings" or something
+    [Parameter()]
+    [Switch]
+    $NoHeadings,
+
     [Parameter()]
     [ValidateSet('None', 'Html', 'BlurHtml', 'Remove')]
     [String]
@@ -58,7 +64,7 @@ function GenerateMarkdown($contentPath) {
 
         # Heading
         $heading = GetHeading $block
-        if ($heading) {
+        if ($heading -and -not $NoHeadings) {
             Write-Output "# $heading"
             Write-Output ''
         }

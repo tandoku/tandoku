@@ -18,6 +18,27 @@ public static class FileSystemExtensions
     public static IFileInfo GetFile(this IDirectoryInfo directory, string path) =>
         GetFile(directory.FileSystem, GetPath(directory, path));
 
+    public static string? GetBaseName(this IFileInfo file) =>
+        GetBaseName(file.FileSystem.Path, file.Name);
+
+    public static string? GetBaseName(this IPath path, string fileName)
+    {
+        var finalExtension = path.GetExtension(fileName).ToLowerInvariant();
+        switch (finalExtension)
+        {
+            case ".yaml":
+                var baseName = path.GetFileNameWithoutExtension(fileName);
+                var secondaryExtension = path.GetExtension(baseName).ToLowerInvariant();
+                switch (secondaryExtension)
+                {
+                    case ".content":
+                        return path.GetFileNameWithoutExtension(baseName);
+                }
+                break;
+        }
+        return null;
+    }
+
     // Note: currently using OrdinalIgnoreCase always, may need to make this OS-dependent
     // (but would also like to avoid creating file systems that are not portable across operating systems)
     public static StringComparer GetComparer(this IPath path) => StringComparer.OrdinalIgnoreCase;

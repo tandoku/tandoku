@@ -66,9 +66,8 @@ public sealed class TimecodeContentAligner(string refName) :
 
         foreach (var result in aligned)
         {
-            yield return this.MergeBlocks(
-                result.Block,
-                result.RefBlocks.OrderBy(b => b.Source?.Timecodes));
+            result.RefBlocks.Sort(b => b.Source?.Timecodes);
+            yield return this.MergeBlocks(result.Block, result.RefBlocks);
         }
     }
 

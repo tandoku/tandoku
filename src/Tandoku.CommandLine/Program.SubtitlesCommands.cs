@@ -9,6 +9,7 @@ public sealed partial class Program
         new("subtitles", "Commands for working with subtitle files")
         {
             this.CreateSubtitlesGenerateContentCommand(),
+            this.CreateSubtitlesGenerateCommand(),
         };
 
     private Command CreateSubtitlesGenerateContentCommand()
@@ -27,6 +28,24 @@ public sealed partial class Program
                 pathArgs.OutputPath.FullName,
                 this.fileSystem);
             await generator.GenerateContentAsync();
+        }, pathArgsBinder);
+
+        return command;
+    }
+
+    private Command CreateSubtitlesGenerateCommand()
+    {
+        var pathArgsBinder = new InputOutputPathArgsBinder();
+
+        var command = new Command("generate", "Generates subtitles from tandoku content")
+        {
+            pathArgsBinder,
+        };
+
+        command.SetHandler(async (InputOutputPathArgs pathArgs) =>
+        {
+            var generator = new SubtitleGenerator(this.fileSystem);
+            await generator.GenerateAsync(pathArgs.InputPath.FullName, pathArgs.OutputPath.FullName);
         }, pathArgsBinder);
 
         return command;

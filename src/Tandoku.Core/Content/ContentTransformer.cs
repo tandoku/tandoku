@@ -31,7 +31,7 @@ public sealed class ContentTransformer
         {
             await foreach (var block in YamlSerializer.ReadStreamAsync<ContentBlock>(inputFile))
             {
-                var newBlock = transform.Transform(block);
+                var newBlock = transform.Transform(block, inputFile);
                 if (newBlock is not null)
                     yield return newBlock;
             }
@@ -49,5 +49,5 @@ public sealed class ContentTransformer
 
 public interface IContentBlockTransform
 {
-    ContentBlock? Transform(ContentBlock block);
+    ContentBlock? Transform(ContentBlock block, IFileInfo file);
 }

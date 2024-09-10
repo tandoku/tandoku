@@ -117,7 +117,7 @@ function CreateDirectoryIfNotExists([String]$Path, [Switch]$Clobber) {
 function CopyItemIfNewer {
     param(
         [Parameter(Mandatory=$true)]
-        [String]
+        [String[]]
         $Path,
 
         [Parameter()]

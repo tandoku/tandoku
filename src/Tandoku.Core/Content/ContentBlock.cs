@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Markdig;
 using Tandoku.Serialization;
 using Tandoku.Yaml;
 using YamlDotNet.Core;
@@ -18,6 +19,8 @@ public abstract record ContentBlock : IYamlStreamSerializable<ContentBlock>
     public string? Id { get; init; }
 
     public ContentImage? Image { get; init; }
+
+    public ContentAudio? Audio { get; init; }
 
     public ContentSource? Source { get; init; }
 
@@ -53,7 +56,8 @@ public abstract record ContentBlock : IYamlStreamSerializable<ContentBlock>
 
             JsonValueKind.Null => null,
 
-            _ => throw new InvalidDataException($"Unexpected document value of type '{jsonDocument.RootElement.ValueKind}' in YAML stream"),
+            _ => throw new InvalidDataException(
+                    $"Unexpected document value of type '{jsonDocument.RootElement.ValueKind}' in YAML stream"),
         };
     }
 }
@@ -74,6 +78,11 @@ public sealed record ContentRegionSegment
 {
     public required string Text { get; init; }
     public double Confidence { get; init; }
+}
+
+public sealed record ContentAudio
+{
+    public string? Name { get; init; }
 }
 
 public sealed record ContentSource
@@ -98,7 +107,10 @@ public sealed record TextBlock : ContentBlock
 {
     [YamlMember(ScalarStyle = ScalarStyle.Literal)]
     public string? Text { get; init; }
-    public IImmutableDictionary<string, ContentTextReference> References { get; init; } = ImmutableSortedDictionary<string, ContentTextReference>.Empty;
+    public IImmutableDictionary<string, ContentTextReference> References { get; init; } =
+        ImmutableSortedDictionary<string, ContentTextReference>.Empty;
+
+    public string? ToPlainText() => this.Text is not null ? Markdown.ToPlainText(this.Text) : null;
 
     internal override T Accept<T>(ContentBlockVisitor<T> visitor) => visitor.Visit(this);
 }
@@ -113,12 +125,15 @@ public sealed record ContentTextReference : ContentReference
 {
     [YamlMember(ScalarStyle = ScalarStyle.Literal)]
     public string? Text { get; init; }
+
+    public string? ToPlainText() => this.Text is not null ? Markdown.ToPlainText(this.Text) : null;
 }
 
 public sealed record CompositeBlock : ContentBlock
 {
     public IImmutableList<TextBlock> Blocks { get; init; } = [];
-    public IImmutableDictionary<string, ContentReference> References { get; init; } = ImmutableSortedDictionary<string, ContentReference>.Empty;
+    public IImmutableDictionary<string, ContentReference> References { get; init; } =
+        ImmutableSortedDictionary<string, ContentReference>.Empty;
 
     internal override T Accept<T>(ContentBlockVisitor<T> visitor) => visitor.Visit(this);
 }

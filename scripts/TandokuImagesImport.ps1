@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory=$true)]
-    [String]
+    [String[]]
     $Path,
 
     [Parameter()]

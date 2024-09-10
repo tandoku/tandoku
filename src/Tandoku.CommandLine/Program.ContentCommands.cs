@@ -148,6 +148,7 @@ public sealed partial class Program
             {
                 this.CreateRemoveNonJapaneseTextCommand(),
                 this.CreateLowConfidenceTextCommand(),
+                this.CreateImportSubs2CiaMediaCommand(),
             };
 
         private Command CreateRemoveNonJapaneseTextCommand()
@@ -191,6 +192,49 @@ public sealed partial class Program
                     pathArgs,
                     t => t.TransformAsync(new RemoveLowConfidenceTextTransform(confidenceThreshold)));
             }, pathArgsBinder, confidenceThresholdOption);
+
+            return command;
+        }
+
+        private Command CreateImportSubs2CiaMediaCommand()
+        {
+            var pathArgsBinder = new InputOutputPathArgsBinder();
+            var mediaPathOption = new Option<DirectoryInfo>("--media-path", "Path of the subs2cia media") { IsRequired = true }
+                .LegalFilePathsOnly();
+            var imagePrefixOption = new Option<string?>("--image-prefix", "Prefix to include for image names");
+            var audioPrefixOption = new Option<string?>("--audio-prefix", "Prefix to include for audio names");
+
+            var command = new Command("import-subs2cia-media", "Imports subs2cia media from the specified path into the content")
+            {
+                pathArgsBinder,
+                mediaPathOption,
+                imagePrefixOption,
+                audioPrefixOption,
+            };
+
+            command.SetHandler(async (pathArgs, mediaPath, imagePrefix, audioPrefix, jsonOutput) =>
+            {
+                var mediaCollection = new MediaCollection();
+                var transform = new ImportSubs2CiaMediaTransform(
+                    mediaPath.FullName,
+                    imagePrefix,
+                    audioPrefix,
+                    mediaCollection,
+                    program.fileSystem);
+
+                await this.RunContentTransformAsync(
+                    pathArgs,
+                    t => t.TransformAsync(transform));
+
+                if (jsonOutput)
+                {
+                    program.console.WriteJsonOutput(mediaCollection);
+                }
+                else
+                {
+                    // TODO - YAML output
+                }
+            }, pathArgsBinder, mediaPathOption, imagePrefixOption, audioPrefixOption, program.jsonOutputOption);
 
             return command;
         }
