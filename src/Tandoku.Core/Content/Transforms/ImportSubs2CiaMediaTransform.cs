@@ -46,24 +46,24 @@ public sealed class ImportSubs2CiaMediaTransform : ContentBlockRewriter
         var timecodeSuffix = $"_{timecodes.Start.TotalMilliseconds}-{timecodes.End.TotalMilliseconds}";
         var baseName = this.CurrentFile?.GetBaseName();
 
-        var imageName = $"{this.imagePrefix}{baseName}{timecodeSuffix}{ImageExtension}";
+        var imageName = $"{baseName}{timecodeSuffix}{ImageExtension}";
         var imageFile = this.mediaDir.GetFile(imageName);
         if (imageFile.Exists)
         {
             block = block with
             {
-                Image = new ContentImage { Name = imageName },
+                Image = new ContentImage { Name = $"{this.imagePrefix}{imageName}" },
             };
             this.mediaCollection.Images.Add(imageFile.FullName);
         }
 
-        var audioName = $"{this.audioPrefix}{baseName}{timecodeSuffix}{AudioExtension}";
+        var audioName = $"{baseName}{timecodeSuffix}{AudioExtension}";
         var audioFile = this.mediaDir.GetFile(audioName);
         if (audioFile.Exists)
         {
             block = block with
             {
-                Audio = new ContentAudio { Name = audioName },
+                Audio = new ContentAudio { Name = $"{this.audioPrefix}{audioName}" },
             };
             this.mediaCollection.Audio.Add(audioFile.FullName);
         }

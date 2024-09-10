@@ -120,13 +120,17 @@ function CopyItemIfNewer {
         [String[]]
         $Path,
 
+        [Parameter(Mandatory=$true)]
+        [String]
+        $Destination,
+
         [Parameter()]
         [String]
         $Filter,
 
-        [Parameter(Mandatory=$true)]
-        [String]
-        $Destination,
+        [Parameter()]
+        [String[]]
+        $Include,
 
         [Parameter()]
         [Switch]
@@ -137,7 +141,7 @@ function CopyItemIfNewer {
         $PassThru
     )
 
-    Get-ChildItem $Path -Filter $Filter |
+    Get-ChildItem $Path -Filter $Filter -Include $Include |
         Foreach-Object {
             # NOTE: this won't handle $Destination with wildcards
             if (Test-Path $Destination -PathType Container) {
@@ -222,6 +226,11 @@ function GetRelativePath([string]$basePath, [string]$path) {
 
 function GetImageExtensions {
     return @('.jpg','.jpeg','.png')
+}
+
+function GetKnownAudioExtensions([Switch]$FileMask) {
+    $prefix = $FileMask ? '*' : ''
+    return @("$prefix.mp3","$prefix.m4a")
 }
 
 function GetContentBaseName($contentPath) {
