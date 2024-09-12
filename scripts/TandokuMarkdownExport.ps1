@@ -100,11 +100,11 @@ function GetHeading($block) {
     }
 }
 
-function GenerateMarkdownForMedia($media, $basePath, $caption) {
+function GenerateMarkdownForMedia($media, $container, $caption) {
     if ($media) {
         $mediaNameEncoded = [Uri]::EscapeDataString($media).Replace('%2F', '/')
-        $mediaUrl = "$basePath/$mediaNameEncoded"
-        if ($basePath -like "audio*") {
+        $mediaUrl = "$container/$mediaNameEncoded"
+        if ($container -eq "audio") {
             # Use explicit <audio> tag because the anchor link that pandoc embeds
             # within the <audio> tag if ![]() is used causes issues for KyBook 3 on iOS
             Write-Output "<audio src=`"$mediaUrl`"></audio>"
