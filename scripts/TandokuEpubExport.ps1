@@ -14,13 +14,36 @@ param(
 
 Import-Module "$PSScriptRoot/modules/tandoku-utils.psm1" -Scope Local
 
-function PrefixFootnotes($epubPath, $tempDestination, $prefix) {
+function ApplyEpubFixes($epubPath, $tempDestination) {
     ExpandArchive -Path $epubPath -DestinationPath $tempDestination -ClobberDestination
-    Get-ChildItem "$tempDestination/EPUB/text" -Filter "ch*.xhtml" |
-        ReplaceStringInFiles 'role="doc-(noteref|backlink)">(\d+)</a>' ('role="doc-$1">' + $prefix + '-$2</a>')
+
+    $refName = 'en'
+    PrefixFootnotes $tempDestination $refName
+
+    RenameAudioMpegaToMp3 $tempDestination
+
     Push-Location $tempDestination
     CompressArchive -Path * -DestinationPath $epubPath -Force
     Pop-Location
+}
+
+function PrefixFootnotes($epubContentPath, $prefix) {
+    # pandoc always writes footnotes as increasing integers which can make for a small target on touchscreen devices
+    # so rewrite the footnotes to include the reference name as a prefix
+    Get-ChildItem "$epubContentPath/EPUB/text" -Filter "ch*.xhtml" |
+        ReplaceStringInFiles 'role="doc-(noteref|backlink)">(\d+)</a>' ('role="doc-$1">' + $prefix + '-$2</a>')
+}
+
+function RenameAudioMpegaToMp3($epubContentPath) {
+    # pandoc renames audio files to mpega extension which breaks KyBook 3 on iOS
+    # rename mpega back to mp3
+    $mediaPath = "$epubContentPath/EPUB/media"
+    Get-ChildItem $mediaPath -Filter '*.mpega' | ForEach-Object {
+        $baseName = Split-Path $_ -LeafBase
+        Move-Item -LiteralPath $_ "$mediaPath/$baseName.mp3"
+    }
+    Get-ChildItem "$epubContentPath/EPUB/text" -Filter "ch*.xhtml" |
+        ReplaceStringInFiles '(src|href)="([^"]+)\.mpega"' '$1="$2.mp3"'
 }
 
 $volume = TandokuVolumeInfo -VolumePath $VolumePath
@@ -62,10 +85,7 @@ Push-Location $volumePath
 pandoc $markdownFiles -f commonmark+footnotes -o $targetPath -t epub3 --metadata title="$($volume.definition.title)" --metadata author="tandoku" --metadata lang=ja
 Pop-Location
 
-# pandoc always writes footnotes as increasing integers which can make for a small target on touchscreen devices
-# so rewrite the footnotes to include the reference name as a prefix
-$refName = 'en'
 $tempDestination = "$volumePath/temp/epub"
-PrefixFootnotes $targetPath $tempDestination $refName
+ApplyEpubFixes $targetPath $tempDestination
 
 Write-Output (Get-Item $targetPath)

@@ -17,6 +17,7 @@ param(
 
     # TODO - more specific or incorporated into another option
     # this is really "do not promote images to headings" or something
+    # (probably make this the default and have a switch for -HeadingPerBlock or similar)
     [Parameter()]
     [Switch]
     $NoHeadings,
@@ -70,13 +71,10 @@ function GenerateMarkdown($contentPath) {
         }
 
         # Image
-        $imageName = $block.image.name
-        if ($imageName) {
-            $imageNameEncoded = [Uri]::EscapeDataString($imageName)
-            $imageUrl = "images/$imageNameEncoded"
-            Write-Output "![$heading]($imageUrl)"
-            Write-Output ''
-        }
+        GenerateMarkdownForMedia $block.image.name 'images' $heading
+
+        # Audio
+        GenerateMarkdownForMedia $block.audio.name 'audio' $heading
 
         if ($block.blocks) {
             $nestedBlockIndex = 0
@@ -99,6 +97,22 @@ function GetHeading($block) {
 
     if ($block.image.name) {
         return (Split-Path $block.image.name -LeafBase)
+    }
+}
+
+function GenerateMarkdownForMedia($media, $basePath, $caption) {
+    if ($media) {
+        $mediaNameEncoded = [Uri]::EscapeDataString($media).Replace('%2F', '/')
+        $mediaUrl = "$basePath/$mediaNameEncoded"
+        if ($basePath -like "audio*") {
+            # Use explicit <audio> tag because the anchor link that pandoc embeds
+            # within the <audio> tag if ![]() is used causes issues for KyBook 3 on iOS
+            Write-Output "<audio src=`"$mediaUrl`"></audio>"
+            Write-Output ''
+        } else {
+            Write-Output "![$caption]($mediaUrl)"
+            Write-Output ''
+        }
     }
 }
 
