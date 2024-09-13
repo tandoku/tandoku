@@ -29,6 +29,12 @@ $volumePath = $Volume.Path
 $volumeLanguage = $Volume.Definition.Language
 $tempPath = "$volumePath/temp"
 
+# TODO - consider keeping intermediate files under non-temp volume paths
+# (should simplify integration with workflow deps for incremental build,
+#  and dvc will de-dupe the physical files via hash)
+# otherwise, purge temp files by default (but add -KeepTempFiles switch)
+# (so we are not keeping duplicate copies around)
+
 $tempSubtitlesPath = "$tempPath/subtitles"
 CreateDirectoryIfNotExists $tempSubtitlesPath -Clobber
 
@@ -37,17 +43,24 @@ tandoku subtitles generate $InputPath $tempSubtitlesPath
 $subtitleFiles = Get-ChildItem "$tempSubtitlesPath/*.*" -Include (GetKnownSubtitleExtensions -FileMask)
 
 $tempMediaPath = "$tempPath/subs2cia-srs"
-CreateDirectoryIfNotExists $tempMediaPath -Clobber
+CreateDirectoryIfNotExists $tempMediaPath
 
 foreach ($subtitleFile in $subtitleFiles) {
     $baseName = Split-Path $subtitleFile -LeafBase
-    $videoFile = Get-Item "$volumePath/video/$baseName.*" -Include (GetKnownVideoExtensions -FileMask)
-
-    subs2cia srs --inputs $videoFile $subtitleFile `
-        --output-dir $tempMediaPath `
-        --ignore-none `
-        --target-language $volumeLanguage `
-        --bitrate 160
+    if (Test-Path "$tempMediaPath/$baseName.tsv") {
+        Write-Warning "Media for $baseName already exists in $tempMediaPath, skipping extraction"
+    } else {
+        $videoFile = Get-Item "$volumePath/video/$baseName.*" -Include (GetKnownVideoExtensions -FileMask)
+        if (-not $videoFile) {
+            Write-Warning "Video for $baseName not found, skipping extraction"
+        } else {
+            subs2cia srs --inputs $videoFile $subtitleFile `
+                --output-dir $tempMediaPath `
+                --ignore-none `
+                --target-language $volumeLanguage `
+                --bitrate 160
+        }
+    }
 }
 
 $media = InvokeTandokuCommand content transform import-subs2cia-media $InputPath $OutputPath `
