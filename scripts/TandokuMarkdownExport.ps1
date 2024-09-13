@@ -56,6 +56,13 @@ function GenerateMarkdown($contentPath) {
         $idPrefix = 'block'
     }
 
+    # TODO - clean up naming, include even when writing block headings?
+    if ($NoHeadings) {
+        $fileHeading = Split-Path (Split-Path $contentPath -LeafBase) -LeafBase
+        Write-Output "# $fileHeading"
+        Write-Output ''
+    }
+
     $blockIndex = 0
     foreach ($block in $content) {
         $blockIndex += 1
