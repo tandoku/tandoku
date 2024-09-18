@@ -16,10 +16,18 @@ param(
     $ShowGraph
 )
 
+$colors = @{
+    text = 'white'
+    artifacts = '#898d90'
+    operations = '#4e6a94'
+    values = '#767064'
+}
+$fontName = 'Franklin Gothic Book'
+
 function BuildTandokuWorkflowGraph($wfDocs) {
-    graph workflow @{fontname='Helvetica'} {
-        node @{fontname='Helvetica'; fontcolor='white'; penwidth="0.2"}
-        edge @{fontname="Helvetica"; arrowsize="0.6"}
+    graph workflow @{fontname=$fontName} {
+        node @{fontname=$fontName; fontcolor=$colors.text; penwidth="0.2"}
+        edge @{fontname=$fontName; arrowsize="0.6"}
 
         foreach ($wf in $wfDocs) {
             Inline "# stage: $($wf.stage), media: $($wf.media)"
@@ -28,24 +36,24 @@ function BuildTandokuWorkflowGraph($wfDocs) {
             #subgraph {
                 # artifacts
                 if ($wf.artifacts) {
-                    node @{shape = 'rect'; style = "filled,rounded"; fillcolor = 'orange' }
+                    node @{shape = 'rect'; style = "filled,rounded"; fillcolor = $colors.artifacts }
                     AddNodesFromKeys $wf.artifacts
                 }
 
                 # values
                 if ($wf.simpleValues) {
-                    node @{shape = 'rect'; style = "filled,rounded"; fillcolor = 'green' }
+                    node @{shape = 'rect'; style = "filled,rounded"; fillcolor = $colors.values }
                     AddNodesFromKeys $wf.simpleValues
                 }
 
                 # operations
                 if ($wf.operations) {
-                    node @{shape = 'rect'; style = "filled"; fillcolor = 'blue' }
+                    node @{shape = 'rect'; style = "filled"; fillcolor = $colors.operations }
                     AddNodesFromKeys $wf.operations
 
                     # undefined nodes (created by edges) should be values
                     # TODO: share with values above
-                    node @{shape = 'rect'; style = "filled,rounded"; fillcolor = 'green' }
+                    node @{shape = 'rect'; style = "filled,rounded"; fillcolor = $colors.values }
 
                     $wf.operations.keys | ForEach-Object {
                         $o = $wf.operations[$_]
