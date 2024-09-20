@@ -12,6 +12,14 @@ param(
     $VideoPath,
 
     [Parameter()]
+    [Switch]
+    $NoFpsGuessing,
+
+    [Parameter()]
+    [Switch]
+    $NoSplit,
+
+    [Parameter()]
     $Volume
 )
 
@@ -44,7 +52,14 @@ foreach ($sourceSubtitle in $sourceSubtitles) {
         Write-Warning "$targetPath already exists, skipping subtitle alignment"
     } else {
         $videoFilePath = GetVideoForSubtitle $fileName $VideoPath
-        alass $videoFilePath $sourceSubtitle $targetPath
+        $args = @($videoFilePath,$sourceSubtitle,$targetPath)
+        if ($NoFpsGuessing) {
+            $args += '--disable-fps-guessing'
+        }
+        if ($NoSplit) {
+            $args += '--no-split'
+        }
+        & 'alass' $args
         if (Test-Path $targetPath) {
             $targetSubtitles += $targetPath
         }
