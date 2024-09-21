@@ -20,6 +20,7 @@ Import-Module "$PSScriptRoot/modules/tandoku-films.psm1" -Scope Local
 # Note that SubtitleEdit is Windows-only / netfx but look into
 # https://github.com/SubtitleEdit/subtitleedit-cli
 # for cross-platform net6+ cli when needed
+# OR use libse library from tandoku cli
 RequireCommand SubtitleEdit
 
 $Volume = ResolveVolume $Volume

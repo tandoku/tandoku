@@ -9,7 +9,7 @@ param(
 
     [Parameter(Mandatory=$true)]
     [String]
-    $VideoPath,
+    $ReferencePath,
 
     [Parameter()]
     [Switch]
@@ -51,15 +51,22 @@ foreach ($sourceSubtitle in $sourceSubtitles) {
     if (Test-Path $targetPath) {
         Write-Warning "$targetPath already exists, skipping subtitle alignment"
     } else {
-        $videoFilePath = GetVideoForSubtitle $fileName $VideoPath
-        $args = @($videoFilePath,$sourceSubtitle,$targetPath)
+        $baseName = GetSubtitleBaseName $fileName
+
+        # prefer subtitle reference if present
+        $referenceFilePath = Get-Item "$ReferencePath/$baseName.*" -Include (GetKnownSubtitleExtensions -FileMask) -ErrorAction SilentlyContinue
+        if (-not $referenceFilePath) {
+            # otherwise use video reference (alass will extract audio stream for alignment)
+            $referenceFilePath = Get-Item "$ReferencePath/$baseName.*" -Include (GetKnownVideoExtensions -FileMask)
+        }
+        $alassArgs = ArgsToArray $referenceFilePath $sourceSubtitle $targetPath
         if ($NoFpsGuessing) {
-            $args += '--disable-fps-guessing'
+            $alassArgs += '--disable-fps-guessing'
         }
         if ($NoSplit) {
-            $args += '--no-split'
+            $alassArgs += '--no-split'
         }
-        & 'alass' $args
+        & 'alass' $alassArgs
         if (Test-Path $targetPath) {
             $targetSubtitles += $targetPath
         }

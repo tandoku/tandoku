@@ -18,8 +18,7 @@ function GetKnownSubtitleExtensions([Switch]$FileMask, [String]$Language, [Switc
     return "$prefix.ass","$prefix.srt","$prefix.vtt"
 }
 
-function GetVideoForSubtitle($subtitle, $videoDir) {
+function GetSubtitleBaseName($subtitle) {
     # Remove both subtitle and language extension (e.g. .ja.srt)
-    $baseName = Split-Path (Split-Path $subtitle -LeafBase) -LeafBase
-    return (Get-Item "$videoDir/$baseName.*" -Include (GetKnownVideoExtensions -FileMask))
+    return (Split-Path (Split-Path $subtitle -LeafBase) -LeafBase)
 }

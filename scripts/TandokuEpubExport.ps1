@@ -38,12 +38,14 @@ function RenameAudioMpegaToMp3($epubContentPath) {
     # pandoc renames audio files to mpega extension which breaks KyBook 3 on iOS
     # rename mpega back to mp3
     $mediaPath = "$epubContentPath/EPUB/media"
-    Get-ChildItem $mediaPath -Filter '*.mpega' | ForEach-Object {
-        $baseName = Split-Path $_ -LeafBase
-        Move-Item -LiteralPath $_ "$mediaPath/$baseName.mp3"
+    if (Test-Path $mediaPath) {
+        Get-ChildItem $mediaPath -Filter '*.mpega' | ForEach-Object {
+            $baseName = Split-Path $_ -LeafBase
+            Move-Item -LiteralPath $_ "$mediaPath/$baseName.mp3"
+        }
+        Get-ChildItem "$epubContentPath/EPUB/text" -Filter "ch*.xhtml" |
+            ReplaceStringInFiles '(src|href)="([^"]+)\.mpega"' '$1="$2.mp3"'
     }
-    Get-ChildItem "$epubContentPath/EPUB/text" -Filter "ch*.xhtml" |
-        ReplaceStringInFiles '(src|href)="([^"]+)\.mpega"' '$1="$2.mp3"'
 }
 
 $volume = TandokuVolumeInfo -VolumePath $VolumePath

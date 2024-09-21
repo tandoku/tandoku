@@ -19,6 +19,7 @@ Import-Module "$PSScriptRoot/modules/tandoku-films.psm1" -Scope Local
 # scoop install python
 # pip install subs2cia
 # TODO - fork subs2cia repo and merge PR that removes pandas and PR that makes --batch ignore directory
+# (in the meantime - git clone https://github.com/benjaminhottell/subs2cia and pip install in that directory)
 RequireCommand subs2cia
 
 $Volume = ResolveVolume $Volume
@@ -66,5 +67,9 @@ foreach ($subtitleFile in $subtitleFiles) {
 $media = InvokeTandokuCommand content transform import-subs2cia-media $InputPath $OutputPath `
     --media-path $tempMediaPath `
     --audio-prefix clips/
-TandokuImagesImport $media.images -VolumePath $volumePath
-TandokuAudioImport $media.audio "$volumePath/audio/clips" -Volume $volume
+if ($media.images) {
+    TandokuImagesImport $media.images -VolumePath $volumePath
+}
+if ($media.audio) {
+    TandokuAudioImport $media.audio "$volumePath/audio/clips" -Volume $volume
+}
