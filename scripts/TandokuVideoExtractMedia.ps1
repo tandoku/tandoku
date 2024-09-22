@@ -8,6 +8,10 @@ param(
     $OutputPath,
 
     [Parameter()]
+    [int]
+    $AudioPadding,
+
+    [Parameter()]
     $Volume
 )
 
@@ -30,11 +34,9 @@ $volumePath = $Volume.Path
 $volumeLanguage = $Volume.Definition.Language
 $tempPath = "$volumePath/temp"
 
-# TODO - consider keeping intermediate files under non-temp volume paths
+# TODO - keep intermediate files under non-temp volume paths
 # (should simplify integration with workflow deps for incremental build,
 #  and dvc will de-dupe the physical files via hash)
-# otherwise, purge temp files by default (but add -KeepTempFiles switch)
-# (so we are not keeping duplicate copies around)
 
 $tempSubtitlesPath = "$tempPath/subtitles"
 CreateDirectoryIfNotExists $tempSubtitlesPath -Clobber
@@ -55,18 +57,28 @@ foreach ($subtitleFile in $subtitleFiles) {
         if (-not $videoFile) {
             Write-Warning "Video for $baseName not found, skipping extraction"
         } else {
-            subs2cia srs --inputs $videoFile $subtitleFile `
+            $subs2ciaArgs = ArgsToArray srs --inputs $videoFile $subtitleFile `
                 --output-dir $tempMediaPath `
                 --ignore-none `
                 --target-language $volumeLanguage `
                 --bitrate 160
+            if ($AudioPadding) {
+                $subs2ciaArgs += ArgsToArray --padding $AudioPadding
+            }
+            & 'subs2cia' $subs2ciaArgs
         }
     }
 }
 
-$media = InvokeTandokuCommand content transform import-subs2cia-media $InputPath $OutputPath `
+# TODO - consider moving media into subfolders by content base name
+# (separate option to import-subs2cia-media; cannot use --image|audio-prefix since it varies by file)
+$importMediaArgs = ArgsToArray content transform import-subs2cia-media $InputPath $OutputPath `
     --media-path $tempMediaPath `
     --audio-prefix clips/
+if ($AudioPadding) {
+    $importMediaArgs += ArgsToArray --audio-padding $AudioPadding
+}
+$media = InvokeTandokuCommand $importMediaArgs
 if ($media.images) {
     TandokuImagesImport $media.images -VolumePath $volumePath
 }

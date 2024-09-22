@@ -12,11 +12,13 @@ public sealed class ImportSubs2CiaMediaTransform : ContentBlockRewriter
     private readonly IDirectoryInfo mediaDir;
     private readonly string? imagePrefix;
     private readonly string? audioPrefix;
+    private readonly int audioPadding;
 
     public ImportSubs2CiaMediaTransform(
         string mediaPath,
         string? imagePrefix,
         string? audioPrefix,
+        int audioPadding,
         MediaCollection mediaCollection,
         IFileSystem? fileSystem = null)
     {
@@ -24,6 +26,7 @@ public sealed class ImportSubs2CiaMediaTransform : ContentBlockRewriter
         this.mediaDir = this.fileSystem.GetDirectory(mediaPath);
         this.imagePrefix = imagePrefix;
         this.audioPrefix = audioPrefix;
+        this.audioPadding = audioPadding;
         this.mediaCollection = mediaCollection;
     }
 
@@ -43,7 +46,9 @@ public sealed class ImportSubs2CiaMediaTransform : ContentBlockRewriter
 
     private TextBlock ImportMedia(TextBlock block, TimecodePair timecodes)
     {
-        var timecodeSuffix = $"_{timecodes.Start.TotalMilliseconds}-{timecodes.End.TotalMilliseconds}";
+        var timecodeStart = ((int)timecodes.Start.TotalMilliseconds) - this.audioPadding;
+        var timecodeEnd = ((int)timecodes.End.TotalMilliseconds) + this.audioPadding;
+        var timecodeSuffix = $"_{timecodeStart}-{timecodeEnd}";
         var baseName = this.CurrentFile?.GetBaseName();
 
         var imageName = $"{baseName}{timecodeSuffix}{ImageExtension}";

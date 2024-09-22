@@ -203,6 +203,7 @@ public sealed partial class Program
                 .LegalFilePathsOnly();
             var imagePrefixOption = new Option<string?>("--image-prefix", "Prefix to include for image names");
             var audioPrefixOption = new Option<string?>("--audio-prefix", "Prefix to include for audio names");
+            var audioPaddingOption = new Option<int>("--audio-padding", "Padding (in msecs) used to extract audio");
 
             var command = new Command("import-subs2cia-media", "Imports subs2cia media from the specified path into the content")
             {
@@ -210,15 +211,17 @@ public sealed partial class Program
                 mediaPathOption,
                 imagePrefixOption,
                 audioPrefixOption,
+                audioPaddingOption,
             };
 
-            command.SetHandler(async (pathArgs, mediaPath, imagePrefix, audioPrefix, jsonOutput) =>
+            command.SetHandler(async (pathArgs, mediaPath, imagePrefix, audioPrefix, audioPadding, jsonOutput) =>
             {
                 var mediaCollection = new MediaCollection();
                 var transform = new ImportSubs2CiaMediaTransform(
                     mediaPath.FullName,
                     imagePrefix,
                     audioPrefix,
+                    audioPadding,
                     mediaCollection,
                     program.fileSystem);
 
@@ -234,7 +237,7 @@ public sealed partial class Program
                 {
                     // TODO - YAML output
                 }
-            }, pathArgsBinder, mediaPathOption, imagePrefixOption, audioPrefixOption, program.jsonOutputOption);
+            }, pathArgsBinder, mediaPathOption, imagePrefixOption, audioPrefixOption, audioPaddingOption, program.jsonOutputOption);
 
             return command;
         }
