@@ -14,6 +14,19 @@ param(
 
 Import-Module "$PSScriptRoot/modules/tandoku-utils.psm1" -Scope Local
 
+# TODO - move this to utils
+function GetPropertyNames($obj) {
+    if ($obj -is [PSCustomObject]) {
+        foreach ($prop in $obj.PSObject.Properties) {
+            $prop.Name
+        }
+    } else {
+        foreach ($key in $obj.Keys) {
+            $key
+        }
+    }
+}
+
 $volume = TandokuVolumeInfo -VolumePath $VolumePath
 if (-not $volume) {
     return
@@ -28,8 +41,8 @@ if (-not $OutputPath) {
 }
 
 $linkedVolumes = $volume.definition.linkedVolumes
-foreach ($linkName in $linkedVolumes.Keys) {
-    $linkedVolume = $linkedVolumes[$linkName]
+foreach ($linkName in (GetPropertyNames $linkedVolumes)) {
+    $linkedVolume = $linkedVolumes.$linkName
     $indexPath = "$($linkedVolume.path)/.tandoku-volume/cache/contentIndex"
 
     tandoku content link $InputPath $OutputPath --index-path $indexPath --link-name $linkName
