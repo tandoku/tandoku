@@ -1,6 +1,6 @@
 param(
     [Parameter()]
-    [String]
+    [String[]]
     $InputPath,
 
     [Parameter()]
@@ -54,10 +54,13 @@ if (-not $volume) {
 }
 $volumePath = $volume.path
 
-$markdownDirectory = $InputPath ? $InputPath : "$volumePath/markdown"
-$markdownFiles = Get-ChildItem $markdownDirectory -Filter *.md
+if (-not $InputPath) {
+    $InputPath = "$volumePath/markdown"
+}
+
+$markdownFiles = Get-ChildItem $InputPath -Filter *.md
 if (-not $markdownFiles) {
-    Write-Warning "No markdown files found in $markdownDirectory, nothing to do"
+    Write-Warning "No markdown files found in $InputPath, nothing to do"
     return
 }
 
