@@ -3,7 +3,6 @@
 using Tandoku.Library;
 using Tandoku.Volume;
 
-[UsesVerify]
 public class VolumeCommandTests : CliTestBase
 {
     [Fact]

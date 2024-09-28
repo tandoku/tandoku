@@ -3,7 +3,6 @@
 using System.IO.Abstractions.TestingHelpers;
 using Tandoku.Volume;
 
-[UsesVerify]
 public class VolumeSourceCommandTests : CliTestBase
 {
     [Theory]

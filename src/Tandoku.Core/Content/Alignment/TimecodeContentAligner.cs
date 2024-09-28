@@ -1,6 +1,8 @@
 ﻿namespace Tandoku.Content.Alignment;
 
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Net.NetworkInformation;
 using Tandoku.Common;
 
 public sealed class TimecodeContentAligner(string refName) :
@@ -18,8 +20,8 @@ public sealed class TimecodeContentAligner(string refName) :
         var usedRefs = new bool[refList.Count];
 
         // GetMostOverlappingBlock requires sorted lists
-        inputList.Sort(b => b.Source?.Timecodes);
-        refList.Sort(b => b?.Source?.Timecodes);
+        inputList.Sort(b => b.Source, TimecodeComparer.Instance);
+        refList.Sort(b => b?.Source, TimecodeComparer.Instance);
 
         int nextSearchIndex = 0;
         foreach (var block in inputList)
@@ -61,12 +63,12 @@ public sealed class TimecodeContentAligner(string refName) :
         }
 
         aligned.Sort(
-            n => n.Block?.Source?.Timecodes ??
-                 n.RefBlocks.FirstOrDefault()?.Source?.Timecodes);
+            n => n.Block?.Source ?? n.RefBlocks.FirstOrDefault()?.Source,
+            TimecodeComparer.Instance);
 
         foreach (var result in aligned)
         {
-            result.RefBlocks.Sort(b => b.Source?.Timecodes);
+            result.RefBlocks.Sort(b => b.Source, TimecodeComparer.Instance);
             yield return this.MergeBlocks(result.Block, result.RefBlocks);
         }
     }
@@ -115,5 +117,22 @@ public sealed class TimecodeContentAligner(string refName) :
             }
         }
         return (resultIndex, nextSearchIndex);
+    }
+
+    private sealed class TimecodeComparer : IComparer<ContentSource?>
+    {
+        internal static readonly TimecodeComparer Instance = new();
+
+        private TimecodeComparer()
+        {
+        }
+
+        public int Compare(ContentSource? x, ContentSource? y)
+        {
+            var cmp = Comparer<TimecodePair?>.Default.Compare(x?.Timecodes, y?.Timecodes);
+            return cmp != 0 ?
+                cmp :
+                Comparer<int?>.Default.Compare(x?.Ordinal, y?.Ordinal);
+        }
     }
 }

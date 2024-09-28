@@ -8,6 +8,7 @@ using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.Utilities;
 
 // Inspired by https://github.com/aaubry/YamlDotNet/issues/551#issuecomment-844971467
+#if UNUSED // this has been broken by newer YamlDotNet version, not updating since it isn't being used
 internal sealed class ImmutableSetNodeDeserializer<T> : INodeDeserializer
 {
     public bool Deserialize(
@@ -49,3 +50,4 @@ internal sealed class ImmutableSetNodeDeserializer<T> : INodeDeserializer
         }
     }
 }
+#endif

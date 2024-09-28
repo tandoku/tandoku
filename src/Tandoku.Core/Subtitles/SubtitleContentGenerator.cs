@@ -37,6 +37,7 @@ public sealed class SubtitleContentGenerator
     private static async IAsyncEnumerable<ContentBlock> GenerateContentBlocksAsync(IFileInfo inputFile)
     {
         var subtitle = Subtitle.Parse(inputFile.FullName);
+        var ordinal = 0;
         foreach (var para in subtitle.Paragraphs)
         {
             yield return new TextBlock
@@ -44,6 +45,7 @@ public sealed class SubtitleContentGenerator
                 Text = ConvertSubtitleText(para.Text),
                 Source = new ContentSource
                 {
+                    Ordinal = ++ordinal,
                     Timecodes = new TimecodePair(para.StartTime.TimeSpan, para.EndTime.TimeSpan),
                 },
             };

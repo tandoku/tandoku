@@ -87,6 +87,7 @@ public sealed record ContentAudio
 
 public sealed record ContentSource
 {
+    public int? Ordinal { get; init; }
     public string? Resource { get; init; }
     public TimecodePair? Timecodes { get; init; }
 }
