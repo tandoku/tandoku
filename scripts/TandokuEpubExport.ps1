@@ -9,6 +9,10 @@ param(
 
     [Parameter()]
     [String]
+    $TitleSuffix,
+
+    [Parameter()]
+    [String]
     $VolumePath
 )
 
@@ -87,7 +91,7 @@ if ($OutputPath) {
 Push-Location $volumePath
 # Note that we do not use --file-scope because it breaks html splitting in the epub output (https://github.com/jgm/pandoc/issues/8741)
 # TandokuMarkdownExport writes out unique footnotes across files so --file-scope is not needed
-pandoc $markdownFiles -f commonmark+footnotes -o $targetPath -t epub3 --metadata title="$($volume.definition.title)" --metadata author="tandoku" --metadata lang=ja
+pandoc $markdownFiles -f commonmark+footnotes -o $targetPath -t epub3 --metadata title="$($volume.definition.title)$TitleSuffix" --metadata author="tandoku" --metadata lang=$($volume.definition.language)
 Pop-Location
 
 $tempDestination = "$volumePath/temp/epub"
