@@ -45,8 +45,9 @@ SubtitleEdit /convert *.* SubRip `
     /inputFolder:$InputPath `
     /outputFolder:$OutputPath `
     /overwrite `
+    /RemoveUnicodeControlChars `
     /RemoveFormatting `
-    /RemoveUnicodeControlChars |
+    /MergeSameTexts |
     Write-Output
 
 $targetSubtitles = Get-ChildItem "$OutputPath/*.srt"

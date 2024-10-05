@@ -8,10 +8,6 @@ param(
     $OutputPath,
 
     [Parameter()]
-    [int]
-    $AudioPadding,
-
-    [Parameter()]
     $Volume
 )
 
@@ -32,56 +28,34 @@ if (-not $Volume) {
 }
 $volumePath = $Volume.Path
 $volumeLanguage = $Volume.Definition.Language
-$tempPath = "$volumePath/temp"
 
-# TODO - keep intermediate files under non-temp volume paths
-# (should simplify integration with workflow deps for incremental build,
-#  and dvc will de-dupe the physical files via hash)
+$subtitleFiles = Get-ChildItem "$InputPath/*.*" -Include (GetKnownSubtitleExtensions -FileMask)
 
-$tempSubtitlesPath = "$tempPath/subtitles"
-CreateDirectoryIfNotExists $tempSubtitlesPath -Clobber
-
-tandoku subtitles generate $InputPath $tempSubtitlesPath
-
-$subtitleFiles = Get-ChildItem "$tempSubtitlesPath/*.*" -Include (GetKnownSubtitleExtensions -FileMask)
-
-$tempMediaPath = "$tempPath/subs2cia-srs"
-CreateDirectoryIfNotExists $tempMediaPath
+$items = @()
 
 foreach ($subtitleFile in $subtitleFiles) {
     $baseName = Split-Path $subtitleFile -LeafBase
-    if (Test-Path "$tempMediaPath/$baseName.tsv") {
-        Write-Warning "Media for $baseName already exists in $tempMediaPath, skipping extraction"
+    $targetPath = "$OutputPath/$baseName"
+    if (Test-Path "$targetPath/$baseName.tsv") {
+        Write-Warning "Media for $baseName already exists in $targetPath, skipping extraction"
     } else {
+        CreateDirectoryIfNotExists $targetPath -Clobber
         $videoFile = Get-Item "$volumePath/video/$baseName.*" -Include (GetKnownVideoExtensions -FileMask)
         if (-not $videoFile) {
             Write-Warning "Video for $baseName not found, skipping extraction"
         } else {
             $subs2ciaArgs = ArgsToArray srs --inputs $videoFile $subtitleFile `
-                --output-dir $tempMediaPath `
+                --output-dir $targetPath `
                 --ignore-none `
                 --target-language $volumeLanguage `
                 --bitrate 160
-            if ($AudioPadding) {
-                $subs2ciaArgs += ArgsToArray --padding $AudioPadding
-            }
             & 'subs2cia' $subs2ciaArgs
+
+            $items += Get-Item $targetPath
         }
     }
 }
 
-# TODO - consider moving media into subfolders by content base name
-# (separate option to import-subs2cia-media; cannot use --image|audio-prefix since it varies by file)
-$importMediaArgs = ArgsToArray content transform import-subs2cia-media $InputPath $OutputPath `
-    --media-path $tempMediaPath `
-    --audio-prefix clips/
-if ($AudioPadding) {
-    $importMediaArgs += ArgsToArray --audio-padding $AudioPadding
-}
-$media = InvokeTandokuCommand $importMediaArgs
-if ($media.images) {
-    TandokuImagesImport $media.images -VolumePath $volumePath
-}
-if ($media.audio) {
-    TandokuAudioImport $media.audio "$volumePath/audio/clips" -Volume $volume
+if ($items) {
+    TandokuVersionControlAdd -Path $OutputPath -Kind binary
 }

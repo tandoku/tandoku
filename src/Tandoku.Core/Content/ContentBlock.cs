@@ -102,16 +102,20 @@ public readonly record struct TimecodePair(TimeSpan Start, TimeSpan End) : IComp
         var result = this.Start.CompareTo(other.Start);
         return result != 0 ? result : this.End.CompareTo(other.End);
     }
+
+    public override string ToString()
+    {
+        // TODO: consider using custom format string to use only 3 fractional digits instead of default 7
+        return $"{this.Start:c} --> {this.End:c}";
+    }
 }
 
-public sealed record TextBlock : ContentBlock
+public sealed record TextBlock : ContentBlock, IMarkdownText
 {
     [YamlMember(ScalarStyle = ScalarStyle.Literal)]
     public string? Text { get; init; }
     public IImmutableDictionary<string, ContentTextReference> References { get; init; } =
         ImmutableSortedDictionary<string, ContentTextReference>.Empty;
-
-    public string? ToPlainText() => this.Text is not null ? Markdown.ToPlainText(this.Text) : null;
 
     internal override T Accept<T>(ContentBlockVisitor<T> visitor) => visitor.Visit(this);
 }
@@ -122,12 +126,10 @@ public record ContentReference
     public ContentSource? Source { get; init; }
 }
 
-public sealed record ContentTextReference : ContentReference
+public sealed record ContentTextReference : ContentReference, IMarkdownText
 {
     [YamlMember(ScalarStyle = ScalarStyle.Literal)]
     public string? Text { get; init; }
-
-    public string? ToPlainText() => this.Text is not null ? Markdown.ToPlainText(this.Text) : null;
 }
 
 public sealed record CompositeBlock : ContentBlock

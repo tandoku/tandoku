@@ -148,7 +148,7 @@ public sealed partial class Program
             {
                 this.CreateRemoveNonJapaneseTextCommand(),
                 this.CreateLowConfidenceTextCommand(),
-                this.CreateImportSubs2CiaMediaCommand(),
+                this.CreateImportMediaCommand(),
             };
 
         private Command CreateRemoveNonJapaneseTextCommand()
@@ -196,32 +196,29 @@ public sealed partial class Program
             return command;
         }
 
-        private Command CreateImportSubs2CiaMediaCommand()
+        private Command CreateImportMediaCommand()
         {
             var pathArgsBinder = new InputOutputPathArgsBinder();
-            var mediaPathOption = new Option<DirectoryInfo>("--media-path", "Path of the subs2cia media") { IsRequired = true }
+            var mediaPathOption = new Option<DirectoryInfo>("--media-path", "Path of the media") { IsRequired = true }
                 .LegalFilePathsOnly();
             var imagePrefixOption = new Option<string?>("--image-prefix", "Prefix to include for image names");
             var audioPrefixOption = new Option<string?>("--audio-prefix", "Prefix to include for audio names");
-            var audioPaddingOption = new Option<int>("--audio-padding", "Padding (in msecs) used to extract audio");
 
-            var command = new Command("import-subs2cia-media", "Imports subs2cia media from the specified path into the content")
+            var command = new Command("import-media", "Imports media from the specified path into the content")
             {
                 pathArgsBinder,
                 mediaPathOption,
                 imagePrefixOption,
                 audioPrefixOption,
-                audioPaddingOption,
             };
 
-            command.SetHandler(async (pathArgs, mediaPath, imagePrefix, audioPrefix, audioPadding, jsonOutput) =>
+            command.SetHandler(async (pathArgs, mediaPath, imagePrefix, audioPrefix, jsonOutput) =>
             {
                 var mediaCollection = new MediaCollection();
-                var transform = new ImportSubs2CiaMediaTransform(
+                var transform = new ImportMediaTransform(
                     mediaPath.FullName,
                     imagePrefix,
                     audioPrefix,
-                    audioPadding,
                     mediaCollection,
                     program.fileSystem);
 
@@ -237,7 +234,7 @@ public sealed partial class Program
                 {
                     // TODO - YAML output
                 }
-            }, pathArgsBinder, mediaPathOption, imagePrefixOption, audioPrefixOption, audioPaddingOption, program.jsonOutputOption);
+            }, pathArgsBinder, mediaPathOption, imagePrefixOption, audioPrefixOption, program.jsonOutputOption);
 
             return command;
         }
