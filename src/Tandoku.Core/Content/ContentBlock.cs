@@ -4,7 +4,6 @@ using System.Collections.Immutable;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Markdig;
 using Tandoku.Serialization;
 using Tandoku.Yaml;
 using YamlDotNet.Core;
@@ -34,7 +33,7 @@ public abstract record ContentBlock : IYamlStreamSerializable<ContentBlock>
     internal abstract T Accept<T>(ContentBlockVisitor<T> visitor);
 
     static ValueTask<ContentBlock?> IYamlStreamSerializable<ContentBlock>.DeserializeYamlDocumentAsync(
-        YamlDotNet.Core.Parser yamlParser,
+        Parser yamlParser,
         YamlToJsonConverter jsonConverter)
     {
         var jsonDoc = jsonConverter.ConvertToJsonDocument(yamlParser);

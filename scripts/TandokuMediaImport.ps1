@@ -23,7 +23,6 @@ if (-not $Volume) {
     return
 }
 $volumePath = $Volume.Path
-$volumeLanguage = $Volume.Definition.Language
 
 $importMediaArgs = ArgsToArray content transform import-media $InputPath $OutputPath `
     --media-path $MediaPath `

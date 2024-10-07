@@ -1,5 +1,9 @@
 param(
     [Parameter()]
+    [String[]]
+    $Path,
+
+    [Parameter()]
     [String]
     $VolumePath
 )
@@ -103,12 +107,15 @@ if (-not $volume) {
 }
 $volumePath = $volume.path
 
-$path = "$VolumePath/images"
+if (-not $Path) {
+    $Path = "$VolumePath/images"
+}
+
 $imageExtensions = GetImageExtensions
 
 $inputItems = @()
 foreach ($imageExtension in $imageExtensions) {
-    $inputItems += Get-ChildItem -Path $path -Filter "*$imageExtension"
+    $inputItems += Get-ChildItem -Path $Path -Filter "*$imageExtension"
 }
 
 $outputItems = $inputItems |
@@ -116,5 +123,5 @@ $outputItems = $inputItems |
     AddAcvText -Language $volume.definition.language
 
 if ($outputItems) {
-    TandokuVersionControlAdd -Path $path -Kind binary
+    TandokuVersionControlAdd -Path $volumePath/images -Kind binary
 }

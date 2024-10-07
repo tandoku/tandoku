@@ -9,7 +9,7 @@ param(
 
     [Parameter()]
     [int]
-    $MaxBlocksPerFile = 500,
+    $MaxBlocksPerFile = 500, # TODO - factor this out into separate 'tandoku content split' command
 
     [Parameter()]
     [int] # TODO - allow string (prefix to skip, e.g. '#')
