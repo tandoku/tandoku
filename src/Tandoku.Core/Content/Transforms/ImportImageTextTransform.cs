@@ -57,16 +57,15 @@ public sealed class ImportImageTextTransform : ContentBlockRewriter
             }
             else
             {
+                blocks[0] = blocks[0] with { References = block.References };
+
                 // TODO - TextBlock.ConvertToComposite()
-                // also figure out what to do about references...
                 return new CompositeBlock
                 {
                     Id = block.Id,
                     Image = block.Image,
                     Audio = block.Audio,
-                    Blocks = blocks
-                        .Select(b => b with { References = block.References })
-                        .ToImmutableList(),
+                    Blocks = blocks.ToImmutableArray(),
                     Source = block.Source,
                 };
             }
