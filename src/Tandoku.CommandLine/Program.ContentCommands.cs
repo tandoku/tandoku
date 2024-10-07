@@ -149,6 +149,7 @@ public sealed partial class Program
                 this.CreateRemoveNonJapaneseTextCommand(),
                 this.CreateLowConfidenceTextCommand(),
                 this.CreateImportMediaCommand(),
+                this.CreateImportImageTextCommand(),
             };
 
         private Command CreateRemoveNonJapaneseTextCommand()
@@ -235,6 +236,33 @@ public sealed partial class Program
                     // TODO - YAML output
                 }
             }, pathArgsBinder, mediaPathOption, imagePrefixOption, audioPrefixOption, program.jsonOutputOption);
+
+            return command;
+        }
+
+        private Command CreateImportImageTextCommand()
+        {
+            var pathArgsBinder = new InputOutputPathArgsBinder();
+            var providerOption = new Option<ImageAnalysisProvider>(["--provider", "-p"], "Image analysis provider") { IsRequired = true };
+            var volumeBinder = program.CreateVolumeBinder();
+
+            var command = new Command("import-image-text", "Imports analyzed image text into the content")
+            {
+                pathArgsBinder,
+                providerOption,
+                volumeBinder,
+            };
+
+            command.SetHandler(async (pathArgs, provider, volumeDirectory) =>
+            {
+                var volumeManager = program.CreateVolumeManager();
+                var volumeInfo = await volumeManager.GetInfoAsync(volumeDirectory.FullName);
+                var transform = new ImportImageTextTransform(provider, volumeInfo, program.fileSystem);
+
+                await this.RunContentTransformAsync(
+                    pathArgs,
+                    t => t.TransformAsync(transform));
+            }, pathArgsBinder, providerOption, volumeBinder);
 
             return command;
         }

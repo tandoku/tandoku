@@ -20,11 +20,11 @@ public sealed partial class Program
     private Command CreateVolumeNewCommand()
     {
         var titleArgument = new Argument<string>("title", "Title of new tandoku volume");
-        var pathOption = new Option<DirectoryInfo?>(new[] { "--path", "-p" }, "Containing directory for new tandoku volume")
+        var pathOption = new Option<DirectoryInfo?>(["--path", "-p"], "Containing directory for new tandoku volume")
             .LegalFilePathsOnly();
-        var monikerOption = new Option<string?>(new[] { "--moniker", "-m" }, "Optional moniker to identify volume, prepended to volume directory");
-        var tagsOption = new Option<string>(new[] { "--tags", "-t" }, "Optional comma-separated tags for volume");
-        var forceOption = new Option<bool>(new[] { "--force", "-f" }, "Allow new volume in non-empty directory");
+        var monikerOption = new Option<string?>(["--moniker", "-m"], "Optional moniker to identify volume, prepended to volume directory");
+        var tagsOption = new Option<string>(["--tags", "-t"], "Optional comma-separated tags for volume");
+        var forceOption = new Option<bool>(["--force", "-f"], "Allow new volume in non-empty directory");
 
         var command = new Command("new", "Creates a new tandoku volume under the current or specified directory")
         {
@@ -150,9 +150,7 @@ public sealed partial class Program
             Arity = ArgumentArity.ZeroOrOne,
         }.LegalFilePathsOnly();
 
-        var allOption = new Option<bool>(
-            new[] { "--all", "-a" },
-            "Return all volumes in the current or specified library");
+        var allOption = new Option<bool>(["--all", "-a"], "Return all volumes in the current or specified library");
 
         var command = new Command("list", "Lists volumes in the current or specified directory")
         {

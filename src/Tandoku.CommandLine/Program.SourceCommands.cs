@@ -15,7 +15,7 @@ public sealed partial class Program
     {
         var pathsArgument = new Argument<FileSystemInfo[]>("paths", "Paths of files or directories to import as sources") { Arity = ArgumentArity.OneOrMore }
             .LegalFilePathsOnly();
-        var fileNameOption = new Option<string>(new[] { "--filename", "-n" }, "File name to use in volume sources directory")
+        var fileNameOption = new Option<string>(["--filename", "-n"], "File name to use in volume sources directory")
             .LegalFileNamesOnly();
         var volumeBinder = this.CreateVolumeBinder();
 
