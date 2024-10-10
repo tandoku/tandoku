@@ -4,6 +4,7 @@ using System.CommandLine;
 using Tandoku.Content;
 using Tandoku.Content.Alignment;
 using Tandoku.Content.Transforms;
+using Tandoku.Images;
 
 public sealed partial class Program
 {
@@ -257,7 +258,8 @@ public sealed partial class Program
             {
                 var volumeManager = program.CreateVolumeManager();
                 var volumeInfo = await volumeManager.GetInfoAsync(volumeDirectory.FullName);
-                var transform = new ImportImageTextTransform(provider, volumeInfo, program.fileSystem);
+                var analyisProvider = CreateImageAnalysisProvider(provider);
+                var transform = new ImportImageTextTransform(analyisProvider, volumeInfo, program.fileSystem);
 
                 await this.RunContentTransformAsync(
                     pathArgs,
@@ -265,9 +267,23 @@ public sealed partial class Program
             }, pathArgsBinder, providerOption, volumeBinder);
 
             return command;
+
         }
 
         private Task RunContentTransformAsync(InputOutputPathArgs args, Func<ContentTransformer, Task> transform) =>
             transform(new ContentTransformer(args.InputPath.FullName, args.OutputPath.FullName, program.fileSystem));
+
+        private static IImageAnalysisProvider CreateImageAnalysisProvider(ImageAnalysisProvider provider) =>
+            provider switch
+            {
+                ImageAnalysisProvider.Acv4 => new Acv4ImageAnalysisProvider(),
+                ImageAnalysisProvider.EasyOcr => new EasyOcrImageAnalysisProvider(),
+            };
+
+        private enum ImageAnalysisProvider
+        {
+            Acv4,
+            EasyOcr
+        }
     }
 }

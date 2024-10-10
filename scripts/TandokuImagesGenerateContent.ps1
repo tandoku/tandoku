@@ -11,102 +11,30 @@ param(
     [String]
     $SplitByFileName,
 
-    # TODO - $MaxBlocksPerFile
-
-    [Parameter(Mandatory=$true)]
-    [ValidateSet('acv4','easyocr')]
-    [String]
-    $Provider,
-
     [Parameter()]
-    [String]
-    $VolumePath
+    $Volume
 )
 
 Import-Module "$PSScriptRoot/modules/tandoku-utils.psm1" -Scope Local
+Import-Module "$PSScriptRoot/modules/tandoku-volume.psm1" -Scope Local
 
-function GenerateBlocksFromOcrText {
+function GenerateBlocksFromImages {
     param(
         [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
         [String]
         $ImagePath
     )
     process {
-        # TODO - should really share this with AddAcvText in TandokuImagesAnalyze.ps1
         $source = [IO.FileInfo](Convert-Path $ImagePath)
-        $textDir = (Join-Path $source.Directory 'text')
-        $ocrPath = (Join-Path $textDir "$([IO.Path]::GetFilenameWithoutExtension($source.Name)).$Provider.json")
-        if (Test-Path $ocrPath) {
-            $ocr = Get-Content $ocrPath | ConvertFrom-Json
-
-            $rootBlock = [ordered]@{
-                image = [ordered]@{
-                    name = $source.Name
-                }
-                blocks = @(ReadBlocksFromOcr $ocr)
+        $block = [ordered]@{
+            image = [ordered]@{
+                name = $source.Name
             }
-
-            if ($rootBlock.blocks.Count -gt 0) {
-                if ($rootBlock.blocks.Count -eq 1) {
-                    $block = $rootBlock.blocks[0]
-                    $rootBlock.Remove('blocks')
-                    # TODO - generalize this (merge hashtables with nesting support)
-                    if ($rootBlock.image -and $block.image) {
-                        $rootBlock.image += $block.image
-                        $block.Remove('image')
-                    }
-                    $rootBlock += $block
-                }
-
-                $result = @{
-                    FileName = $source.Name
-                    Block = $rootBlock
-                }
-                Write-Output $result
-            }
-        } else {
-            Write-Warning "Skipping $ImagePath because $ocrPath is missing"
         }
-    }
-}
 
-function ReadBlocksFromOcr($ocr) {
-    switch ($Provider) {
-        'acv4' {
-            return $ocr.readResult.blocks.lines |
-                Where-Object { -not [string]::IsNullOrWhiteSpace($_.text) } |
-                ForEach-Object {
-                    return [ordered]@{
-                        image = [ordered]@{
-                            region = [ordered]@{
-                                segments = @($_.words | Select-Object text, confidence)
-                            }
-                        }
-                        text  = $_.text
-                    }
-                }
-        }
-        'easyocr' {
-            return $ocr.readResult |
-                Where-Object { -not [string]::IsNullOrWhiteSpace($_.text) } |
-                ForEach-Object {
-                    return [ordered]@{
-                        image = [ordered]@{
-                            region = [ordered]@{
-                                segments = @(
-                                    [ordered]@{
-                                        text = $_.text
-                                        confidence = $_.confident
-                                    }
-                                )
-                            }
-                        }
-                        text  = $_.text
-                    }
-                }
-        }
-        default {
-            throw "Unexpected provider '$Provider'"
+        @{
+            FileName = $source.Name
+            Block = $block
         }
     }
 }
@@ -116,6 +44,10 @@ function SaveContentBlocks {
     param(
         [Parameter(Mandatory=$true)]
         $Path,
+
+        [Parameter(Mandatory=$true)]
+        [String]
+        $VolumeSlug,
 
         [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
         $BlockResult
@@ -130,7 +62,7 @@ function SaveContentBlocks {
         if ($SplitByFileName -and $fileName -match $SplitByFileName) {
             $contentBaseName = $Matches.Count -gt 1 ? $Matches[1] : $Matches[0]
         } else {
-            $contentBaseName = ''
+            $contentBaseName = $VolumeSlug
         }
 
         if ($contentBaseName -ne $currentContentBaseName) {
@@ -139,9 +71,7 @@ function SaveContentBlocks {
                 Write-Output $contentPath
             }
             $currentContentBaseName = $contentBaseName
-            $contentFileName = $contentBaseName ?
-                "$contentBaseName.content.yaml" :
-                'content.yaml'
+            $contentFileName = "$contentBaseName.content.yaml"
             $contentPath = "$Path/$contentFileName"
             CreateDirectoryIfNotExists $Path
             $writer = [IO.File]::CreateText($contentPath)
@@ -158,12 +88,12 @@ function SaveContentBlocks {
     }
 }
 
-# TODO - VolumePath should be optional if InputPath/OutputPath specified?
-$volume = TandokuVolumeInfo -VolumePath $VolumePath
-if (-not $volume) {
+$Volume = ResolveVolume $Volume
+if (-not $Volume) {
     return
 }
-$volumePath = $volume.path
+$volumePath = $Volume.Path
+$volumeSlug = $Volume.Slug
 
 if (-not $InputPath) {
     $InputPath = "$volumePath/images"
@@ -180,8 +110,8 @@ foreach ($imageExtension in $imageExtensions) {
 
 $outputItems = $images |
     WritePipelineProgress -Activity 'Generating content' -ItemName 'image' -TotalCount $images.Count |
-    GenerateBlocksFromOcrText |
-    SaveContentBlocks $OutputPath
+    GenerateBlocksFromImages |
+    SaveContentBlocks $OutputPath $volumeSlug
 
 if ($outputItems) {
     TandokuVersionControlAdd -Path $outputItems -Kind text

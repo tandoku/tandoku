@@ -1,28 +1,20 @@
 param(
     [Parameter()]
-    [String]
-    $VolumePath
+    [String[]]
+    $Path,
+
+    [Parameter()]
+    $Volume
 )
 
 Import-Module "$PSScriptRoot/modules/tandoku-utils.psm1" -Scope Local
+Import-Module "$PSScriptRoot/modules/tandoku-volume.psm1" -Scope Local
 
-$volume = TandokuVolumeInfo -VolumePath $VolumePath
-if (-not $volume) {
+$Volume = ResolveVolume $Volume
+if (-not $Volume) {
     return
 }
-$volumePath = $volume.path
 
-$path = "$VolumePath/images"
-$imageExtensions = GetImageExtensions
-
-$inputItems = @()
-foreach ($imageExtension in $imageExtensions) {
-    $inputItems += Get-ChildItem -Path $path -Filter "*$imageExtension"
-}
-
-# TODO - pass imageExtensions to python script
-$outputItems = python3 $PSScriptRoot/python/TandokuImagesAnalyze_easyocr.py $path $volume.definition.language
-
-if ($outputItems) {
-    TandokuVersionControlAdd -Path $path -Kind binary
-}
+# TODO - pass inputItems to python script
+# $inputItems = Get-Item -Path $Path
+python3 $PSScriptRoot/python/TandokuImagesAnalyze_easyocr.py "$($Volume.Path)/images" $Volume.Definition.Language

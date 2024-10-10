@@ -1,14 +1,14 @@
 param(
-    [Parameter()]
+    [Parameter(Mandatory=$true)]
     [String[]]
     $Path,
 
     [Parameter()]
-    [String]
-    $VolumePath
+    $Volume
 )
 
 Import-Module "$PSScriptRoot/modules/tandoku-utils.psm1" -Scope Local
+Import-Module "$PSScriptRoot/modules/tandoku-volume.psm1" -Scope Local
 
 function InitAcv {
     $apiKeyConfig = 'azure-computer-vision.apiKey'
@@ -101,27 +101,13 @@ function GetMimeType($fileName) {
     }
 }
 
-$volume = TandokuVolumeInfo -VolumePath $VolumePath
-if (-not $volume) {
+$Volume = ResolveVolume $Volume
+if (-not $Volume) {
     return
 }
-$volumePath = $volume.path
 
-if (-not $Path) {
-    $Path = "$VolumePath/images"
-}
+$inputItems = Get-Item -Path $Path
 
-$imageExtensions = GetImageExtensions
-
-$inputItems = @()
-foreach ($imageExtension in $imageExtensions) {
-    $inputItems += Get-ChildItem -Path $Path -Filter "*$imageExtension"
-}
-
-$outputItems = $inputItems |
+$inputItems |
     WritePipelineProgress -Activity 'Recognizing text' -ItemName 'image' -TotalCount $inputItems.Count |
-    AddAcvText -Language $volume.definition.language
-
-if ($outputItems) {
-    TandokuVersionControlAdd -Path $volumePath/images -Kind binary
-}
+    AddAcvText -Language $Volume.Definition.Language

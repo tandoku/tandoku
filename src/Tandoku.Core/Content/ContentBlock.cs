@@ -105,6 +105,7 @@ public readonly record struct TimecodePair(TimeSpan Start, TimeSpan End) : IComp
     public override string ToString()
     {
         // TODO: consider using custom format string to use only 3 fractional digits instead of default 7
+        // (would need special handling for negative values)
         return $"{this.Start:c} --> {this.End:c}";
     }
 }

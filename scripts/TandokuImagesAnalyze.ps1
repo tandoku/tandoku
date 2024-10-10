@@ -22,7 +22,7 @@ function GetImagesToAnalyze($contentFilePath) {
     foreach ($block in $content) {
         $image = $block.image.name
         if ($image -and (-not $block.text) -and (-not $block.blocks)) {
-            "$volumePath/images/$image"
+            "$imagesPath/$image"
         }
     }
 }
@@ -32,6 +32,7 @@ if (-not $Volume) {
     return
 }
 $volumePath = $Volume.Path
+$imagesPath = "$volumePath/images"
 
 $contentFiles = Get-ChildItem $ContentPath -Filter *.content.yaml
 if (-not $contentFiles) {
@@ -41,12 +42,15 @@ if (-not $contentFiles) {
 
 $imageFiles = $contentFiles | ForEach-Object { GetImagesToAnalyze $_ }
 
-switch ($Provider) {
+$outputItems = switch ($Provider) {
     'acv4' {
-        TandokuImagesAnalyze_acv4 $imageFiles -VolumePath $volumePath
+        TandokuImagesAnalyze_acv4 $imageFiles -Volume $volume
     }
     'easyocr' {
-        # TODO - pass in $imageFiles
-        TandokuImagesAnalyze_easyocr -VolumePath $volumePath
+        TandokuImagesAnalyze_easyocr $imageFiles -Volume $volume
     }
+}
+
+if ($outputItems) {
+    TandokuVersionControlAdd -Path $imagesPath -Kind binary
 }
