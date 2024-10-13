@@ -278,6 +278,7 @@ public sealed partial class Program
             {
                 ImageAnalysisProvider.Acv4 => new Acv4ImageAnalysisProvider(),
                 ImageAnalysisProvider.EasyOcr => new EasyOcrImageAnalysisProvider(),
+                _ => throw new ArgumentOutOfRangeException(nameof(provider)),
             };
 
         private enum ImageAnalysisProvider

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO.Abstractions;
 using System.Text.Json;
+using System.Threading.Tasks;
 using Tandoku.Content;
 
 public sealed class EasyOcrImageAnalysisProvider : IImageAnalysisProvider
@@ -15,35 +16,34 @@ public sealed class EasyOcrImageAnalysisProvider : IImageAnalysisProvider
 
     public string ImageAnalysisFileExtension => ".easyocr.json";
 
-    public IEnumerable<TextBlock> ReadTextBlocks(IFileInfo imageAnalysisFile)
+    public async Task<IReadOnlyCollection<Chunk>> ReadTextChunksAsync(IFileInfo imageAnalysisFile)
     {
         using var stream = imageAnalysisFile.OpenRead();
 
-        var result = JsonSerializer.Deserialize<EasyOcrResult>(stream, jsonOptions);
+        var result = await JsonSerializer.DeserializeAsync<EasyOcrResult>(stream, jsonOptions);
         if (result is null)
-            yield break;
+            return [];
 
+        var chunks = new List<Chunk>();
         foreach (var line in result.ReadResult)
         {
             if (string.IsNullOrWhiteSpace(line.Text))
                 continue;
 
-            yield return new TextBlock
+            chunks.Add(new Chunk
             {
-                Image = new ContentImage
+                Image = new ChunkImage
                 {
-                    Region = new ContentImageRegion
+                    TextSpans = [new ImageTextSpan
                     {
-                        Segments = [new ContentRegionSegment
-                        {
-                            Text = line.Text,
-                            Confidence = line.Confident,
-                        }],
-                    }
+                        Text = line.Text,
+                        Confidence = line.Confident,
+                    }],
                 },
                 Text = line.Text,
-            };
+            });
         }
+        return chunks;
     }
 
     private sealed record EasyOcrResult(IImmutableList<Line> ReadResult);

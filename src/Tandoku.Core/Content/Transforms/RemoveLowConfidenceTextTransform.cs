@@ -3,53 +3,49 @@
 using System.Collections.Immutable;
 using System.Text;
 
-public sealed class RemoveLowConfidenceTextTransform(double confidenceThreshold) : ContentBlockRewriter
+public sealed class RemoveLowConfidenceTextTransform(double confidenceThreshold) : ContentBlockTransform
 {
     private const char ReplacementChar = ' ';
 
-    public override ContentBlock? Visit(TextBlock block)
+    protected override ContentBlockChunk? TransformChunk(ContentBlockChunk chunk)
     {
-        if (!string.IsNullOrWhiteSpace(block.Text) &&
-            block.Image?.Region?.Segments.Count > 0 &&
-            block.Image?.Region?.Segments[0].Confidence < confidenceThreshold)
+        if (!string.IsNullOrWhiteSpace(chunk.Text) &&
+            chunk.Image?.TextSpans.Count > 0 &&
+            chunk.Image?.TextSpans[0].Confidence < confidenceThreshold)
         {
             var textIndex = 0;
-            var textBuilder = new StringBuilder(block.Text.Length);
-            var newSegments = ImmutableList.CreateBuilder<ContentRegionSegment>();
-            foreach (var segment in block.Image.Region.Segments)
+            var textBuilder = new StringBuilder(chunk.Text.Length);
+            var newTextSpans = ImmutableList.CreateBuilder<ImageTextSpan>();
+            foreach (var textSpan in chunk.Image.TextSpans)
             {
-                // Retain whitespace/punctuation between segments in the text
-                var nextIndex = block.Text.IndexOf(segment.Text, textIndex);
+                // Retain whitespace/punctuation between spans in the text
+                var nextIndex = chunk.Text.IndexOf(textSpan.Text, textIndex);
                 if (nextIndex > textIndex)
-                    textBuilder.Append(block.Text, textIndex, nextIndex - textIndex);
-                textIndex = nextIndex + segment.Text.Length;
+                    textBuilder.Append(chunk.Text, textIndex, nextIndex - textIndex);
+                textIndex = nextIndex + textSpan.Text.Length;
 
-                if (segment.Confidence < confidenceThreshold)
+                if (textSpan.Confidence < confidenceThreshold)
                 {
                     textBuilder.Append(ReplacementChar);
                 }
                 else
                 {
-                    textBuilder.Append(segment.Text);
-                    newSegments.Add(segment);
+                    textBuilder.Append(textSpan.Text);
+                    newTextSpans.Add(textSpan);
                 }
             }
 
-            // TODO: what if there is other content on the block (like references)?
-            return newSegments.Count > 0 ?
-                block with
+            return newTextSpans.Count > 0 ?
+                chunk with
                 {
                     Text = textBuilder.ToString().Trim(),
-                    Image = block.Image with
+                    Image = chunk.Image with
                     {
-                        Region = block.Image.Region with
-                        {
-                            Segments = newSegments.ToImmutable(),
-                        }
+                        TextSpans = newTextSpans.ToImmutable(),
                     }
                 } :
                 null;
         }
-        return block;
+        return chunk;
     }
 }

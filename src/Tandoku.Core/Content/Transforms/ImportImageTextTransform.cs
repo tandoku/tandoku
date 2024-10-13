@@ -1,12 +1,11 @@
 ﻿namespace Tandoku.Content.Transforms;
 
 using System.Collections.Immutable;
-using System.Diagnostics.CodeAnalysis;
 using System.IO.Abstractions;
 using Tandoku.Images;
 using Tandoku.Volume;
 
-public sealed class ImportImageTextTransform : ContentBlockRewriter
+public sealed class ImportImageTextTransform : IContentBlockTransform
 {
     private readonly IImageAnalysisProvider provider;
     private readonly VolumeInfo volumeInfo;
@@ -22,70 +21,55 @@ public sealed class ImportImageTextTransform : ContentBlockRewriter
         this.volumeInfo = volumeInfo;
         this.fileSystem = fileSystem ?? new FileSystem();
 
-        this.imagesDir = this.fileSystem.GetDirectory(this.volumeInfo.Path).GetSubdirectory("images");
+        this.imagesDir = this.fileSystem
+            .GetDirectory(this.volumeInfo.Path)
+            .GetSubdirectory("images");
     }
 
-    public override ContentBlock? Visit(TextBlock block)
+    public async IAsyncEnumerable<ContentBlock> TransformAsync(IAsyncEnumerable<ContentBlock> blocks, IFileInfo file)
     {
-        if (block.Image?.Name is var imageName &&
-            imageName is not null &&
-            this.TryGetImageTextBlocks(imageName, out var blocks) &&
-            blocks.Count > 0)
+        await foreach (var block in blocks)
         {
-            // TODO - just add new chunks, leave existing ref on its own
-            // and add merge-ref-chunks / MergeRefChunksTransform to merge with single chunk if only one, otherwise leave separate
-            // later could add LLM/embedding step to identify relevant text and discard others
-
-            if (blocks.Count == 1)
+            if (block.Image?.Name is var imageName &&
+                imageName is not null &&
+                this.GetImageAnalysisFile(imageName) is var imageAnalysisFile &&
+                imageAnalysisFile?.Exists == true &&
+                await this.provider.ReadTextChunksAsync(imageAnalysisFile) is var chunks &&
+                chunks.Count > 0)
             {
-                return block with
+                // TODO - just add new chunks, leave existing ref on its own
+                // and add merge-ref-chunks / MergeRefChunksTransform to merge with single chunk if only one, otherwise leave separate
+                // later could add LLM/embedding step to identify relevant text and discard others
+                if (block.Chunks.Count > 0)
                 {
-                    Image = block.Image! with
+                    yield return block with
                     {
-                        Region = blocks[0].Image?.Region,
-                    },
-                    Text = blocks[0].Text,
-                };
+                        Chunks = new[] { new ContentBlockChunk(chunks.First()) with { References = block.Chunks[0].References } }.Concat(
+                            block.Chunks.Skip(1)).Concat(
+                            chunks.Skip(1).Select(c => new ContentBlockChunk(c))).ToImmutableList(),
+                    };
+                }
+                else
+                {
+                    yield return block with
+                    {
+                        Chunks = block.Chunks.AddRange(chunks.Select(c => new ContentBlockChunk(c))),
+                    };
+                }
             }
             else
             {
-                blocks[0] = blocks[0] with { References = block.References };
-
-                // TODO - TextBlock.ConvertToComposite()
-                return new CompositeBlock
-                {
-                    Id = block.Id,
-                    Image = block.Image,
-                    Audio = block.Audio,
-                    Blocks = blocks.ToImmutableArray(),
-                    Source = block.Source,
-                };
+                yield return block;
             }
         }
-        return block;
     }
 
-    private bool TryGetImageTextBlocks(
-        string imageName,
-        [NotNullWhen(true)] out List<TextBlock>? blocks)
+    private IFileInfo? GetImageAnalysisFile(string imageName)
     {
         var imageFile = this.imagesDir.GetFile(imageName);
-        if (imageFile.Directory?.GetSubdirectory("text") is var textDir && textDir is null)
-        {
-            blocks = null;
-            return false;
-        }
-
         var baseName = Path.GetFileNameWithoutExtension(imageName);
         var extension = this.provider.ImageAnalysisFileExtension;
-        var imageAnalysisFile = textDir.GetFile($"{baseName}{extension}");
-        if (!imageAnalysisFile.Exists)
-        {
-            blocks = null;
-            return false;
-        }
-
-        blocks = this.provider.ReadTextBlocks(imageAnalysisFile).ToList();
-        return true;
+        var textDir = imageFile.Directory?.GetSubdirectory("text");
+        return textDir?.GetFile($"{baseName}{extension}");
     }
 }

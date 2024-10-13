@@ -21,7 +21,7 @@ function GetImagesToAnalyze($contentFilePath) {
 
     foreach ($block in $content) {
         $image = $block.image.name
-        if ($image -and (-not $block.text) -and (-not $block.blocks)) {
+        if ($image -and (-not $block.chunks.text)) {
             "$imagesPath/$image"
         }
     }

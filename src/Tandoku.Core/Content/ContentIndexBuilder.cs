@@ -44,29 +44,13 @@ public sealed class ContentIndexBuilder
             fields.Id.SetStringValue(block.Id ?? string.Empty);
             fields.File.SetStringValue(contentFile.Name);
             fields.Block.SetStringValue(block.ToJsonString());
-            switch (block)
+            foreach (var chunk in block.Chunks)
             {
-                case TextBlock textBlock:
-                    if (!string.IsNullOrEmpty(textBlock.Text))
-                    {
-                        fields.Text.SetStringValue(textBlock.Text);
-                        writer.AddDocument(doc);
-                    }
-                    break;
-
-                case CompositeBlock compositeBlock:
-                    foreach (var nestedBlock in compositeBlock.Blocks)
-                    {
-                        if (!string.IsNullOrEmpty(nestedBlock.Text))
-                        {
-                            fields.Text.SetStringValue(nestedBlock.Text);
-                            writer.AddDocument(doc);
-                        }
-                    }
-                    break;
-
-                default:
-                    throw new InvalidDataException();
+                if (!string.IsNullOrEmpty(chunk.Text))
+                {
+                    fields.Text.SetStringValue(chunk.Text);
+                    writer.AddDocument(doc);
+                }
             }
         }
         writer.Flush(triggerMerge: false, applyAllDeletes: false);

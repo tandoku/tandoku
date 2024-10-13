@@ -2,7 +2,6 @@
 
 using System.Collections.Generic;
 using System.IO.Abstractions;
-using System.Text.Json;
 using Lucene.Net.Analysis.TokenAttributes;
 using Lucene.Net.Index;
 using Lucene.Net.Search;
@@ -47,8 +46,7 @@ public sealed class ContentIndexSearcher(IFileSystem? fileSystem = null)
         {
             var doc = searcher.Doc(scoreDoc.Doc);
             var blockJson = doc.Get(ContentIndex.FieldNames.Block);
-            var blockJsonDoc = JsonDocument.Parse(blockJson);
-            var block = ContentBlock.Deserialize(blockJsonDoc) ??
+            var block = ContentBlock.DeserializeJson(blockJson) ??
                 throw new InvalidDataException();
             yield return block;
         }

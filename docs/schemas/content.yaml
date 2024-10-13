@@ -1,21 +1,43 @@
-# TextBlock
-text: markdown
-contentKind: primary <default> | secondary | meta | sound-effect | on-screen-text | lyrics | dialogue | narration | heading
-actor: text
-image:
-  name: filename
-  regions: TODO # or maybe region? populate this on nested blocks from OCR?
-references:
-  <ref-name>:
-    text: markdown
-    actor: text
-    image: image
-source:
-  note: text # from Anki decks
-  resource: text # from video game text dumps
-  timecodes: {start: timespan, end: timespan}
----
-# CompositeBlock
-blocks:
-  - TextBlock
-image: image
+# ContentBlock
+id?: <string>
+images?: # BlockImage (later derived from ContentImage)
+- name: <path>
+  bounds?: [...] # later, for manga panels or ehon paragraphs
+audio?: # ContentBlockAudio
+  name: <string>
+  segment?: {start: <timespan>, end: <timespan>}
+source?: # BlockSource
+  ordinal?: <int> # subtitle ordinal
+  timecodes?: {start: <timespan>, end: <timespan>}
+  note?: <string> # from Anki decks
+  resource?: <string> # from video game text dumps
+  # page, etc.
+references?:
+  <ref-name>: # Block base class (later could be RefBlock if anything unique to ref)
+    images?: <...>
+    source?: <...>
+chunks?: # ContentBlockChunk
+- text?: <markdown>
+  actor?: <markdown>
+  kind?: primary <default> |
+    secondary |
+    heading |
+    meta |
+    sound-effect |
+    on-screen-text |
+    lyrics |
+    dialogue |
+    narration
+  image?: # ChunkImage (later derived from ContentImage)
+    name?: <path> # omitted if single image on block
+    bounds: [...]
+    textSpans: # ImageTextSpan
+    - text: <string>
+      bounds: [...]
+      confidence: <float>
+  tokens?: <...>
+  references?:
+    <ref-name>: # Chunk base class (later could be RefChunk if anything unique to ref)
+      text?: <markdown>
+      actor?: <markdown>
+      image?: <...>

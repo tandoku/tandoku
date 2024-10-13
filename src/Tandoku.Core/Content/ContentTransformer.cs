@@ -24,30 +24,20 @@ public sealed class ContentTransformer
         foreach (var inputFile in inputDir.EnumerateContentFiles())
         {
             var outputFile = outputDir.GetFile(inputFile.Name);
-            await YamlSerializer.WriteStreamAsync(outputFile, TransformBlocksAsync(inputFile));
-        }
-
-        async IAsyncEnumerable<ContentBlock> TransformBlocksAsync(IFileInfo inputFile)
-        {
-            await foreach (var block in YamlSerializer.ReadStreamAsync<ContentBlock>(inputFile))
-            {
-                var newBlock = transform.Transform(block, inputFile);
-                if (newBlock is not null)
-                    yield return newBlock;
-            }
+            var blocks = YamlSerializer.ReadStreamAsync<ContentBlock>(inputFile);
+            await YamlSerializer.WriteStreamAsync(
+                outputFile,
+                transform.TransformAsync(blocks, inputFile));
         }
     }
 
-    public Task TransformAsync(Func<TextBlock, TextBlock?> transform) =>
-        this.TransformAsync(new TextBlockRewriter(transform));
+    public Task TransformAsync(Func<ContentBlockChunk, ContentBlockChunk> transformChunk) =>
+        this.TransformAsync(new ChunkTransform(transformChunk));
 
-    private sealed class TextBlockRewriter(Func<TextBlock, TextBlock?> transform) : ContentBlockRewriter
+    private sealed class ChunkTransform(Func<ContentBlockChunk, ContentBlockChunk> transformChunk) :
+        ContentBlockTransform
     {
-        public override ContentBlock? Visit(TextBlock block) => transform(block);
+        protected override ContentBlockChunk? TransformChunk(ContentBlockChunk chunk) =>
+            transformChunk(chunk);
     }
-}
-
-public interface IContentBlockTransform
-{
-    ContentBlock? Transform(ContentBlock block, IFileInfo file);
 }

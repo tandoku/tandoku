@@ -37,6 +37,7 @@ internal sealed class FlowStyleEventEmitter : ChainedEventEmitter
             o is int[] ||
             o is ImageMapWord ||
             o is Token ||
-            o is ContentRegionSegment;
+            o is TimecodePair ||
+            o is ImageTextSpan;
     }
 }

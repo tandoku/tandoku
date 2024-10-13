@@ -40,18 +40,22 @@ public sealed class SubtitleContentGenerator
         var ordinal = 0;
         foreach (var para in subtitle.Paragraphs)
         {
-            yield return new TextBlock
+            yield return new ContentBlock
             {
-                Text = ConvertSubtitleText(para.Text),
-                Source = new ContentSource
+                Source = new BlockSource
                 {
                     Ordinal = ++ordinal,
                     Timecodes = new TimecodePair(para.StartTime.TimeSpan, para.EndTime.TimeSpan),
                 },
+                Chunks = [new ContentBlockChunk
+                {
+                    Text = ConvertSubtitleText(para.Text)
+                }],
             };
         }
     }
 
+    // TODO - return each line as separate chunk for additional processing
     private static string ConvertSubtitleText(string text)
     {
         var lineReader = new StringReader(text);

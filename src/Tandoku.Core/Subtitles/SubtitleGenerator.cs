@@ -17,15 +17,18 @@ public sealed class SubtitleGenerator
 {
     private readonly IFileSystem fileSystem;
     private readonly SubtitlePurpose purpose;
+    private readonly string? includeReference;
     private readonly int extendAudioMsecs;
 
     public SubtitleGenerator(
         SubtitlePurpose purpose,
+        string? includeReference,
         int extendAudioMsecs,
         IFileSystem? fileSystem = null)
     {
         this.fileSystem = fileSystem ?? new FileSystem();
         this.purpose = purpose;
+        this.includeReference = includeReference;
         this.extendAudioMsecs = extendAudioMsecs;
     }
 
@@ -60,34 +63,26 @@ public sealed class SubtitleGenerator
         var subtitle = new Subtitle();
         await foreach(var block in blocks)
         {
-            if (block is TextBlock textBlock)
+            if (this.TryCreateParagraph(
+                block.Chunks,
+                block.Source,
+                refName: null,
+                baseName,
+                out var para))
             {
-                if (this.TryCreateParagraph(
-                    textBlock,
-                    textBlock.Source,
-                    refName: null,
-                    baseName,
-                    out var para))
-                {
-                    subtitle.Paragraphs.Add(para);
-                }
-                else if (textBlock.References.Count > 0)
-                {
-                    var reference = textBlock.References.First();
-                    if (this.TryCreateParagraph(
-                        reference.Value,
-                        reference.Value.Source,
-                        reference.Key,
-                        baseName,
-                        out para))
-                    {
-                        subtitle.Paragraphs.Add(para);
-                    }
-                }
+                subtitle.Paragraphs.Add(para);
             }
-            else
+            else if (this.includeReference is not null &&
+                block.References.TryGetValue(this.includeReference, out var reference) &&
+                this.TryCreateParagraph(
+                    block.Chunks.Select(c =>
+                        c.References.TryGetValue(this.includeReference, out var refChunk) ? refChunk : null),
+                    reference.Source,
+                    this.includeReference,
+                    baseName,
+                    out para))
             {
-                throw new NotSupportedException($"Only text blocks are currently supported.");
+                subtitle.Paragraphs.Add(para);
             }
         }
         subtitle.Renumber();
@@ -95,20 +90,20 @@ public sealed class SubtitleGenerator
     }
 
     private bool TryCreateParagraph(
-        IMarkdownText content,
-        ContentSource? source,
+        IEnumerable<Chunk?> chunks,
+        BlockSource? source,
         string? refName,
         string baseName,
         [NotNullWhen(true)] out Paragraph? paragraph)
     {
-        if (!string.IsNullOrWhiteSpace(content.Text) &&
+        if (chunks.Any(c => !string.IsNullOrWhiteSpace(c?.Text)) &&
             source?.Timecodes is not null)
         {
             var text = this.purpose switch
             {
                 SubtitlePurpose.MediaExtraction =>
                     $"{baseName}|{(refName is not null ? $"{refName}|" : string.Empty)}{source.Ordinal}",
-                _ => content.ToPlainText(),
+                _ => chunks.CombineText(MarkdownSeparator.LineBreak).ToPlainText(),
             };
 
             var start = source.Timecodes.Value.Start.TotalMilliseconds;

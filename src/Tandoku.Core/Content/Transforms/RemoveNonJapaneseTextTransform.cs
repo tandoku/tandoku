@@ -1,25 +1,26 @@
 ﻿namespace Tandoku.Content.Transforms;
 
+using System.Collections.Frozen;
 using WanaKanaSharp;
 
-public sealed class RemoveNonJapaneseTextTransform : ContentBlockRewriter
+public sealed class RemoveNonJapaneseTextTransform : ContentBlockTransform
 {
-    private static readonly IReadOnlySet<char> IgnoredKana = new HashSet<char>(['ロ']);
-    private static readonly IReadOnlySet<char> IgnoredKanji = new HashSet<char>(['口', '入', '人', '日']);
+    private static readonly FrozenSet<char> IgnoredKana = FrozenSet.ToFrozenSet(['ロ']);
+    private static readonly FrozenSet<char> IgnoredKanji = FrozenSet.ToFrozenSet(['口', '入', '人', '日']);
 
-    public override ContentBlock? Visit(TextBlock block)
+    protected override ContentBlockChunk? TransformChunk(ContentBlockChunk chunk)
     {
-        if (string.IsNullOrWhiteSpace(block.Text))
-            return block;
+        if (string.IsNullOrWhiteSpace(chunk.Text))
+            return chunk;
 
-        var kanaCount = block.Text.Count(c => WanaKana.IsKana(c) && !IgnoredKana.Contains(c));
-        var allKanaCount = block.Text.Count(WanaKana.IsKana);
+        var kanaCount = chunk.Text.Count(c => WanaKana.IsKana(c) && !IgnoredKana.Contains(c));
+        var allKanaCount = chunk.Text.Count(WanaKana.IsKana);
         if (kanaCount > 1 || (kanaCount > 0 && allKanaCount > 1))
-            return block;
+            return chunk;
 
-        var kanjiCount = block.Text.Count(c => WanaKana.IsKanji(c) && !IgnoredKanji.Contains(c));
+        var kanjiCount = chunk.Text.Count(c => WanaKana.IsKanji(c) && !IgnoredKanji.Contains(c));
         if (kanjiCount > 0)
-            return block;
+            return chunk;
 
         return null;
     }

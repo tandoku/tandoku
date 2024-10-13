@@ -83,15 +83,17 @@ function GenerateMarkdown($contentPath) {
         # Audio
         GenerateMarkdownForMedia $block.audio.name 'audio' $heading
 
-        if ($block.blocks) {
-            $nestedBlockIndex = 0
-            foreach ($nestedBlock in $block.blocks) {
-                $nestedBlockIndex += 1
-                $nestedBlockId = "$blockId-$nestedBlockIndex"
-                GenerateMarkdownForTextBlock $nestedBlock $nestedBlockId
+        if ($block.chunks) {
+            $chunkIndex = 0
+            foreach ($chunk in $block.chunks) {
+                $chunkIndex += 1
+                if ($block.chunks.Count -gt 1) {
+                    $chunkId = "$blockId-$chunkIndex"
+                } else {
+                    $chunkId = $blockId
+                }
+                GenerateMarkdownForChunk $chunk $chunkId
             }
-        } else {
-            GenerateMarkdownForTextBlock $block $blockId
         }
     }
 }
@@ -123,63 +125,63 @@ function GenerateMarkdownForMedia($media, $container, $caption) {
     }
 }
 
-function GenerateMarkdownForTextBlock($block, $blockId) {
+function GenerateMarkdownForChunk($chunk, $chunkId) {
     # Text / Reference text
 
-    $blockText = ProcessRubyText $block.text
+    $chunkText = ProcessRubyText $chunk.text
     if ($RubyBehavior -eq 'BlurHtml') {
-        $blockText = ConvertTextToBlurHtml $blockText $blockId -Ruby
+        $chunkText = ConvertTextToBlurHtml $chunkText $chunkId -Ruby
     }
 
-    $blockRefTextBuilder = [Text.StringBuilder]::new()
-    $refLabels = ($block.references.Count -gt 1 -or $ReferenceLabels -eq 'Always')
-    foreach ($refName in $block.references.Keys) {
-        $ref = $block.references[$refName]
-        $blockRefText = $ref.text
-        if ($blockRefText) {
-            $blockRefId = "$blockId-ref-$refName"
+    $chunkRefTextBuilder = [Text.StringBuilder]::new()
+    $refLabels = ($chunk.references.Count -gt 1 -or $ReferenceLabels -eq 'Always')
+    foreach ($refName in $chunk.references.Keys) {
+        $ref = $chunk.references[$refName]
+        $chunkRefText = $ref.text
+        if ($chunkRefText) {
+            $chunkRefId = "$chunkId-ref-$refName"
 
             switch ($ReferenceBehavior) {
                 'Footnotes' {
-                    $blockText = "$blockText [^$blockRefId]"
-                    $lines = @(StringToLines $blockRefText)
-                    $lines[0] = "[^$blockRefId]: $($lines[0])"
+                    $chunkText = "$chunkText [^$chunkRefId]"
+                    $lines = @(StringToLines $chunkRefText)
+                    $lines[0] = "[^$chunkRefId]: $($lines[0])"
                     foreach ($line in $lines) {
-                        if ($line -and $blockRefTextBuilder.Length -gt 0) {
-                            [void] $blockRefTextBuilder.AppendLine("    $line")
+                        if ($line -and $chunkRefTextBuilder.Length -gt 0) {
+                            [void] $chunkRefTextBuilder.AppendLine("    $line")
                         } else {
-                            [void] $blockRefTextBuilder.AppendLine($line)
+                            [void] $chunkRefTextBuilder.AppendLine($line)
                         }
                     }
-                    $blockRefText = $null
+                    $chunkRefText = $null
                 }
                 'BlurHtml' {
-                    $blockRefText = ConvertTextToBlurHtml $blockRefText $blockRefId -Label ($refLabels ? $refName : $null)
+                    $chunkRefText = ConvertTextToBlurHtml $chunkRefText $chunkRefId -Label ($refLabels ? $refName : $null)
                 }
                 default {
                     if ($refLabels) {
                         # TODO - indentation as separate style?
-                        $lines = @(StringToLines $blockRefText)
+                        $lines = @(StringToLines $chunkRefText)
                         $lines[0] = "$($refName): $($lines[0])"
                         foreach ($line in $lines) {
-                            [void] $blockRefTextBuilder.AppendLine("> $line")
+                            [void] $chunkRefTextBuilder.AppendLine("> $line")
                         }
-                        $blockRefText = $null
+                        $chunkRefText = $null
                     }
                 }
             }
 
-            if ($blockRefText) {
-                [void] $blockRefTextBuilder.AppendLine($blockRefText)
+            if ($chunkRefText) {
+                [void] $chunkRefTextBuilder.AppendLine($chunkRefText)
             }
-            [void] $blockRefTextBuilder.AppendLine()
+            [void] $chunkRefTextBuilder.AppendLine()
         }
     }
 
-    Write-Output $blockText
+    Write-Output $chunkText
     Write-Output ''
-    if ($blockRefTextBuilder.Length -gt 0) {
-        Write-Output $blockRefTextBuilder
+    if ($chunkRefTextBuilder.Length -gt 0) {
+        Write-Output $chunkRefTextBuilder
     }
 }
 

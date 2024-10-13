@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO.Abstractions;
 using System.Text.Json;
+using System.Threading.Tasks;
 using Tandoku.Content;
 
 public sealed class Acv4ImageAnalysisProvider : IImageAnalysisProvider
@@ -15,40 +16,39 @@ public sealed class Acv4ImageAnalysisProvider : IImageAnalysisProvider
 
     public string ImageAnalysisFileExtension => ".acv4.json";
 
-    public IEnumerable<TextBlock> ReadTextBlocks(IFileInfo imageAnalysisFile)
+    public async Task<IReadOnlyCollection<Chunk>> ReadTextChunksAsync(IFileInfo imageAnalysisFile)
     {
         using var stream = imageAnalysisFile.OpenRead();
 
-        var result = JsonSerializer.Deserialize<ImageAnalysisResult>(stream, jsonOptions);
+        var result = await JsonSerializer.DeserializeAsync<ImageAnalysisResult>(stream, jsonOptions);
         if (result is null)
-            yield break;
+            return [];
 
         var lines =
             from block in result.ReadResult.Blocks
             from line in block.Lines
             select line;
 
+        var chunks = new List<Chunk>();
         foreach (var line in lines)
         {
             if (string.IsNullOrWhiteSpace(line.Text))
                 continue;
 
-            yield return new TextBlock
+            chunks.Add(new Chunk
             {
-                Image = new ContentImage
+                Image = new ChunkImage
                 {
-                    Region = new ContentImageRegion
+                    TextSpans = line.Words.Select(w => new ImageTextSpan
                     {
-                        Segments = line.Words.Select(w => new ContentRegionSegment
-                        {
-                            Text = w.Text,
-                            Confidence = w.Confidence,
-                        }).ToImmutableArray(),
-                    }
+                        Text = w.Text,
+                        Confidence = w.Confidence,
+                    }).ToImmutableList(),
                 },
                 Text = line.Text,
-            };
+            });
         }
+        return chunks;
     }
 
     private sealed record ImageAnalysisResult(ReadResult ReadResult);

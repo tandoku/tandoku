@@ -2,7 +2,6 @@
 
 using System.Collections.Generic;
 using System.IO.Abstractions;
-using System.Text.Json;
 using Lucene.Net.Analysis.TokenAttributes;
 using Lucene.Net.Index;
 using Lucene.Net.Search;
@@ -10,8 +9,6 @@ using Lucene.Net.Store;
 
 public sealed class ContentLinker(IFileSystem? fileSystem = null)
 {
-    private static readonly string DoubleNewLine = $"{Environment.NewLine}{Environment.NewLine}";
-
     public async Task<(int LinkedBlocks, int TotalBlocks)> LinkAsync(
         string inputPath,
         string outputPath,
@@ -29,22 +26,22 @@ public sealed class ContentLinker(IFileSystem? fileSystem = null)
         int unmatchedBlocks = 0;
 
         var transformer = new ContentTransformer(inputPath, outputPath, fileSystem);
-        await transformer.TransformAsync(LinkTextBlock);
+        await transformer.TransformAsync(LinkChunk);
 
         return (matchedBlocks, matchedBlocks + unmatchedBlocks);
 
-        TextBlock LinkTextBlock(TextBlock textBlock)
+        ContentBlockChunk LinkChunk(ContentBlockChunk chunk)
         {
-            if (!string.IsNullOrWhiteSpace(textBlock.Text))
+            if (!string.IsNullOrWhiteSpace(chunk.Text))
             {
                 // Try exact phrase match first...
-                var query = queryParser.Parse(@$"""{textBlock.Text}""");
+                var query = queryParser.Parse(@$"""{chunk.Text}""");
                 var hits = searcher.Search(query, 1);
                 if (hits.TotalHits == 0)
                 {
                     // ... but fall back to token match if no hits
                     var booleanQuery = new BooleanQuery();
-                    using (var tokenStream = analyzer.GetTokenStream(ContentIndex.FieldNames.Text, textBlock.Text))
+                    using (var tokenStream = analyzer.GetTokenStream(ContentIndex.FieldNames.Text, chunk.Text))
                     {
                         tokenStream.Reset();
                         while (tokenStream.IncrementToken())
@@ -60,15 +57,14 @@ public sealed class ContentLinker(IFileSystem? fileSystem = null)
                 {
                     var doc = searcher.Doc(hits.ScoreDocs[0].Doc);
                     var blockJson = doc.Get(ContentIndex.FieldNames.Block);
-                    var blockJsonDoc = JsonDocument.Parse(blockJson);
-                    var linkedBlock = ContentBlock.Deserialize(blockJsonDoc) ??
+                    var linkedBlock = ContentBlock.DeserializeJson(blockJson) ??
                         throw new InvalidDataException();
 
                     matchedBlocks++;
-                    return textBlock with
+                    return chunk with
                     {
                         // TODO add links (but keep copy to references as an option or separate command)
-                        References = textBlock.References.AddRange(
+                        References = chunk.References.AddRange(
                             CopyLinkedBlockToReferences(linkedBlock, linkName))
                     };
                 }
@@ -78,58 +74,46 @@ public sealed class ContentLinker(IFileSystem? fileSystem = null)
                     unmatchedBlocks++;
                 }
             }
-            return textBlock;
+            return chunk;
         }
     }
 
-    private static IEnumerable<KeyValuePair<string, ContentTextReference>> CopyLinkedBlockToReferences(ContentBlock linkedBlock, string linkName)
+    private static IEnumerable<KeyValuePair<string, Chunk>> CopyLinkedBlockToReferences(
+        ContentBlock linkedBlock,
+        string linkName)
     {
-        switch (linkedBlock)
+        var refs = new Dictionary<string, List<IMarkdownText>>();
+        foreach (var chunk in linkedBlock.Chunks)
         {
-            case TextBlock textBlock:
-                foreach (var reference in GetRefsForTextBlock(textBlock))
+            foreach (var (refKey, refText) in GetRefsForChunk(chunk))
+            {
+                if (!refs.TryGetValue(refKey, out var list))
                 {
-                    yield return KeyValuePair.Create(
-                        reference.Key,
-                        new ContentTextReference { Text = reference.Value });
+                    list = [];
+                    refs.Add(refKey, list);
                 }
-                break;
-
-            case CompositeBlock compositeBlock:
-                var refs = new Dictionary<string, List<string>>();
-                foreach (var nestedBlock in compositeBlock.Blocks)
+                list.Add(refText);
+            }
+        }
+        foreach (var reference in refs)
+        {
+            yield return KeyValuePair.Create(
+                reference.Key,
+                new Chunk
                 {
-                    foreach (var reference in GetRefsForTextBlock(nestedBlock))
-                    {
-                        if (!refs.TryGetValue(reference.Key, out var list))
-                        {
-                            list = [];
-                            refs.Add(reference.Key, list);
-                        }
-                        list.Add(reference.Value);
-                    }
-                }
-                foreach (var reference in refs)
-                {
-                    yield return KeyValuePair.Create(
-                        reference.Key,
-                        new ContentTextReference { Text = string.Join(DoubleNewLine, reference.Value) });
-                }
-                break;
-
-            default:
-                throw new InvalidDataException();
+                    Text = reference.Value.CombineText(MarkdownSeparator.Paragraph).Text
+                });
         }
 
-        IEnumerable<KeyValuePair<string, string>> GetRefsForTextBlock(TextBlock textBlock)
+        IEnumerable<(string Key, IMarkdownText Text)> GetRefsForChunk(ContentBlockChunk chunk)
         {
-            if (!string.IsNullOrEmpty(textBlock.Text))
-                yield return KeyValuePair.Create(linkName, textBlock.Text);
+            if (!string.IsNullOrEmpty(chunk.Text))
+                yield return (linkName, chunk);
 
-            foreach (var (refName, reference) in textBlock.References)
+            foreach (var (refName, reference) in chunk.References)
             {
                 if (!string.IsNullOrEmpty(reference.Text))
-                    yield return KeyValuePair.Create($"{linkName}-{refName}", reference.Text);
+                    yield return ($"{linkName}-{refName}", reference);
             }
         }
     }

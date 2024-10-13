@@ -7,5 +7,5 @@ public interface IImageAnalysisProvider
 {
     string ImageAnalysisFileExtension { get; }
 
-    IEnumerable<TextBlock> ReadTextBlocks(IFileInfo imageAnalysisFile);
+    Task<IReadOnlyCollection<Chunk>> ReadTextChunksAsync(IFileInfo imageAnalysisFile);
 }

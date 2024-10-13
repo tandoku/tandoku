@@ -1,94 +1,76 @@
 ﻿namespace Tandoku.Content;
 
 using System.Collections.Immutable;
-using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using Tandoku.Serialization;
-using Tandoku.Yaml;
 using YamlDotNet.Core;
 using YamlDotNet.Serialization;
 
-[JsonDerivedType(typeof(TextBlock))]
-[JsonDerivedType(typeof(CompositeBlock))]
-public abstract record ContentBlock : IYamlStreamSerializable<ContentBlock>
+public record Block
 {
-    private static readonly ReadOnlyMemory<byte> blocksProperty = Encoding.UTF8.GetBytes("blocks");
+    [YamlMember(Order = 20)]
+    public BlockImage? Image { get; init; }
 
+    [YamlMember(Order = 40)]
+    public BlockSource? Source { get; init; }
+
+    protected Block CloneBlock() => new(this);
+} 
+
+public sealed record ContentBlock : Block, IYamlStreamSerializable<ContentBlock>
+{
+    [YamlMember(Order = 10)]
     public string? Id { get; init; }
 
-    public ContentImage? Image { get; init; }
+    [YamlMember(Order = 30)]
+    public ContentBlockAudio? Audio { get; init; }
 
-    public ContentAudio? Audio { get; init; }
+    [YamlMember(Order = 50)]
+    public IImmutableDictionary<string, Block> References { get; init; } =
+        ImmutableSortedDictionary<string, Block>.Empty;
 
-    public ContentSource? Source { get; init; }
+    [YamlMember(Order = 60)]
+    public IImmutableList<ContentBlockChunk> Chunks { get; init; } = [];
 
-#if DEBUG // TODO remove this when contract is fully specified
-    private string? OriginalJson { get; set; }
-#endif
+    public ContentBlockChunk SingleChunk() => this.Chunks.Count switch
+    {
+        0 => ContentBlockChunk.Empty,
+        1 => this.Chunks[0],
+        _ => throw new InvalidOperationException("Multiple chunks not expected on this block."),
+    };
+
+    // It seems like ```new Block(this)``` should just work since the copy constructor
+    // is accessible via base() from a constructor on this class, but it doesn't work.
+    public Block ToBlock() => this.CloneBlock();
 
     public string ToJsonString() =>
         JsonSerializer.Serialize(this, SerializationFactory.JsonOptions);
 
-    internal abstract T Accept<T>(ContentBlockVisitor<T> visitor);
-
-    static ValueTask<ContentBlock?> IYamlStreamSerializable<ContentBlock>.DeserializeYamlDocumentAsync(
-        Parser yamlParser,
-        YamlToJsonConverter jsonConverter)
-    {
-        var jsonDoc = jsonConverter.ConvertToJsonDocument(yamlParser);
-        var block = Deserialize(jsonDoc);
-#if DEBUG
-        if (block is not null)
-            block.OriginalJson = jsonDoc.RootElement.ToString();
-#endif
-        return ValueTask.FromResult(block);
-    }
-
-    internal static ContentBlock? Deserialize(JsonDocument jsonDocument)
-    {
-        return jsonDocument.RootElement.ValueKind switch
-        {
-            JsonValueKind.Object => jsonDocument.RootElement.TryGetProperty(blocksProperty.Span, out _) ?
-                jsonDocument.Deserialize<CompositeBlock>(SerializationFactory.JsonOptions) :
-                jsonDocument.Deserialize<TextBlock>(SerializationFactory.JsonOptions),
-
-            JsonValueKind.Null => null,
-
-            _ => throw new InvalidDataException(
-                    $"Unexpected document value of type '{jsonDocument.RootElement.ValueKind}' in YAML stream"),
-        };
-    }
+    public static ContentBlock? DeserializeJson(string json) =>
+        JsonSerializer.Deserialize<ContentBlock>(json, SerializationFactory.JsonOptions);
 }
 
-public sealed record ContentImage
+public interface IMediaReference
 {
-    public string? Name { get; init; }
-    public ContentImageRegion? Region { get; init; }
+    string? Name { get; }
 }
 
-public sealed record ContentImageRegion
+public sealed record BlockImage : IMediaReference
 {
-    // TODO BoundingBox
-    public IImmutableList<ContentRegionSegment> Segments { get; init; } = [];
+    public required string Name { get; init; }
 }
 
-public sealed record ContentRegionSegment
+public sealed record ContentBlockAudio : IMediaReference
 {
-    public required string Text { get; init; }
-    public double Confidence { get; init; }
+    public required string Name { get; init; }
 }
 
-public sealed record ContentAudio
-{
-    public string? Name { get; init; }
-}
-
-public sealed record ContentSource
+public sealed record BlockSource
 {
     public int? Ordinal { get; init; }
-    public string? Resource { get; init; }
     public TimecodePair? Timecodes { get; init; }
+    public string? Note { get; init; }
+    public string? Resource { get; init; }
 }
 
 public readonly record struct TimecodePair(TimeSpan Start, TimeSpan End) : IComparable<TimecodePair>
@@ -110,33 +92,45 @@ public readonly record struct TimecodePair(TimeSpan Start, TimeSpan End) : IComp
     }
 }
 
-public sealed record TextBlock : ContentBlock, IMarkdownText
+public record Chunk : IMarkdownText
 {
-    [YamlMember(ScalarStyle = ScalarStyle.Literal)]
+    [YamlMember(ScalarStyle = ScalarStyle.Literal, Order = 10)]
     public string? Text { get; init; }
-    public IImmutableDictionary<string, ContentTextReference> References { get; init; } =
-        ImmutableSortedDictionary<string, ContentTextReference>.Empty;
 
-    internal override T Accept<T>(ContentBlockVisitor<T> visitor) => visitor.Visit(this);
+    // TODO Actor, Kind
+
+    [YamlMember(Order = 40)]
+    public ChunkImage? Image { get; init; }
 }
 
-public record ContentReference
+public sealed record ContentBlockChunk : Chunk
 {
-    public ContentImage? Image { get; init; }
-    public ContentSource? Source { get; init; }
+    public static ContentBlockChunk Empty { get; } = new();
+
+    public ContentBlockChunk() { }
+
+    public ContentBlockChunk(Chunk chunk) : base(chunk) { }
+
+    // TODO Tokens
+
+    [YamlMember(Order = 90)]
+    public IImmutableDictionary<string, Chunk> References { get; init; } =
+        ImmutableSortedDictionary<string, Chunk>.Empty;
 }
 
-public sealed record ContentTextReference : ContentReference, IMarkdownText
+public sealed record ChunkImage
 {
-    [YamlMember(ScalarStyle = ScalarStyle.Literal)]
-    public string? Text { get; init; }
+    // TODO Bounds
+    public IImmutableList<ImageTextSpan> TextSpans { get; init; } = [];
 }
 
-public sealed record CompositeBlock : ContentBlock
+public sealed record ImageTextSpan
 {
-    public IImmutableList<TextBlock> Blocks { get; init; } = [];
-    public IImmutableDictionary<string, ContentReference> References { get; init; } =
-        ImmutableSortedDictionary<string, ContentReference>.Empty;
+    [YamlMember(Order = 10)]
+    public required string Text { get; init; }
 
-    internal override T Accept<T>(ContentBlockVisitor<T> visitor) => visitor.Visit(this);
+    // TODO Bounds
+
+    [YamlMember(Order = 30)]
+    public double Confidence { get; init; }
 }
