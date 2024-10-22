@@ -21,7 +21,7 @@ if (Test-Path $scriptsPath) {
     Write-Warning "Cannot find tandoku scripts path $scriptsPath"
 }
 
-$binPath = Join-Path (Split-Path $scriptsPath -Parent) 'src/Tandoku.CommandLine/bin/Debug/net8.0'
+$binPath = Join-Path (Split-Path $scriptsPath -Parent) 'src/Tandoku.CommandLine/bin/Debug/net9.0'
 if (Test-Path $binPath) {
     Write-Host "Adding tandoku bin path $binPath to PATH"
     $env:PATH = '{0}{1}{2}' -f $binPath,[IO.Path]::PathSeparator,$env:PATH

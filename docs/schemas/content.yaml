@@ -19,7 +19,7 @@ references?:
 chunks?: # ContentBlockChunk
 - text?: <markdown>
   actor?: <markdown>
-  kind?: primary <default> |
+  role?: primary <default> |
     secondary |
     heading |
     meta |

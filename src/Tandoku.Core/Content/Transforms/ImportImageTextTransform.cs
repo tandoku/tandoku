@@ -1,6 +1,5 @@
 ﻿namespace Tandoku.Content.Transforms;
 
-using System.Collections.Immutable;
 using System.IO.Abstractions;
 using Tandoku.Images;
 using Tandoku.Volume;
@@ -9,16 +8,19 @@ public sealed class ImportImageTextTransform : IContentBlockTransform
 {
     private readonly IImageAnalysisProvider provider;
     private readonly VolumeInfo volumeInfo;
+    private readonly ChunkRole? role;
     private readonly IFileSystem fileSystem;
     private readonly IDirectoryInfo imagesDir;
 
     public ImportImageTextTransform(
         IImageAnalysisProvider provider,
         VolumeInfo volumeInfo,
+        ChunkRole? role = null,
         IFileSystem? fileSystem = null)
     {
         this.provider = provider;
         this.volumeInfo = volumeInfo;
+        this.role = role;
         this.fileSystem = fileSystem ?? new FileSystem();
 
         this.imagesDir = this.fileSystem
@@ -37,25 +39,13 @@ public sealed class ImportImageTextTransform : IContentBlockTransform
                 await this.provider.ReadTextChunksAsync(imageAnalysisFile) is var chunks &&
                 chunks.Count > 0)
             {
-                // TODO - just add new chunks, leave existing ref on its own
-                // and add merge-ref-chunks / MergeRefChunksTransform to merge with single chunk if only one, otherwise leave separate
-                // later could add LLM/embedding step to identify relevant text and discard others
-                if (block.Chunks.Count > 0)
+                yield return block with
                 {
-                    yield return block with
+                    Chunks = block.Chunks.AddRange(chunks.Select(c => new ContentBlockChunk(c) with
                     {
-                        Chunks = new[] { new ContentBlockChunk(chunks.First()) with { References = block.Chunks[0].References } }.Concat(
-                            block.Chunks.Skip(1)).Concat(
-                            chunks.Skip(1).Select(c => new ContentBlockChunk(c))).ToImmutableList(),
-                    };
-                }
-                else
-                {
-                    yield return block with
-                    {
-                        Chunks = block.Chunks.AddRange(chunks.Select(c => new ContentBlockChunk(c))),
-                    };
-                }
+                        Role = this.role ?? c.Role,
+                    })),
+                };
             }
             else
             {

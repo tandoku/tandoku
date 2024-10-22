@@ -141,15 +141,16 @@ function CopyItemIfNewer {
         $PassThru
     )
 
+    $destIsContainer = Test-Path $Destination -PathType Container
     Get-ChildItem $Path -Filter $Filter -Include $Include |
         Foreach-Object {
             # NOTE: this won't handle $Destination with wildcards
-            if (Test-Path $Destination -PathType Container) {
-                $targetPath = Join-Path $Destination (Split-Path $_ -Leaf)
+            if ($destIsContainer) {
+                $targetPath = "$Destination/$($_.Name)"
             } else {
                 $targetPath = $Destination
             }
-            $target = (Test-Path $targetPath) ? (Get-Item -LiteralPath $targetPath) : $null
+            $target = Get-Item -LiteralPath $targetPath -ErrorAction SilentlyContinue
             if (-not $target -or ($target.LastWriteTime -lt $_.LastWriteTime)) {
                 Copy-Item -LiteralPath $_ -Destination $Destination -Force:$Force -PassThru:$PassThru
             }
@@ -218,6 +219,31 @@ function ExpandArchive([String]$Path, [String]$DestinationPath, [Switch]$Clobber
     } else {
         Expand-Archive -Path $Path -DestinationPath $DestinationPath
     }
+}
+
+function ImportYaml($LiteralPath) {
+    if (-not (Test-Path -LiteralPath $LiteralPath)) {
+        throw "File not found: $LiteralPath"
+    }
+
+    if (TestCommand yq) {
+        # Use yq to convert YAML to JSON as ConvertFrom-Json is much faster
+        # than ConvertFrom-Yaml for large YAML documents/streams
+        # Note that yq needs Console set to UTF-8 encoding (same as tandoku CLI)
+        return (yq -o=json -I=0 '.' $LiteralPath | ConvertFrom-Json -AsHashtable)
+    } else {
+        Write-Warning 'Using ConvertFrom-Yaml because yq is not available'
+        return (Get-Content -LiteralPath $LiteralPath | ConvertFrom-Yaml -AllDocuments -Ordered)
+    }
+}
+
+# TODO - update this to write stream of documents
+function ExportYaml($LiteralPath) {
+    if (-not $LiteralPath) {
+        throw "Missing LiteralPath parameter"
+    }
+
+    $input | ConvertTo-Yaml -OutFile $LiteralPath -Force
 }
 
 function GetRelativePath([string]$basePath, [string]$path) {

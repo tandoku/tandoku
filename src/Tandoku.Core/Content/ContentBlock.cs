@@ -1,7 +1,9 @@
 ﻿namespace Tandoku.Content;
 
 using System.Collections.Immutable;
+using System.Runtime.Serialization;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Tandoku.Serialization;
 using YamlDotNet.Core;
 using YamlDotNet.Serialization;
@@ -97,10 +99,27 @@ public record Chunk : IMarkdownText
     [YamlMember(ScalarStyle = ScalarStyle.Literal, Order = 10)]
     public string? Text { get; init; }
 
-    // TODO Actor, Kind
+    // TODO Actor
+
+    [YamlMember(Order = 30)]
+    public ChunkRole Role { get; init; }
 
     [YamlMember(Order = 40)]
     public ChunkImage? Image { get; init; }
+
+    protected bool IsEmpty() =>
+        this.Text is null &&
+        this.Image is null;
+}
+
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum ChunkRole
+{
+    Primary,
+    Secondary,
+    [EnumMember(Value = "on-screen-text")]
+    [JsonStringEnumMemberName("on-screen-text")]
+    OnScreenText,
 }
 
 public sealed record ContentBlockChunk : Chunk
@@ -116,6 +135,8 @@ public sealed record ContentBlockChunk : Chunk
     [YamlMember(Order = 90)]
     public IImmutableDictionary<string, Chunk> References { get; init; } =
         ImmutableSortedDictionary<string, Chunk>.Empty;
+
+    public bool HasReferencesOnly() => this.References.Count > 0 && base.IsEmpty();
 }
 
 public sealed record ChunkImage

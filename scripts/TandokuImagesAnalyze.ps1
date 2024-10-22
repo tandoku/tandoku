@@ -17,7 +17,7 @@ Import-Module "$PSScriptRoot/modules/tandoku-utils.psm1" -Scope Local
 Import-Module "$PSScriptRoot/modules/tandoku-volume.psm1" -Scope Local
 
 function GetImagesToAnalyze($contentFilePath) {
-    $content = Get-Content $contentFilePath | ConvertFrom-Yaml -AllDocuments -Ordered
+    $content = ImportYaml $contentFilePath
 
     foreach ($block in $content) {
         $image = $block.image.name

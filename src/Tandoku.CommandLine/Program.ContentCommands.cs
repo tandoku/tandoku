@@ -151,23 +151,26 @@ public sealed partial class Program
                 this.CreateLowConfidenceTextCommand(),
                 this.CreateImportMediaCommand(),
                 this.CreateImportImageTextCommand(),
+                this.CreateMergeRefChunksCommand(),
             };
 
         private Command CreateRemoveNonJapaneseTextCommand()
         {
             var pathArgsBinder = new InputOutputPathArgsBinder();
+            var roleOption = EnumOption.CreateNullable<ChunkRole>(["--role", "-r"], "Only remove chunks with the specified role");
 
-            var command = new Command("remove-non-japanese-text", "Removes text blocks without any Japanese text")
+            var command = new Command("remove-non-japanese-text", "Removes chunks without any Japanese text")
             {
                 pathArgsBinder,
+                roleOption,
             };
 
-            command.SetHandler(async (pathArgs) =>
+            command.SetHandler(async (pathArgs, role) =>
             {
                 await this.RunContentTransformAsync(
                     pathArgs,
-                    t => t.TransformAsync(new RemoveNonJapaneseTextTransform()));
-            }, pathArgsBinder);
+                    t => t.TransformAsync(new RemoveNonJapaneseTextTransform(role)));
+            }, pathArgsBinder, roleOption);
 
             return command;
         }
@@ -245,29 +248,49 @@ public sealed partial class Program
         {
             var pathArgsBinder = new InputOutputPathArgsBinder();
             var providerOption = new Option<ImageAnalysisProvider>(["--provider", "-p"], "Image analysis provider") { IsRequired = true };
+            var roleOption = EnumOption.CreateNullable<ChunkRole>(["--role", "-r"], "Sets the specified role on recognized text");
             var volumeBinder = program.CreateVolumeBinder();
 
             var command = new Command("import-image-text", "Imports analyzed image text into the content")
             {
                 pathArgsBinder,
                 providerOption,
+                roleOption,
                 volumeBinder,
             };
 
-            command.SetHandler(async (pathArgs, provider, volumeDirectory) =>
+            command.SetHandler(async (pathArgs, provider, role, volumeDirectory) =>
             {
                 var volumeManager = program.CreateVolumeManager();
                 var volumeInfo = await volumeManager.GetInfoAsync(volumeDirectory.FullName);
                 var analyisProvider = CreateImageAnalysisProvider(provider);
-                var transform = new ImportImageTextTransform(analyisProvider, volumeInfo, program.fileSystem);
+                var transform = new ImportImageTextTransform(analyisProvider, volumeInfo, role, program.fileSystem);
 
                 await this.RunContentTransformAsync(
                     pathArgs,
                     t => t.TransformAsync(transform));
-            }, pathArgsBinder, providerOption, volumeBinder);
+            }, pathArgsBinder, providerOption, roleOption, volumeBinder);
 
             return command;
+        }
 
+        private Command CreateMergeRefChunksCommand()
+        {
+            var pathArgsBinder = new InputOutputPathArgsBinder();
+
+            var command = new Command("merge-ref-chunks", "Merges reference chunks into following chunks")
+            {
+                pathArgsBinder,
+            };
+
+            command.SetHandler(async (pathArgs) =>
+            {
+                await this.RunContentTransformAsync(
+                    pathArgs,
+                    t => t.TransformAsync(new MergeRefChunksTransform()));
+            }, pathArgsBinder);
+
+            return command;
         }
 
         private Task RunContentTransformAsync(InputOutputPathArgs args, Func<ContentTransformer, Task> transform) =>
