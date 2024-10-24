@@ -248,10 +248,7 @@ function ExportYaml {
     )
 
     begin {
-        # Set working directory for .NET process before using .NET File APIs
-        # so that paths are resolved relative to PowerShell's current location
-        [Environment]::CurrentDirectory = (Get-Location -PSProvider FileSystem).ProviderPath
-
+        SetCurrentDirectory
         $writer = [IO.File]::CreateText($Path)
         $first = $true
     }
@@ -266,6 +263,12 @@ function ExportYaml {
     end {
         $writer.Close()
     }
+}
+
+function SetCurrentDirectory {
+    # Set working directory for .NET process before using .NET File APIs
+    # so that paths are resolved relative to PowerShell's current location
+    [Environment]::CurrentDirectory = (Get-Location -PSProvider FileSystem).ProviderPath
 }
 
 function GetRelativePath([string]$basePath, [string]$path) {
