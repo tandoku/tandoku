@@ -237,13 +237,35 @@ function ImportYaml($LiteralPath) {
     }
 }
 
-# TODO - update this to write stream of documents
-function ExportYaml($LiteralPath) {
-    if (-not $LiteralPath) {
-        throw "Missing LiteralPath parameter"
-    }
+function ExportYaml {
+    param(
+        [Parameter(Mandatory)]
+        [String]
+        $Path,
 
-    $input | ConvertTo-Yaml -OutFile $LiteralPath -Force
+        [Parameter(Mandatory, ValueFromPipeline)]
+        $InputObject
+    )
+
+    begin {
+        # Set working directory for .NET process before using .NET File APIs
+        # so that paths are resolved relative to PowerShell's current location
+        [Environment]::CurrentDirectory = (Get-Location -PSProvider FileSystem).ProviderPath
+
+        $writer = [IO.File]::CreateText($Path)
+        $first = $true
+    }
+    process {
+        if ($first) {
+            $first = $false
+        } else {
+            $writer.WriteLine('---')
+        }
+        $writer.WriteLine((ConvertTo-Yaml $InputObject).TrimEnd())
+    }
+    end {
+        $writer.Close()
+    }
 }
 
 function GetRelativePath([string]$basePath, [string]$path) {

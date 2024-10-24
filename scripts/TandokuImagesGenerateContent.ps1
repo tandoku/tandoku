@@ -20,7 +20,7 @@ Import-Module "$PSScriptRoot/modules/tandoku-volume.psm1" -Scope Local
 
 function GenerateBlocksFromImages {
     param(
-        [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
+        [Parameter(Mandatory, ValueFromPipeline)]
         [String]
         $ImagePath
     )
@@ -39,52 +39,24 @@ function GenerateBlocksFromImages {
     }
 }
 
-# TODO - consider factoring this out and reusing in TandokuCsvGenerateContent
 function SaveContentBlocks {
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory)]
+        [String]
         $Path,
 
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory, ValueFromPipelineByPropertyName)]
         [String]
-        $VolumeSlug,
+        $Name,
 
-        [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
-        $BlockResult
+        [Parameter(Mandatory, ValueFromPipelineByPropertyName)]
+        $Group
     )
-    begin {
-        $currentContentBaseName = $null
-    }
+
     process {
-        $fileName = $BlockResult.FileName
-        $block = $BlockResult.Block
-
-        if ($SplitByFileName -and $fileName -match $SplitByFileName) {
-            $contentBaseName = $Matches.Count -gt 1 ? $Matches[1] : $Matches[0]
-        } else {
-            $contentBaseName = $VolumeSlug
-        }
-
-        if ($contentBaseName -ne $currentContentBaseName) {
-            if ($writer) {
-                $writer.Close()
-                Write-Output $contentPath
-            }
-            $currentContentBaseName = $contentBaseName
-            $contentFileName = "$contentBaseName.content.yaml"
-            $contentPath = "$Path/$contentFileName"
-            CreateDirectoryIfNotExists $Path
-            $writer = [IO.File]::CreateText($contentPath)
-        }
-
-        $writer.WriteLine((ConvertTo-Yaml $block).TrimEnd())
-        $writer.WriteLine('---')
-    }
-    end {
-        if ($writer) {
-            $writer.Close()
-            Write-Output $contentPath
-        }
+        $contentPath = "$Path/$Name.content.yaml"
+        $Group.Block | ExportYaml $contentPath
+        $contentPath
     }
 }
 
@@ -108,10 +80,19 @@ foreach ($imageExtension in $imageExtensions) {
     $images += Get-ChildItem -Path $InputPath -Filter "*$imageExtension"
 }
 
+CreateDirectoryIfNotExists $OutputPath
+
 $outputItems = $images |
     WritePipelineProgress -Activity 'Generating content' -ItemName 'image' -TotalCount $images.Count |
     GenerateBlocksFromImages |
-    SaveContentBlocks $OutputPath $volumeSlug
+    Group-Object {
+        if ($SplitByFileName -and $_.FileName -match $SplitByFileName) {
+            return $Matches.Count -gt 1 ? $Matches[1] : $Matches[0]
+        } else {
+            return $volumeSlug
+        }
+    } |
+    SaveContentBlocks $OutputPath
 
 if ($outputItems) {
     TandokuVersionControlAdd -Path $outputItems -Kind text
