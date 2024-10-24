@@ -1,3 +1,5 @@
+# TODO - remove this script in favor of using Import-Csv & Export-Yaml directly
+# TBD - could be useful to have an Export-TandokuContent that has parameters for properties, skips null/unspecified values
 param(
     [Parameter(Mandatory=$true)]
     [String]
@@ -28,9 +30,10 @@ param(
     $BaseFileName,
 
     # Columns: hashtable of column name to objects with these properties:
-    # - Target: #section|text|actor|image.name|reference.en.text|reference.en.actor|source.resource
-    # - BlockOrder: int
-    # - ContentKind: <see schemas/content.yaml>
+    # - TargetObject: section|block|chunk
+    # - TargetProperty: <e.g. text|actor|image.name|references.en.text|references.en.actor|source.resource|source.note>
+    # - ChunkOrder: int
+    # - ContentKind: <see schemas/content.yaml> # TODO why is this not just a target property? need more flexibility for mapping?
     # - Extractor: scriptblock
     [Parameter()]
     [Hashtable]

@@ -45,7 +45,7 @@ param(
 Import-Module "$PSScriptRoot/modules/tandoku-utils.psm1" -Scope Local
 
 function GenerateMarkdown($contentPath) {
-    $content = ImportYaml $contentPath
+    $content = Import-Yaml $contentPath
 
     # Note that a unique id prefix is used anytime there are multiple input files, whether or not the output
     # will be combined into a single markdown file.

@@ -99,8 +99,10 @@ public record Chunk : IMarkdownText
     [YamlMember(ScalarStyle = ScalarStyle.Literal, Order = 10)]
     public string? Text { get; init; }
 
-    // TODO Actor
+    [YamlMember(Order = 20)]
+    public string? Actor { get; init; }
 
+    // TODO move Role to ContentBlockChunk? doesn't make sense for reference to have different role...
     [YamlMember(Order = 30)]
     public ChunkRole Role { get; init; }
 

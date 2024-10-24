@@ -55,7 +55,7 @@ function SaveContentBlocks {
 
     process {
         $contentPath = "$Path/$Name.content.yaml"
-        $Group.Block | ExportYaml $contentPath
+        $Group.Block | Export-Yaml $contentPath
         $contentPath
     }
 }

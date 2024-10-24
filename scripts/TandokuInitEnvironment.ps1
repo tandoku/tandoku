@@ -36,3 +36,6 @@ if ($LibraryPath) {
 if ($Dev) {
     Import-Module (Join-Path $scriptsPath 'modules/tandoku-dev.psm1') -Scope Global
 }
+
+# TODO - load public modules on-demand (move each to its own directory, update PSModulePath)
+Import-Module (Join-Path $scriptsPath 'modules/tandoku-yaml.psm1') -Scope Global
