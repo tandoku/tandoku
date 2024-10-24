@@ -43,3 +43,5 @@ function Export-Yaml {
         $writer.Close()
     }
 }
+
+Export-ModuleMember -Function *-*
