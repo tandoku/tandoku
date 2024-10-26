@@ -1,3 +1,5 @@
+# TODO - rename this module to tandoku-video.psm1 (or merge to tandoku-media.psm1)
+
 function ExtractFilmQualifierFromFileName($fileName) {
     return ($fileName -match 's\d{1,4}e\d{1,4}' ? "-$($Matches[0])".ToLowerInvariant() : $null)
 }

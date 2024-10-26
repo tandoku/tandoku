@@ -30,7 +30,7 @@ CreateDirectoryIfNotExists $OutputPath
 $targetSubtitles = @()
 foreach ($sourceVideo in $sourceVideos) {
     $fileName = Split-Path $sourceVideo -LeafBase
-    $fileName = "$fileName.srt"
+    $fileName = $Language ? "$fileName.$Language.ass" : "$fileName.ass"
     $targetPath = Join-Path $OutputPath $fileName
     if (Test-Path $targetPath) {
         Write-Warning "$targetPath already exists, skipping subtitle extraction"

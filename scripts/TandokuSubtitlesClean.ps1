@@ -39,9 +39,7 @@ CreateDirectoryIfNotExists $OutputPath
 
 # SubtitleEdit is a GUI application so | Write-Output is used to wait for completion
 # (PowerShell does not wait for GUI applications to finish by default)
-# NOTE - using SubRip for now instead of AdvancedSubStationAlpha due to
-# https://github.com/SubtitleEdit/subtitleedit/issues/8707
-SubtitleEdit /convert *.* SubRip `
+SubtitleEdit /convert *.* AdvancedSubStationAlpha `
     /inputFolder:$InputPath `
     /outputFolder:$OutputPath `
     /overwrite `
@@ -50,7 +48,7 @@ SubtitleEdit /convert *.* SubRip `
     /MergeSameTexts |
     Write-Output
 
-$targetSubtitles = Get-ChildItem "$OutputPath/*.srt"
+$targetSubtitles = Get-ChildItem "$OutputPath/*.ass"
 if ($targetSubtitles) {
     TandokuVersionControlAdd -Path $targetSubtitles -Kind text
 }

@@ -231,6 +231,7 @@ function GetRelativePath([string]$basePath, [string]$path) {
     return [IO.Path]::GetRelativePath($basePath, $path).Replace('\', '/')
 }
 
+# TODO - move these to tandoku-images, tandoku-audio modules (or maybe combine with tandoku-films/video to tandoku-media ?)
 function GetImageExtensions {
     return @('.jpg','.jpeg','.png')
 }
