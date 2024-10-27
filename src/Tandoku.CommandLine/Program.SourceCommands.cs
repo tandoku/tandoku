@@ -1,8 +1,8 @@
 ﻿namespace Tandoku.CommandLine;
 
 using System.CommandLine;
+using Spectre.Console;
 using Tandoku.Volume;
-
 public sealed partial class Program
 {
     private Command CreateSourceCommand() =>

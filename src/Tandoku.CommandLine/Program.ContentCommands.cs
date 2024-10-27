@@ -1,6 +1,7 @@
 ﻿namespace Tandoku.CommandLine;
 
 using System.CommandLine;
+using Spectre.Console;
 using Tandoku.Content;
 using Tandoku.Content.Alignment;
 using Tandoku.Content.Transforms;

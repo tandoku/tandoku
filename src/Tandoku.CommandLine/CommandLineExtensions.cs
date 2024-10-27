@@ -4,6 +4,7 @@ using System.CommandLine;
 using System.CommandLine.IO;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using Spectre.Console;
 
 internal interface ICommandBinder
 {
@@ -16,11 +17,7 @@ internal static class CommandLineExtensions
 
     internal static void Add(this Command command, ICommandBinder binder) => binder.AddToCommand(command);
 
-    internal static void Write(this IConsole console, string value) => console.Out.Write(value);
-    internal static void WriteLine(this IConsole console) => console.Out.WriteLine();
-    internal static void WriteLine(this IConsole console, string value) => console.Out.WriteLine(value);
-
-    internal static void WriteJsonOutput(this IConsole console, object obj)
+    internal static void WriteJsonOutput(this IAnsiConsole console, object obj)
     {
         var options = new JsonSerializerOptions
         {

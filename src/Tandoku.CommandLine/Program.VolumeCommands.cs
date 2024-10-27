@@ -3,6 +3,7 @@
 using System.CommandLine;
 using System.CommandLine.Binding;
 using System.IO.Abstractions;
+using Spectre.Console;
 using Tandoku.Volume;
 
 public sealed partial class Program

@@ -5,25 +5,35 @@ using System.CommandLine.Builder;
 using System.CommandLine.Invocation;
 using System.CommandLine.IO;
 using System.CommandLine.Parsing;
-using System.CommandLine.Rendering;
 using System.IO.Abstractions;
 using System.Text;
+using Spectre.Console;
 using Tandoku.CommandLine.Abstractions;
 
 public sealed partial class Program
 {
-    private readonly IConsole console;
+    private readonly IAnsiConsole console;
+    private readonly IConsole consoleWrapper;
     private readonly IFileSystem fileSystem;
     private readonly IEnvironment environment;
 
     private readonly Option<bool> jsonOutputOption = new(["--json-output"], "Output results as JSON");
 
     public Program(
-        IConsole? console = null,
+        IAnsiConsole? console = null,
         IFileSystem? fileSystem = null,
         IEnvironment? environment = null)
     {
-        this.console = console ?? new SystemConsole();
+        if (console is not null)
+        {
+            this.console = console;
+            this.consoleWrapper = new AnsiConsoleWrapper(console);
+        }
+        else
+        {
+            this.console = AnsiConsole.Console;
+            this.consoleWrapper = new SystemConsole();
+        }
         this.fileSystem = fileSystem ?? new FileSystem();
         this.environment = environment ?? new SystemEnvironment();
     }
@@ -40,12 +50,12 @@ public sealed partial class Program
     public Task<int> RunAsync(string[] args)
     {
         var parser = this.BuildCommandLineParser();
-        return parser.InvokeAsync(args, this.console);
+        return parser.InvokeAsync(args, this.consoleWrapper);
     }
     public Task<int> RunAsync(string commandLine)
     {
         var parser = this.BuildCommandLineParser();
-        return parser.InvokeAsync(commandLine, this.console);
+        return parser.InvokeAsync(commandLine, this.consoleWrapper);
     }
 
     private Parser BuildCommandLineParser()
@@ -83,22 +93,7 @@ public sealed partial class Program
 //#if !DEBUG
         static void HandleKnownException(Exception exception, InvocationContext context)
         {
-            // TODO - switch to Spectre.Console rendering and remove System.CommandLine.Rendering package ref
-            var terminal = context.Console.GetTerminal(preferVirtualTerminal: false);
-            if (terminal != null)
-            {
-                terminal.ResetColor();
-                terminal.ForegroundColor = ConsoleColor.Red;
-
-                terminal.Error.WriteLine(exception.Message);
-
-                terminal.ResetColor();
-            }
-            else
-            {
-                context.Console.Error.WriteLine(exception.Message);
-            }
-
+            AnsiConsole.MarkupLineInterpolated($"[red]{exception.Message}[/]");
             context.ExitCode = 1;
         }
 //#endif
@@ -282,5 +277,23 @@ public sealed partial class Program
                 Console.WriteLine($"Computed analytics written to input files");
             }, inputArg, corpusOpt);
         return command;
+    }
+
+    private class AnsiConsoleWrapper(IAnsiConsole console) : IConsole
+    {
+        public bool IsInputRedirected => false;
+        public bool IsOutputRedirected => false;
+        public bool IsErrorRedirected => false;
+        public IStandardStreamWriter Out { get; } = new StandardStreamWriter(console);
+        public IStandardStreamWriter Error { get; } = new StandardStreamWriter(console); // TODO - IAnsiConsole doesn't have error output...
+
+        private sealed class StandardStreamWriter(IAnsiConsole console) : IStandardStreamWriter
+        {
+            public void Write(string? value)
+            {
+                if (value is not null)
+                    console.Write(value);
+            }
+        }
     }
 }

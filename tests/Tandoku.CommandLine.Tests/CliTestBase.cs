@@ -1,8 +1,8 @@
 ﻿namespace Tandoku.CommandLine.Tests;
 
-using System.CommandLine.IO;
 using System.IO.Abstractions;
 using System.IO.Abstractions.TestingHelpers;
+using Spectre.Console.Testing;
 using YamlDotNet.Core;
 using YamlDotNet.Serialization;
 
@@ -39,7 +39,7 @@ public abstract class CliTestBase
 
         // Note: check Error first (and result code last) as this is most useful if test unexpectedly fails
         (this.console.Error.ToString()?.TrimEnd()).Should().Be(expectedError ?? string.Empty);
-        (this.console.Out.ToString()?.TrimEnd()).Should().Be(expectedOutput ?? string.Empty);
+        (this.console.Output.ToString()?.TrimEnd()).Should().Be(expectedOutput ?? string.Empty);
         result.Should().Be(expectedResult ?? (string.IsNullOrEmpty(expectedError) ? 0 : 1));
     }
 
@@ -50,7 +50,7 @@ public abstract class CliTestBase
         return new ConsoleTestOutput(
             result,
             this.console.Error.ToString(),
-            this.console.Out.ToString());
+            this.console.Output.ToString());
     }
 
     protected async Task RunAndVerifyAsync(string commandLine, bool jsonOutput = false)
