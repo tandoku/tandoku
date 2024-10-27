@@ -1,8 +1,6 @@
 ﻿namespace Tandoku.CommandLine;
 
 using System.CommandLine;
-using System.CommandLine.DragonFruit;
-using System.Reflection;
 
 internal static class Demos
 {
@@ -10,16 +8,30 @@ internal static class Demos
     {
         return new Command("demo")
         {
-            CreateDemoCommand("dictionary", nameof(RunDictionaryLookupDemo), "dict"),
-            CreateDemoCommand("tokenize", nameof(RunTokenizerDemo), "token"),
-            CreateDemoCommand("compile", nameof(RunDictionaryCompiler)),
+            CreateDemoCommand("dictionary", RunDictionaryLookupDemo, "dict"),
+            CreateDemoCommand("tokenize", new Option<bool>("dict"), RunTokenizerDemo, "token"),
+            CreateDemoCommand("compile", RunDictionaryCompiler),
         };
     }
 
-    private static Command CreateDemoCommand(string name, string method, params string[] aliases)
+    private static Command CreateDemoCommand(string name, Action handler, params string[] aliases)
+    {
+        var command = CreateDemoCommandCore(name, aliases);
+        command.SetHandler(handler);
+        return command;
+    }
+
+    private static Command CreateDemoCommand(string name, Option<bool> option, Action<bool> handler, params string[] aliases)
+    {
+        var command = CreateDemoCommandCore(name, aliases);
+        command.AddOption(option);
+        command.SetHandler(handler, option);
+        return command;
+    }
+
+    private static Command CreateDemoCommandCore(string name, string[] aliases)
     {
         var command = new Command(name);
-        command.ConfigureFromMethod(typeof(Demos).GetMethod(method, BindingFlags.NonPublic | BindingFlags.Static));
         foreach (var alias in aliases)
             command.AddAlias(alias);
         return command;

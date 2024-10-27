@@ -1,7 +1,6 @@
 ﻿namespace Tandoku.CommandLine;
 
 using System.CommandLine;
-using System.CommandLine.Invocation;
 using System.CommandLine.IO;
 using System.Text.Encodings.Web;
 using System.Text.Json;
@@ -14,13 +13,6 @@ internal interface ICommandBinder
 internal static class CommandLineExtensions
 {
     private const string NullOutputString = "<none>";
-
-    // TODO: remove when no longer used
-    internal static Command WithHandler(this Command command, ICommandHandler handler)
-    {
-        command.Handler = handler;
-        return command;
-    }
 
     internal static void Add(this Command command, ICommandBinder binder) => binder.AddToCommand(command);
 
