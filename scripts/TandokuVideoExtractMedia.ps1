@@ -35,6 +35,7 @@ $items = @()
 
 foreach ($subtitleFile in $subtitleFiles) {
     $baseName = Split-Path $subtitleFile -LeafBase
+    # TODO - don't use nested directory if $baseName -eq $volumeSlug
     $targetPath = "$OutputPath/$baseName"
     if (Test-Path "$targetPath/$baseName.tsv") {
         Write-Warning "Media for $baseName already exists in $targetPath, skipping extraction"

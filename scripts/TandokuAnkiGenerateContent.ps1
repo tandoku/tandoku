@@ -17,7 +17,7 @@ param(
 )
 
 # TODO - generalize as needed (other Jo-Mako decks - including audio, other Anki decks)
-# TODO - rewrite this to use Import-Csv and Export-Yaml directly
+# TODO - rewrite this to use Import-Csv and Export-Yaml directly (or Export-TandokuContent helper) - use new block/chunks format
 
 $formatNoteText = {
     param($text)
