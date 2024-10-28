@@ -199,6 +199,10 @@ public sealed class TimecodeContentAligner(string refName) : IContentAligner
 
         for (int i = startIndex; i < searchList.Count; i++)
         {
+            // TODO - figure out how to properly handle case that startIndex = -1
+            //if (i < 0)
+            //    break;
+
             var searchBlock = getSearchBlock(searchList[i]);
             if (searchBlock?.Source?.Timecodes is null)
                 continue;
