@@ -43,7 +43,7 @@ public sealed class SubtitleContentGenerator
         {
             ordinal++;
 
-            // TODO - move these into proper transforms
+            // TODO #7 - move these into proper transforms
             if (para.StartTime.TimeSpan > para.EndTime.TimeSpan)
                 continue;
             var text = para.Text;

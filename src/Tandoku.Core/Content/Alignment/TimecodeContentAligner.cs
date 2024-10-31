@@ -199,7 +199,7 @@ public sealed class TimecodeContentAligner(string refName) : IContentAligner
 
         for (int i = startIndex; i < searchList.Count; i++)
         {
-            // TODO - fix this properly (how to handle case that startIndex = -1)
+            // TODO #6 - fix this properly (how to handle case that startIndex = -1)
             if (i < 0)
                 continue;
 
