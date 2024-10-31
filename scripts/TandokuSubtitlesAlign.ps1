@@ -11,6 +11,8 @@ param(
     [String]
     $ReferencePath,
 
+    # TODO - invert these to positive parameters (DetectFps, DetectSplits, default to false)
+
     [Parameter()]
     [Switch]
     $NoFpsGuessing,

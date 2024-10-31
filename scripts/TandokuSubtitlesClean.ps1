@@ -39,10 +39,12 @@ CreateDirectoryIfNotExists $OutputPath
 
 # SubtitleEdit is a GUI application so | Write-Output is used to wait for completion
 # (PowerShell does not wait for GUI applications to finish by default)
+# TODO - more robust removal of .ass drawing mode content (/deletecontains below)
 SubtitleEdit /convert *.* AdvancedSubStationAlpha `
     /inputFolder:$InputPath `
     /outputFolder:$OutputPath `
     /overwrite `
+    /deletecontains:"\p1" `
     /RemoveUnicodeControlChars `
     /RemoveFormatting `
     /MergeSameTexts |

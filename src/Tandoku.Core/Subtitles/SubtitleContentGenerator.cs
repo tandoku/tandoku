@@ -2,6 +2,7 @@
 
 using System.IO.Abstractions;
 using System.Text;
+using System.Text.RegularExpressions;
 using Nikse.SubtitleEdit.Core.Common;
 using Tandoku.Content;
 using Tandoku.Serialization;
@@ -40,16 +41,26 @@ public sealed class SubtitleContentGenerator
         var ordinal = 0;
         foreach (var para in subtitle.Paragraphs)
         {
+            ordinal++;
+
+            // TODO - move these into proper transforms
+            if (para.StartTime.TimeSpan > para.EndTime.TimeSpan)
+                continue;
+            var text = para.Text;
+            text = Regex.Replace(para.Text, @"\{.+?\}", string.Empty);
+            if (string.IsNullOrWhiteSpace(text) || text.Length == 1)
+                continue;
+
             yield return new ContentBlock
             {
                 Source = new BlockSource
                 {
-                    Ordinal = ++ordinal,
+                    Ordinal = ordinal,
                     Timecodes = new TimecodePair(para.StartTime.TimeSpan, para.EndTime.TimeSpan),
                 },
                 Chunks = [new ContentBlockChunk
                 {
-                    Text = ConvertSubtitleText(para.Text)
+                    Text = ConvertSubtitleText(text)
                 }],
             };
         }
