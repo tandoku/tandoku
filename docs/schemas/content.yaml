@@ -19,6 +19,10 @@ references?:
 chunks?: # ContentBlockChunk
 - text?: <markdown>
   actor?: <markdown>
+  # TODO - role should probably be on block rather than chunk?
+  # may not be appropriate for manga though (e.g. single panel may contain
+  # dialogue, sound-effect, maybe meta or secondary chunks)
+  # perhaps heading should not be a role but separate concept?
   role?: primary <default> |
     secondary |
     heading |

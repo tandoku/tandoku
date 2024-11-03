@@ -84,6 +84,14 @@ function GenerateMarkdown($contentPath) {
         GenerateMarkdownForMedia $block.audio.name 'audio' $heading
 
         if ($block.chunks) {
+            # TODO - make this an option? separate transform? (how much 'formatting' should be done in content files?)
+            $timecode = $block.source.timecodes.start
+            if ($timecode) {
+                $fractionalPoint = $timecode.IndexOf('.')
+                $formattedTimecode = $fractionalPoint -gt 0 ? $timecode.Substring(0, $fractionalPoint) : $timecode
+                SetValueByPath $block.chunks[$block.chunks.Count - 1] 'references.time.text' $formattedTimecode
+            }
+
             $chunkIndex = 0
             foreach ($chunk in $block.chunks) {
                 $chunkIndex += 1
@@ -145,12 +153,16 @@ function GenerateMarkdownForChunk($chunk, $chunkId) {
                 'Footnotes' {
                     $chunkText = "$chunkText [^$chunkRefId]"
                     $lines = @(StringToLines $chunkRefText)
-                    $lines[0] = "[^$chunkRefId]: $($lines[0])"
-                    foreach ($line in $lines) {
-                        if ($line -and $chunkRefTextBuilder.Length -gt 0) {
-                            [void] $chunkRefTextBuilder.AppendLine("    $line")
+                    for ($i = 0; $i -lt $lines.Count; $i++) {
+                        $line = $lines[$i]
+                        if ($i -eq 0) {
+                            [void] $chunkRefTextBuilder.AppendLine("[^$chunkRefId]: $line")
                         } else {
-                            [void] $chunkRefTextBuilder.AppendLine($line)
+                            if ($line) {
+                                [void] $chunkRefTextBuilder.AppendLine("    $line")
+                            } else {
+                                [void] $chunkRefTextBuilder.AppendLine()
+                            }
                         }
                     }
                     $chunkRefText = $null
