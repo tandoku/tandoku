@@ -52,5 +52,9 @@ SubtitleEdit /convert *.* AdvancedSubStationAlpha `
 
 $targetSubtitles = Get-ChildItem "$OutputPath/*.ass"
 if ($targetSubtitles) {
+    # Additional cleanup
+    $targetSubtitles |
+        ReplaceStringInFiles '&(lrm|rlm);' ''
+
     TandokuVersionControlAdd -Path $targetSubtitles -Kind text
 }
