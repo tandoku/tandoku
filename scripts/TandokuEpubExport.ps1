@@ -21,8 +21,9 @@ Import-Module "$PSScriptRoot/modules/tandoku-utils.psm1" -Scope Local
 function ApplyEpubFixes($epubPath, $tempDestination) {
     ExpandArchive -Path $epubPath -DestinationPath $tempDestination -ClobberDestination
 
-    $refName = 'en'
-    PrefixFootnotes $tempDestination $refName
+    # Disabling this for now since it's really only an issue for the first 9 footnotes
+    # Could also use a shorter prefix like '#'
+    #PrefixFootnotes $tempDestination 'ref'
 
     RenameAudioMpegaToMp3 $tempDestination
 

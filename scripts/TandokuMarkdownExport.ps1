@@ -33,9 +33,14 @@ param(
     $ReferenceBehavior = 'None',
 
     [Parameter()]
-    [ValidateSet('Default','Always')]
+    [ValidateSet('Default', 'Always')]
     [String]
     $ReferenceLabels = 'Default',
+
+    [Parameter()]
+    [ValidateSet('None', 'KyBook3')]
+    [String]
+    $Quirks = 'None',
 
     [Parameter()]
     [String]
@@ -124,7 +129,7 @@ function GenerateMarkdownForMedia($media, $container, $caption) {
         if ($container -eq "audio") {
             # Use explicit <audio> tag because the anchor link that pandoc embeds
             # within the <audio> tag if ![]() is used causes issues for KyBook 3 on iOS
-            Write-Output "<audio src=`"$mediaUrl`"></audio>"
+            Write-Output "<audio src=`"$mediaUrl`" controls=`"1`"></audio>"
             Write-Output ''
         } else {
             Write-Output "![$caption]($mediaUrl)"
@@ -147,27 +152,28 @@ function GenerateMarkdownForChunk($chunk, $chunkId) {
         $ref = $chunk.references[$refName]
         $chunkRefText = $ref.text
         if ($chunkRefText) {
-            $chunkRefId = "$chunkId-ref-$refName"
-
             switch ($ReferenceBehavior) {
                 'Footnotes' {
-                    $chunkText = "$chunkText [^$chunkRefId]"
                     $lines = @(StringToLines $chunkRefText)
                     for ($i = 0; $i -lt $lines.Count; $i++) {
                         $line = $lines[$i]
-                        if ($i -eq 0) {
-                            [void] $chunkRefTextBuilder.AppendLine("[^$chunkRefId]: $line")
-                        } else {
-                            if ($line) {
-                                [void] $chunkRefTextBuilder.AppendLine("    $line")
-                            } else {
-                                [void] $chunkRefTextBuilder.AppendLine()
+                        if ($line) {
+                            if ($chunkRefTextBuilder.Length -gt 0) {
+                                [void] $chunkRefTextBuilder.Append('    ')
                             }
+                            if ($refLabels -and -$i -eq 0) {
+                                [void] $chunkRefTextBuilder.AppendLine("$($refName): $line")
+                            } else {
+                                [void] $chunkRefTextBuilder.AppendLine($line)
+                            }
+                        } else {
+                            [void] $chunkRefTextBuilder.AppendLine()
                         }
                     }
                     $chunkRefText = $null
                 }
                 'BlurHtml' {
+                    $chunkRefId = "$chunkId-ref-$refName"
                     $chunkRefText = ConvertTextToBlurHtml $chunkRefText $chunkRefId -Label ($refLabels ? $refName : $null)
                 }
                 default {
@@ -185,6 +191,32 @@ function GenerateMarkdownForChunk($chunk, $chunkId) {
 
             if ($chunkRefText) {
                 [void] $chunkRefTextBuilder.AppendLine($chunkRefText)
+            }
+            [void] $chunkRefTextBuilder.AppendLine()
+        }
+    }
+
+    if ($ReferenceBehavior -eq 'Footnotes' -and $chunkRefTextBuilder.Length -gt 0) {
+        $chunkText = "$chunkText [^$chunkId]"
+        [void] $chunkRefTextBuilder.Insert(0, "[^$chunkId]: ")
+
+        # Convert paragraphs to line breaks for KyBook 3 as paragraphs in footnotes
+        # are not rendered properly
+        if ($Quirks -eq 'KyBook3') {
+            $lines = @(StringToLines $chunkRefTextBuilder.ToString().TrimEnd())
+            [void] $chunkRefTextBuilder.Clear()
+            foreach ($line in $lines) {
+                if ($line) {
+                    if ($chunkRefTextBuilder.Length -gt 0) {
+                        [void] $chunkRefTextBuilder.AppendLine()
+                    }
+                    [void] $chunkRefTextBuilder.Append($line)
+                } else {
+                    $sp = $chunkRefTextBuilder[$chunkRefTextBuilder.Length-1] -eq ' ' ?
+                        ($chunkRefTextBuilder[$chunkRefTextBuilder.Length-2] -eq ' ' ? '' : ' ') :
+                        '  '
+                    [void] $chunkRefTextBuilder.Append($sp)
+                }
             }
             [void] $chunkRefTextBuilder.AppendLine()
         }
