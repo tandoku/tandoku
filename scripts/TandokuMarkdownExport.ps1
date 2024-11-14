@@ -33,7 +33,7 @@ param(
     $ReferenceBehavior = 'None',
 
     [Parameter()]
-    [ValidateSet('Default', 'Always')]
+    [ValidateSet('Default', 'All', 'None')]
     [String]
     $ReferenceLabels = 'Default',
 
@@ -147,7 +147,7 @@ function GenerateMarkdownForChunk($chunk, $chunkId) {
     }
 
     $chunkRefTextBuilder = [Text.StringBuilder]::new()
-    $refLabels = ($chunk.references.Count -gt 1 -or $ReferenceLabels -eq 'Always')
+    $refLabels = (($chunk.references.Count -gt 1 -or $ReferenceLabels -eq 'All') -and $ReferenceLabels -ne 'None')
     foreach ($refName in $chunk.references.Keys) {
         $ref = $chunk.references[$refName]
         $chunkRefText = $ref.text
