@@ -24,6 +24,9 @@ if (-not $apkgPath) {
     return
 }
 
+# TODO - read Anki notes using anki python module rather than requiring txt export
+# see https://addon-docs.ankiweb.net/command-line-use.html
+
 $parentPath = (Split-Path $apkgPath -Parent)
 $apkgBaseName = (Split-Path $apkgPath -LeafBase)
 $txtPath = (Get-Item "$parentPath/$apkgBaseName.txt")
