@@ -51,12 +51,24 @@ gh repo clone tandoku/tandoku
 
 ### dotnet
 ```
+# Install latest stable release of dotnet
 brew install dotnet
+
+# Install .NET 8.x, currently needed for PowerShell 7.4.x
+brew install dotnet@8
+# ... and symlink the .NET 8.x SDK and runtime so pwsh can find it
+ln -s /home/linuxbrew/.linuxbrew/Cellar/dotnet@8/8.0.11/libexec/sdk/8.0.111 /home/linuxbrew/.linuxbrew/Cellar/dotnet/9.0.0/libexec/sdk/8.0.111
+ln -s /home/linuxbrew/.linuxbrew/Cellar/dotnet@8/8.0.11/libexec/shared/Microsoft.NETCore.App/8.0.11 /home/linuxbrew/.linuxbrew/Cellar/dotnet/9.0.0/libexec/shared/Microsoft.NETCore.App/8.0.11
 
 cat << \EOF >> ~/.bashrc
 # Allow apps to find .NET Core SDK
 export DOTNET_ROOT="/home/linuxbrew/.linuxbrew/opt/dotnet/libexec"
 EOF
+
+# Check that .NET SDK and runtimes are installed correctly
+dotnet --list-sdks
+dotnet --list-runtimes
+dotnet sdk check
 ```
 
 ### pwsh (as dotnet global tool)
@@ -69,9 +81,11 @@ export PATH="$PATH:/home/deck/.dotnet/tools"
 EOF
 ```
 
-### powershell-yaml
+### powershell-yaml and yq
 ```pwsh
 Install-Module powershell-yaml
+
+brew install yq
 ```
 
 ### pandoc
