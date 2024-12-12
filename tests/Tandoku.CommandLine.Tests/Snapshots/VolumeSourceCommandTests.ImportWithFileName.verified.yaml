@@ -1,4 +1,4 @@
 ﻿result: 0
 error: ""
 out: |+
-  Added {CurrentDirectory}sample volume\source\src.txt
+  Added {CurrentDirectory}sample-volume\source\src.txt

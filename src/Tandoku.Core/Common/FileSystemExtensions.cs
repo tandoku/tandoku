@@ -10,6 +10,15 @@ public static class FileSystemExtensions
         GetDirectory(fileSystem, fileSystem.Directory.GetCurrentDirectory());
     public static IFileInfo GetFile(this IFileSystem fileSystem, string path) =>
         fileSystem.FileInfo.New(path);
+    public static IEnumerable<IFileInfo> EnumerateFiles(this IFileSystem fileSystem, string path)
+    {
+        var directory = GetDirectory(fileSystem, path);
+        if (directory.Exists)
+            return directory.EnumerateFiles();
+
+        directory = fileSystem.Directory.GetParent(path);
+        return directory?.EnumerateFiles(fileSystem.Path.GetFileName(path)) ?? [];
+    }
 
     public static string GetPath(this IDirectoryInfo directory, string path) =>
         directory.FileSystem.Path.Join(directory.FullName, path);

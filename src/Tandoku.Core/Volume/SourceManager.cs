@@ -23,16 +23,18 @@ public sealed class SourceManager
         var copyOperations = new List<(IFileInfo Source, string Target)>();
         foreach (var path in paths)
         {
-            var originFile = this.fileSystem.GetFile(path);
-            var targetPath = sourceDirectory.GetPath(targetFileName ?? originFile.Name);
-            copyOperations.Add((originFile, targetPath));
+            foreach (var originFile in this.fileSystem.EnumerateFiles(path))
+            {
+                var targetPath = sourceDirectory.GetPath(targetFileName ?? originFile.Name);
+                copyOperations.Add((originFile, targetPath));
+            }
         }
 
         if (copyOperations.DistinctBy(o => o.Target, this.fileSystem.Path.GetComparer()).Count() < copyOperations.Count)
             throw new ArgumentException("Target file names must be unique.");
 
-        foreach (var copyOperation in copyOperations)
-            copyOperation.Source.CopyTo(copyOperation.Target);
+        foreach (var (source, target) in copyOperations)
+            source.CopyTo(target);
 
         return Task.FromResult<IReadOnlyList<string>>(copyOperations.Select(o => o.Target).ToArray());
     }
