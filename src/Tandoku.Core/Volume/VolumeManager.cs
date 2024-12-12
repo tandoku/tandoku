@@ -16,36 +16,50 @@ public sealed class VolumeManager
         this.fileSystem = fileSystem ?? new FileSystem();
     }
 
+    public async Task<VolumeInfo> InitializeAsync(string path, bool force = false)
+    {
+        var packager = CreatePackager();
+        var volumeDirectory = this.fileSystem.GetDirectory(path);
+        var version = VolumeVersion.Latest;
+        await packager.InitializePackageAsync(volumeDirectory, version, force);
+
+        var definition = new VolumeDefinition
+        {
+            Language = LanguageConstants.DefaultLanguage,
+            //ReferenceLanguage = LanguageConstants.DefaultReferenceLanguage,
+        };
+        var definitionFile = await packager.WritePackagePart(volumeDirectory, VolumeDefinitionFileName, definition);
+
+        return new VolumeInfo(
+            volumeDirectory.FullName,
+            volumeDirectory.Name,
+            version,
+            definitionFile.FullName,
+            definition);
+    }
+
     public async Task<VolumeInfo> CreateNewAsync(
-        string title,
         string path,
+        string title,
         string? moniker = null,
         IEnumerable<string>? tags = null,
         bool force = false)
     {
         // TODO: check that moniker does not have invalid chars
 
-        var packager = CreatePackager();
         var containerDirectory = this.fileSystem.GetDirectory(path);
         var volumeDirectory = containerDirectory.GetSubdirectory(
             this.GetVolumeDirectoryName(title, moniker));
-        var version = VolumeVersion.Latest;
-        await packager.InitializePackageAsync(volumeDirectory, version, force);
-
-        var definition = new VolumeDefinition
+        var info = await this.InitializeAsync(volumeDirectory.FullName, force);
+        var definition = info.Definition with
         {
             Title = title,
             Moniker = moniker,
-            Language = LanguageConstants.DefaultLanguage,
-            //ReferenceLanguage = LanguageConstants.DefaultReferenceLanguage,
+            Tags = info.Definition.Tags.Union(tags ?? []),
         };
-        if (tags is not null)
-        {
-            definition = definition with { Tags = definition.Tags.Union(tags) };
-        }
-        var definitionFile = await packager.WritePackagePart(volumeDirectory, VolumeDefinitionFileName, definition);
+        await this.SetDefinitionAsync(volumeDirectory.FullName, definition);
 
-        return new VolumeInfo(volumeDirectory.FullName, volumeDirectory.Name, version, definitionFile.FullName, definition);
+        return info with { Definition = definition };
     }
 
     public async Task<VolumeInfo> GetInfoAsync(string volumePath)

@@ -6,6 +6,17 @@ using Tandoku.Volume;
 public class VolumeCommandTests : CliTestBase
 {
     [Fact]
+    public async Task Init()
+    {
+        await this.RunAndAssertAsync(
+            "volume init sample-volume",
+            @$"Initialized tandoku volume at {this.ToFullPath("sample-volume")}");
+
+        this.fileSystem.GetFile(this.ToFullPath("sample-volume", "volume.yaml")).TextContents.TrimEnd().Should().Be(
+@"language: ja");
+    }
+
+    [Fact]
     public async Task New()
     {
         await this.RunAndAssertAsync(
@@ -202,7 +213,7 @@ tags: [tag1, tag2]");
         containerPath ??= this.fileSystem.Directory.GetCurrentDirectory();
 
         var volumeManager = this.CreateVolumeManager();
-        var info = await volumeManager.CreateNewAsync(title, containerPath, moniker, tags);
+        var info = await volumeManager.CreateNewAsync(containerPath, title, moniker, tags);
 
         if (changeCurrentDirectory)
             this.fileSystem.Directory.SetCurrentDirectory(info.Path);

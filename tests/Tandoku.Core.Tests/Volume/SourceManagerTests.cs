@@ -68,7 +68,7 @@ public class SourceManagerTests
         IEnumerable<string>? tags = null)
     {
         containerPath ??= this.fileSystem.Directory.GetCurrentDirectory();
-        var volumeInfo = await this.volumeManager.CreateNewAsync(title, containerPath, moniker, tags);
+        var volumeInfo = await this.volumeManager.CreateNewAsync(containerPath, title, moniker, tags);
         var sourceManager = new SourceManager(volumeInfo, this.fileSystem);
         return (volumeInfo, sourceManager);
     }

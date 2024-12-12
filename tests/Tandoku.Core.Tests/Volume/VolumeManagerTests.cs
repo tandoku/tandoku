@@ -16,12 +16,47 @@ public class VolumeManagerTests
     }
 
     [Fact]
+    public async Task Initialize()
+    {
+        var containerPath = this.fileSystem.Directory.GetCurrentDirectory();
+        var slug = "sample-volume";
+        var path = this.fileSystem.Path.Join(containerPath, slug);
+
+        var info = await this.volumeManager.InitializeAsync(path);
+
+        info.Path.Should().Be(path);
+        info.Version.Should().Be(VolumeVersion.Latest);
+
+        var definitionPath = this.fileSystem.Path.Join(info.Path, "volume.yaml");
+        info.DefinitionPath.Should().Be(definitionPath);
+        this.fileSystem.AllFiles.Count().Should().Be(2);
+        this.fileSystem.GetFile(this.fileSystem.Path.Join(info.Path, ".tandoku-volume/version")).TextContents.Should().Be(
+            VolumeVersion.Latest.Version.ToString());
+        this.fileSystem.GetFile(definitionPath).TextContents.TrimEnd().Should().Be(
+@"language: ja");
+    }
+
+    [Fact]
+    public async Task InitializeWithNonEmptyDirectory()
+    {
+        var containerPath = this.fileSystem.Directory.GetCurrentDirectory();
+        var slug = "sample-volume-existing";
+        var path = this.fileSystem.Path.Join(containerPath, slug);
+        this.fileSystem.Directory.CreateDirectory(path);
+        this.fileSystem.AddEmptyFile(
+            this.fileSystem.Path.Join(path, "existing.txt"));
+
+        await this.volumeManager.Invoking(m => m.InitializeAsync(path, force: false))
+            .Should().ThrowAsync<ArgumentException>();
+    }
+
+    [Fact]
     public async Task CreateNew()
     {
         var title = "sample volume/1";
         var containerPath = this.fileSystem.Directory.GetCurrentDirectory();
 
-        var info = await this.volumeManager.CreateNewAsync(title, containerPath);
+        var info = await this.volumeManager.CreateNewAsync(containerPath, title);
 
         info.Path.Should().Be(this.fileSystem.Path.Join(containerPath, "sample volume_1"));
         info.Version.Should().Be(VolumeVersion.Latest);
@@ -44,8 +79,8 @@ language: ja");
         var containerPath = this.fileSystem.Directory.GetCurrentDirectory();
 
         var info = await this.volumeManager.CreateNewAsync(
-            title,
             containerPath,
+            title,
             moniker: "sv-2",
             tags: new[] { "tag-1", "tag-2" });
 
@@ -184,7 +219,7 @@ tags: [tag-1, tag-2]");
         IEnumerable<string>? tags = null)
     {
         containerPath ??= this.fileSystem.Directory.GetCurrentDirectory();
-        return this.volumeManager.CreateNewAsync(title, containerPath, moniker, tags);
+        return this.volumeManager.CreateNewAsync(containerPath, title, moniker, tags);
     }
 
     private Task<LibraryInfo> SetupLibrary()

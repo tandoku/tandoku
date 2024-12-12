@@ -3,6 +3,8 @@
 using System.IO.Abstractions;
 using Tandoku.Serialization;
 
+// TODO - rename this to EntityFileStore (and Tandoku.Storage folder/namespace)
+// (and maybe later introduce IEntityStore abstraction over underlying store - requires abstraction for store location, relative paths)
 internal sealed class Packager<TVersion>
     where TVersion : class, IPackageVersion<TVersion>
 {

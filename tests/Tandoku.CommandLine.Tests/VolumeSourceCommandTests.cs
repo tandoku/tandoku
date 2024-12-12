@@ -52,6 +52,6 @@ public class VolumeSourceCommandTests : CliTestBase
         containerPath ??= this.fileSystem.Directory.GetCurrentDirectory();
 
         var volumeManager = new VolumeManager(this.fileSystem);
-        return volumeManager.CreateNewAsync(title, containerPath, moniker, tags);
+        return volumeManager.CreateNewAsync(containerPath, title, moniker, tags);
     }
 }

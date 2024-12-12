@@ -3,6 +3,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.IO.Abstractions;
 
+// TODO - rename to IEntityVersion
 internal interface IPackageVersion<TSelf>
     where TSelf : class, IPackageVersion<TSelf>
 {

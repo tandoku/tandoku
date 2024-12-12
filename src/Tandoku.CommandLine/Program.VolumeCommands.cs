@@ -10,12 +10,45 @@ public sealed partial class Program
     private Command CreateVolumeCommand() =>
         new("volume", "Commands for working with tandoku volumes")
         {
+            this.CreateVolumeInitCommand(),
             this.CreateVolumeNewCommand(),
             this.CreateVolumeInfoCommand(),
             this.CreateVolumeSetCommand(),
             this.CreateVolumeRenameCommand(),
             this.CreateVolumeListCommand(),
         };
+
+    private Command CreateVolumeInitCommand()
+    {
+        var pathArgument = new Argument<DirectoryInfo?>("path", "Directory for new tandoku volume")
+            .LegalFilePathsOnly();
+        var forceOption = new Option<bool>(["--force", "-f"], "Allow initialization in non-empty directory");
+
+        var command = new Command("init", "Initializes a new tandoku volume in the current or specified directory")
+        {
+            pathArgument,
+            forceOption,
+        };
+
+        command.SetHandler(async (directory, force, jsonOutput) =>
+        {
+            var volumeManager = this.CreateVolumeManager();
+            var path = directory?.FullName ?? this.fileSystem.Directory.GetCurrentDirectory();
+            var info = await volumeManager.InitializeAsync(path, force);
+            if (jsonOutput)
+            {
+                // TODO: use VolumeInfo directly, or copy to a JSON serializable object?
+                //       Promote Version property or add JsonConverter for VolumeVersion (probably can't inherit from interface?)
+                this.console.WriteJsonOutput(info);
+            }
+            else
+            {
+                this.console.WriteLine(@$"Initialized tandoku volume at {info.Path}");
+            }
+        }, pathArgument, forceOption, this.jsonOutputOption);
+
+        return command;
+    }
 
     private Command CreateVolumeNewCommand()
     {
@@ -40,7 +73,7 @@ public sealed partial class Program
             var volumeManager = this.CreateVolumeManager();
             var path = directory?.FullName ?? this.fileSystem.Directory.GetCurrentDirectory();
             var tagsArray = tags?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            var info = await volumeManager.CreateNewAsync(title, path, moniker, tagsArray, force);
+            var info = await volumeManager.CreateNewAsync(path, title, moniker, tagsArray, force);
             this.console.WriteLine(@$"Created new tandoku volume ""{title}"" at {info.Path}");
         }, titleArgument, pathOption, monikerOption, tagsOption, forceOption);
 
