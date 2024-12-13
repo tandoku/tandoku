@@ -61,16 +61,21 @@ foreach ($sourceSubtitle in $sourceSubtitles) {
             # otherwise use video reference (alass will extract audio stream for alignment)
             $referenceFilePath = Get-Item "$ReferencePath/$baseName.*" -Include (GetKnownVideoExtensions -FileMask)
         }
-        $alassArgs = ArgsToArray $referenceFilePath $sourceSubtitle $targetPath
-        if ($NoFpsGuessing) {
-            $alassArgs += '--disable-fps-guessing'
-        }
-        if ($NoSplit) {
-            $alassArgs += '--no-split'
-        }
-        & 'alass' $alassArgs
-        if (Test-Path $targetPath) {
-            $targetSubtitles += $targetPath
+
+        if ($referenceFilePath) {
+            $alassArgs = ArgsToArray $referenceFilePath $sourceSubtitle $targetPath
+            if ($NoFpsGuessing) {
+                $alassArgs += '--disable-fps-guessing'
+            }
+            if ($NoSplit) {
+                $alassArgs += '--no-split'
+            }
+            & 'alass' $alassArgs
+            if (Test-Path $targetPath) {
+                $targetSubtitles += $targetPath
+            }
+        } else {
+            Write-Warning "Skipping $sourceSubtitle because no corresponding reference file can be found"
         }
     }
 }

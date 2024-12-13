@@ -30,6 +30,8 @@ if (-not $volume) {
 }
 $volumePath = $volume.path
 
+$title = "$($volume.definition.title ?? $volume.slug)$TitleSuffix"
+
 $markdownDirectory = $InputPath ? $InputPath : "$volumePath/markdown"
 $markdownFiles = Get-ChildItem $markdownDirectory -Filter *.md
 
@@ -57,7 +59,7 @@ if ($ZipArchive) {
 
 if ($Format -eq 'Book') {
     # TODO - either need to use footnotes or add blurtext.css stylesheet
-    #pandoc $markdownFiles -f commonmark+footnotes -o $targetPath -t chunkedhtml --metadata title="$($volume.definition.title)" --metadata author="tandoku" --metadata lang=ja
+    #pandoc $markdownFiles -f commonmark+footnotes -o $targetPath -t chunkedhtml --metadata title="$title" --metadata author="tandoku" --metadata lang=ja
     #ExpandArchive -Path $targetPath -DestinationPath $tempDestination -ClobberDestination
     throw "Book format not fully implemented"
 } elseif ($Format -eq 'Slides') {
@@ -69,7 +71,7 @@ if ($Format -eq 'Book') {
             $sectionTitle = GetContentBaseName $_ # TODO: read this from the content itself rather than using the filename
             pandoc $_ -f commonmark -o $htmlFilePath -t slidy --standalone `
                 --css ./styles/blurtext.css --variable=slidy-url:. `
-                --metadata title="$($volume.definition.title) - $sectionTitle" `
+                --metadata title="$title - $sectionTitle" `
                 --metadata author="tandoku" --metadata lang=ja
             return [PSCustomObject]@{
                 SectionTitle = $sectionTitle
@@ -99,7 +101,7 @@ if ($Format -eq 'Book') {
         } |
         Join-String -Separator ([Environment]::NewLine) |
         pandoc -f commonmark -o $indexHtmlPath -t html --standalone `
-            --metadata title="$($volume.definition.title)" `
+            --metadata title="$title" `
             --metadata author="tandoku" --metadata lang=ja
 
     # Copy additional resources
