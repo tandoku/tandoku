@@ -20,7 +20,7 @@ if (-not $videosToImport) {
     Write-Warning 'No videos to import found at the specified path.'
     return
 }
-TandokuSourceImport -Path $videosToImport -VolumePath $volumePath -VersionControl binary
+TandokuVolumeSourceAdd -Path $videosToImport -VolumePath $volumePath -VersionControl binary
 
 # Find corresponding subtitles (tandoku source import)
-# Note: import reference language subtitles into /source/ref-en/ path
+# Note: import reference language subtitles into /source/ref-en/ path ??

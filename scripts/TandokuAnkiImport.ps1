@@ -35,8 +35,8 @@ if (-not $txtPath) {
     return
 }
 
-$sourceApkg = TandokuSourceImport -Path $apkgPath -VersionControl binary -VolumePath $volumePath
-$sourceTxt = TandokuSourceImport -Path $txtPath -VersionControl text -VolumePath $volumePath
+$sourceApkg = TandokuVolumeSourceAdd -Path $apkgPath -VersionControl binary -VolumePath $volumePath
+$sourceTxt = TandokuVolumeSourceAdd -Path $txtPath -VersionControl text -VolumePath $volumePath
 
 $tempApkgPath = "$volumePath/temp/apkg"
 Expand-Archive -LiteralPath $sourceApkg -Destination $tempApkgPath

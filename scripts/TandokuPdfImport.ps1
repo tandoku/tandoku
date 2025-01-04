@@ -24,7 +24,7 @@ if (-not $pdfPath) {
     return
 }
 
-$sourcePdf = TandokuSourceImport -Path $pdfPath -VersionControl binary -VolumePath $volumePath
+$sourcePdf = TandokuVolumeSourceAdd -Path $pdfPath -VersionControl binary -VolumePath $volumePath
 
 $tempImagesPath = "$volumePath/temp/pdf"
 CreateDirectoryIfNotExists $tempImagesPath -Clobber
@@ -32,4 +32,4 @@ Push-Location $tempImagesPath
 mutool extract $sourcePdf
 Pop-Location
 
-TandokuImagesImport -Path $tempImagesPath -VolumePath $volumePath
+TandokuImagesAdd -Path $tempImagesPath -VolumePath $volumePath

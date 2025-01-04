@@ -1,6 +1,6 @@
 param(
     [Parameter()]
-    [ValidateSet('azure-computer-vision.apiKey','azure-computer-vision.endpoint')] # TODO - get this from some central location (generate from config exported by scripts)
+    [ValidateSet('azure-computer-vision.apiKey','azure-computer-vision.endpoint','core.staging','epub.staging')] # TODO - get this from some central location (generate from config exported by scripts)
     [String]
     $Key,
 

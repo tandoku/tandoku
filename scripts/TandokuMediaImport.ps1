@@ -30,9 +30,9 @@ $importMediaArgs = ArgsToArray content transform import-media $InputPath $Output
 $media = InvokeTandokuCommand $importMediaArgs
 if ($media.images) {
     # TODO - add -RelativeTo $MediaPath to include content folders
-    TandokuImagesImport $media.images -VolumePath $volumePath
+    TandokuImagesAdd $media.images -VolumePath $volumePath
 }
 if ($media.audio) {
     # TODO - add -RelativeTo $MediaPath to include content folders
-    TandokuAudioImport $media.audio "$volumePath/audio/clips" -Volume $volume
+    TandokuAudioAdd $media.audio "$volumePath/audio/clips" -Volume $volume
 }

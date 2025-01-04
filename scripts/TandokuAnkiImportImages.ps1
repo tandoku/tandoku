@@ -27,4 +27,4 @@ foreach ($mediaItem in $media.Keys) {
     }
 }
 
-TandokuImagesImport -Path $TempDestination -VolumePath $volumePath
+TandokuImagesAdd -Path $TempDestination -VolumePath $volumePath

@@ -40,9 +40,9 @@ $volumePath = $volumeInfo.VolumePath
 $metadata = TandokuCalibreExtractMeta $metadataPath
 $sourceBookName = $metadata.asin ?? 'source'
 
-$sourceMetadata = TandokuSourceImport -Path $metadataPath -VersionControl text -VolumePath $volumePath
-$sourceCover = TandokuSourceImport -Path $coverPath -VersionControl binary -VolumePath $volumePath
-$sourceBook = TandokuSourceImport -Path $azwPath -FileName "$sourceBookName.azw3" -VersionControl binary -VolumePath $volumePath
+$sourceMetadata = TandokuVolumeSourceAdd -Path $metadataPath -VersionControl text -VolumePath $volumePath
+$sourceCover = TandokuVolumeSourceAdd -Path $coverPath -VersionControl binary -VolumePath $volumePath
+$sourceBook = TandokuVolumeSourceAdd -Path $azwPath -FileName "$sourceBookName.azw3" -VersionControl binary -VolumePath $volumePath
 
 TandokuVolumeSetCover -Path $sourceCover -VolumePath $volumePath
 
@@ -58,7 +58,7 @@ if (-not $renameResult) {
 $volumePath = $renameResult.RenamedPath
 
 # TODO: check for comic/picture book type before doing this
-TandokuImagesImport -Path "$volumePath/temp/mobi/mobi8/OEBPS/Images/" -VolumePath $volumePath
+TandokuImagesAdd -Path "$volumePath/temp/mobi/mobi8/OEBPS/Images/" -VolumePath $volumePath
 
 # TODO: add -Commit switch to commit to source control?
 Write-Host "TODO: git commit, git push, dvc push"

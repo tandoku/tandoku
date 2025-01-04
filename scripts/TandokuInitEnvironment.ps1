@@ -33,9 +33,9 @@ if ($LibraryPath) {
     $env:TANDOKU_LIBRARY = (Convert-Path $LibraryPath)
 }
 
+# TODO - load public modules on-demand? (move each to its own directory, update PSModulePath)
+Import-Module "$scriptsPath/modules/tandoku-public.psm1" -Scope Global
+Import-Module "$scriptsPath/modules/tandoku-yaml.psm1" -Scope Global
 if ($Dev) {
-    Import-Module (Join-Path $scriptsPath 'modules/tandoku-dev.psm1') -Scope Global
+    Import-Module "$scriptsPath/modules/tandoku-dev.psm1" -Scope Global
 }
-
-# TODO - load public modules on-demand (move each to its own directory, update PSModulePath)
-Import-Module (Join-Path $scriptsPath 'modules/tandoku-yaml.psm1') -Scope Global

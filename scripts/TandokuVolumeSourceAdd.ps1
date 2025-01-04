@@ -19,6 +19,7 @@ param(
 
 Import-Module "$PSScriptRoot/modules/tandoku-utils.psm1" -Scope Local
 
+# TODO - change tandoku command to tandoku volume source add
 $sourceImportArgs = ArgsToArray source import
 $sourceImportArgs += $Path
 if ($FileName) {
