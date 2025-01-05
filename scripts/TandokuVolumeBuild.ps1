@@ -2,7 +2,7 @@ param(
     [Parameter()]
     [ValidateSet('epub','markdown')]
     [String]
-    $Target = 'epub',
+    $Target,
 
     [Parameter()]
     $Volume
@@ -14,14 +14,22 @@ $Volume = ResolveVolume $Volume
 if (-not $Volume) {
     return
 }
+$PSBoundParameters.Volume = $Volume
 $volumePath = $Volume.Path
 
 $buildScript = "$volumePath/build.ps1"
 if (-not (Test-Path $buildScript)) {
-    Write-Error "No custom build script found and default build is not yet implemented"
-    $buildScript = $null
+    $workflow = $Volume.Definition.Workflow
+    if ($workflow) {
+        $buildScript = "$PSScriptRoot/workflows/$workflow.ps1"
+        if (-not (Test-Path $buildScript)) {
+            Write-Error "Cannot find build script for the specified workflow '$workflow' at $buildScript"
+            return
+        }
+    } else {
+        Write-Error 'No custom build script found and no workflow specified in volume definition'
+        return
+    }
 }
 
-if ($buildScript) {
-    & $buildScript @PSBoundParameters
-}
+& $buildScript @PSBoundParameters

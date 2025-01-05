@@ -64,7 +64,7 @@ tags: [tag1, tag2]");
     [InlineData(true)]
     public async Task Info(bool jsonOutput)
     {
-        var info = await this.SetupVolume(changeCurrentDirectory: true);
+        await this.SetupVolume(changeCurrentDirectory: true);
 
         await this.RunAndVerifyAsync("volume info", jsonOutput);
     }
@@ -120,6 +120,17 @@ tags: [tag1, tag2]");
     }
 
     [Fact]
+    public async Task SetWorkflow()
+    {
+        var originalInfo = await this.SetupVolume(changeCurrentDirectory: true);
+
+        await this.RunAndVerifyAsync("volume set workflow generic-film");
+
+        var info = await this.CreateVolumeManager().GetInfoAsync(originalInfo.Path);
+        info.Definition.Workflow.Should().Be("generic-film");
+    }
+
+    [Fact]
     public async Task Set_InvalidProperty()
     {
         await this.SetupVolume(changeCurrentDirectory: true);
@@ -132,7 +143,7 @@ tags: [tag1, tag2]");
     [Theory]
     [InlineData(null)]
     [InlineData(".")]
-    public async Task List(string pathArgument)
+    public async Task List(string? pathArgument)
     {
         var rootPath = this.fileSystem.Directory.GetCurrentDirectory();
         await this.SetupVolume("volume1", rootPath);
@@ -221,7 +232,7 @@ tags: [tag1, tag2]");
         return info;
     }
 
-    private VolumeManager CreateVolumeManager() => new VolumeManager(this.fileSystem);
+    private VolumeManager CreateVolumeManager() => new(this.fileSystem);
 
     private Task<LibraryInfo> SetupLibrary(string? path = null)
     {

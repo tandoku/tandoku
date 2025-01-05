@@ -109,6 +109,7 @@ public sealed partial class Program
                 this.console.WriteLine($"Language: {info.Definition.Language}");
                 //this.console.WriteLine($"Reference language: {info.Definition.ReferenceLanguage.ToOutputString()}");
                 this.console.WriteLine($"Tags: {info.Definition.Tags.ToOutputString()}");
+                this.console.WriteLine($"Workflow: {info.Definition.Workflow}");
             }
         }, volumeBinder, this.jsonOutputOption);
 
@@ -141,6 +142,7 @@ public sealed partial class Program
             var modifiedDefinition = property switch
             {
                 "title" => info.Definition with { Title = value },
+                "workflow" => info.Definition with { Workflow = value },
                 _ => throw new ArgumentOutOfRangeException(nameof(property), property, "Unexpected property name."),
             };
             await volumeManager.SetDefinitionAsync(volumeDirectory.FullName, modifiedDefinition);
