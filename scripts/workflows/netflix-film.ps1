@@ -157,9 +157,39 @@ if ($Target -eq 'epub') {
     }
     #>
 
+    $epubGroups = @(
+        @{ inputMask = '*s01e01.*'; epubSuffix = 'e01' },
+        @{ inputMask = '*s01e02.*'; epubSuffix = 'e02' },
+        @{ inputMask = '*s01e03.*'; epubSuffix = 'e03' },
+        @{ inputMask = '*s01e04.*'; epubSuffix = 'e04' },
+        @{ inputMask = '*s01e05.*'; epubSuffix = 'e05' },
+        @{ inputMask = '*s01e06.*'; epubSuffix = 'e06' },
+        @{ inputMask = '*s01e07.*'; epubSuffix = 'e07' },
+        @{ inputMask = '*s01e08.*'; epubSuffix = 'e08' },
+        @{ inputMask = '*s01e09.*'; epubSuffix = 'e09' },
+        @{ inputMask = '*s01e10.*'; epubSuffix = 'e10' },
+        @{ inputMask = '*s01e11.*'; epubSuffix = 'e11' },
+        @{ inputMask = '*s01e12.*'; epubSuffix = 'e12' }
+    )
+
+    foreach ($epubGroup in $epubGroups) {
+        # epub artifact variables
+        $epubPath = "$stagingEpub/$volumeSlug$($epubGroup.epubSuffix).epub"
+
+        # markdown split variables
+        $markdownFiles = Get-ChildItem "$markdownPath/*.md" -Include $epubGroup.inputMask
+
+        if ($markdownFiles) {
+            # tandoku epub export
+            TandokuEpubExport $markdownFiles $epubPath -TitleSuffix $epubGroup.epubSuffix
+        }
+    }
+
+    <#
     # epub artifact variables
     $epubPath = "$stagingEpub/$volumeSlug.epub"
 
     # tandoku epub export
     TandokuEpubExport $markdownPath $epubPath
+    #>
 }
