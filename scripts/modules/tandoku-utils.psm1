@@ -221,10 +221,10 @@ function ExpandArchive([String]$Path, [String]$DestinationPath, [Switch]$Clobber
     }
 }
 
-function SetCurrentDirectory {
-    # Set working directory for .NET process before using .NET File APIs
-    # so that paths are resolved relative to PowerShell's current location
-    [Environment]::CurrentDirectory = (Get-Location -PSProvider FileSystem).ProviderPath
+function ConvertPath([string]$Path) {
+    # The built-in Convert-Path and Resolve-Path only work with paths that already exist
+    # see https://stackoverflow.com/questions/3038337/powershell-resolve-path-that-might-not-exist
+    return $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Path)
 }
 
 function GetRelativePath([string]$basePath, [string]$path) {

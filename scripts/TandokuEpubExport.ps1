@@ -8,8 +8,8 @@ param(
     $OutputPath,
 
     [Parameter()]
-    [String]
-    $TitleSuffix,
+    [Switch]
+    $Combine,
 
     [Parameter()]
     [String]
@@ -17,6 +17,21 @@ param(
 )
 
 Import-Module "$PSScriptRoot/modules/tandoku-utils.psm1" -Scope Local
+
+function GenerateEpub($markdownFiles, [string]$targetPath, [string]$title) {
+    # pandoc resolves references to resources (e.g. images, audio) based on the current working directory,
+    # not the directory of the input files
+    Push-Location $volumePath
+    # Note that we do not use --file-scope because it breaks html splitting in the epub output (https://github.com/jgm/pandoc/issues/8741)
+    # TandokuMarkdownExport writes out unique footnotes across files so --file-scope is not needed
+    pandoc $markdownFiles -f commonmark+footnotes -o $targetPath -t epub3 --metadata title="$title" --metadata author="tandoku" --metadata lang="$($volume.definition.language)"
+    Pop-Location
+
+    $tempDestination = "$volumePath/temp/epub"
+    ApplyEpubFixes $targetPath $tempDestination
+
+    return (Get-Item $targetPath)
+}
 
 function ApplyEpubFixes($epubPath, $tempDestination) {
     ExpandArchive -Path $epubPath -DestinationPath $tempDestination -ClobberDestination
@@ -53,13 +68,56 @@ function RenameAudioMpegaToMp3($epubContentPath) {
     }
 }
 
+# TODO - move this into utility when needed elsewhere
+function ExtractUniqueNamePart($files) {
+    $filenames = $files | Select-Object -ExpandProperty Name
+    $commonPrefix = GetCommonPrefix $filenames
+    $commonSuffix = GetCommonSuffix $filenames
+    $files | ForEach-Object {
+        $unique = $_.Name.Substring(
+            $commonPrefix.Length,
+            $_.Name.Length - $commonPrefix.Length - $commonSuffix.Length)
+        return [PSCustomObject]@{
+            File = $_
+            UniquePart = $unique
+        }
+    }
+}
+
+function GetCommonPrefix($list) {
+    if (-not $list) {
+        return $null
+    }
+
+    $prefix = $list[0]
+    foreach ($item in $list) {
+        while (-not $item.StartsWith($prefix) -and $prefix.Length -gt 0) {
+            $prefix = $prefix.Substring(0, $prefix.Length - 1)
+        }
+    }
+    return $prefix
+}
+
+function GetCommonSuffix($list) {
+    if (-not $list) {
+        return $null
+    }
+
+    $suffix = $list[0]
+    foreach ($item in $list) {
+        while (-not $item.EndsWith($suffix) -and $suffix.Length -gt 0) {
+            $suffix = $suffix.Substring(1)
+        }
+    }
+    return $suffix
+}
+
 $volume = TandokuVolumeInfo -VolumePath $VolumePath
 if (-not $volume) {
     return
 }
 $volumePath = $volume.path
-
-$title = "$($volume.definition.title ?? $volume.slug)$TitleSuffix"
+$volumeSlug = $volume.slug
 
 if (-not $InputPath) {
     $InputPath = "$volumePath/markdown"
@@ -72,32 +130,27 @@ if (-not $markdownFiles) {
 }
 
 if ($OutputPath) {
-    # $OutputPath may need to be resolved to a concrete path (e.g. if using ~)
-    # TODO - add util function to do this
-    $targetDirectory = Split-Path $OutputPath -Parent
-    $targetFileName = Split-Path $OutputPath -Leaf
-    CreateDirectoryIfNotExists $targetDirectory
-    $targetDirectory = Resolve-Path $targetDirectory
-    $targetPath = Join-Path $targetDirectory $targetFileName
+    $targetPath = ConvertPath $OutputPath
 } else {
-    $targetDirectory = "$volumePath/export"
-    CreateDirectoryIfNotExists $targetDirectory
+    $targetPath = "$volumePath/export"
+    CreateDirectoryIfNotExists $targetPath
 
-    # TODO - add this as another property on volume info
-    # also consider dropping the moniker from this (just the cleaned title)
-    $volumeBaseFileName = Split-Path $volumePath -Leaf
-    $targetPath = Join-Path $targetDirectory "$volumeBaseFileName.epub"
+    if ($Combine) {
+        $targetPath = Join-Path $targetPath "$volumeSlug.epub"
+    }
 }
 
-# pandoc resolves references to resources (e.g. images, audio) based on the current working directory,
-# not the directory of the input files
-Push-Location $volumePath
-# Note that we do not use --file-scope because it breaks html splitting in the epub output (https://github.com/jgm/pandoc/issues/8741)
-# TandokuMarkdownExport writes out unique footnotes across files so --file-scope is not needed
-pandoc $markdownFiles -f commonmark+footnotes -o $targetPath -t epub3 --metadata title="$title" --metadata author="tandoku" --metadata lang="$($volume.definition.language)"
-Pop-Location
+$title = "$($volume.definition.title ?? $volumeSlug)"
+if ($Combine) {
+    $epub = GenerateEpub $markdownFiles $targetPath $title
+    Write-Output $epub
+} else {
+    $files = ExtractUniqueNamePart $markdownFiles
+    foreach ($file in $files) {
+        $markdownFile = $file.File
+        $fileSuffix = $file.UniquePart
 
-$tempDestination = "$volumePath/temp/epub"
-ApplyEpubFixes $targetPath $tempDestination
-
-Write-Output (Get-Item $targetPath)
+        $epub = GenerateEpub $markdownFile "$targetPath/$volumeSlug-$fileSuffix.epub" "$title-$fileSuffix"
+        Write-Output $epub
+    }
+}

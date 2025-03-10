@@ -133,32 +133,8 @@ $markdownPath = "$volumePath/markdown"
 TandokuMarkdownExport $mergeRefChunksContentPath $markdownPath -NoHeadings -ReferenceBehavior Footnotes -ReferenceLabels None -Quirks KyBook3
 
 if ($Target -eq 'epub') {
-    # TODO - generic workflow mechanism for splitting inputs to multiple targets?
-    # Or just implement this in TandokuEpubExport for now
-    # Consider sharing some implementation with content generation from CSV
-    <#
-    $epubGroups = @(
-        @{ inputMask = '*s01e0[1-4].*'; epubSuffix = '-1-4' },
-        @{ inputMask = '*s01e0[5-8].*'; epubSuffix = '-5-8' },
-        @{ inputMask = '*s01e09.*','*s01e1[0-1].*'; epubSuffix = '-9-11' }
-    )
-
-    foreach ($epubGroup in $epubGroups) {
-        # epub artifact variables
-        $epubPath = "$stagingEpub/$volumeSlug$($epubGroup.epubSuffix).epub"
-
-        # markdown split variables
-        $markdownFiles = Get-ChildItem "$markdownPath/*.md" -Include $epubGroup.inputMask
-
-        if ($markdownFiles) {
-            # tandoku epub export
-            TandokuEpubExport $markdownFiles $epubPath -TitleSuffix $epubGroup.epubSuffix
-        }
-    }
-    #>
-
     # epub artifact variables
-    $epubPath = "$stagingEpub/$volumeSlug.epub"
+    $epubPath = "$stagingEpub"
 
     # tandoku epub export
     TandokuEpubExport $markdownPath $epubPath

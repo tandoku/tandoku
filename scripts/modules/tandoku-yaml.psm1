@@ -27,8 +27,8 @@ function Export-Yaml {
     )
 
     begin {
-        SetCurrentDirectory
-        $writer = [IO.File]::CreateText($Path)
+        $fullPath = ConvertPath $Path
+        $writer = [IO.File]::CreateText($fullPath)
         $first = $true
     }
     process {
