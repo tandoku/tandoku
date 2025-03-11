@@ -126,13 +126,19 @@ function GenerateMarkdownForMedia($media, $container, $caption) {
     if ($media) {
         $mediaNameEncoded = [Uri]::EscapeDataString($media).Replace('%2F', '/')
         $mediaUrl = "$container/$mediaNameEncoded"
-        if ($container -eq "audio") {
+
+        # Use line breaks between media for KyBook 3 to reduce wasted space
+        $outputSuffix = $Quirks -eq 'KyBook3' ? '  ' : ''
+
+        if ($container -eq "audio" -and $Quirks -eq 'KyBook3') {
             # Use explicit <audio> tag because the anchor link that pandoc embeds
             # within the <audio> tag if ![]() is used causes issues for KyBook 3 on iOS
-            Write-Output "<audio src=`"$mediaUrl`" controls=`"1`"></audio>"
-            Write-Output ''
+            Write-Output "<audio src=`"$mediaUrl`" controls=`"1`"></audio>$outputSuffix"
         } else {
-            Write-Output "![$caption]($mediaUrl)"
+            Write-Output "![$caption]($mediaUrl)$outputSuffix"
+        }
+
+        if ($Quirks -ne 'KyBook3') {
             Write-Output ''
         }
     }
