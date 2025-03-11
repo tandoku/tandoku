@@ -19,16 +19,25 @@ param(
 Import-Module "$PSScriptRoot/modules/tandoku-utils.psm1" -Scope Local
 
 function GenerateEpub($markdownFiles, [string]$targetPath, [string]$title) {
+    $tempEpub = "$volumePath/temp/temp.epub"
+    $tempDestination = "$volumePath/temp/epub"
+
     # pandoc resolves references to resources (e.g. images, audio) based on the current working directory,
     # not the directory of the input files
     Push-Location $volumePath
     # Note that we do not use --file-scope because it breaks html splitting in the epub output (https://github.com/jgm/pandoc/issues/8741)
     # TandokuMarkdownExport writes out unique footnotes across files so --file-scope is not needed
-    pandoc $markdownFiles -f commonmark+footnotes -o $targetPath -t epub3 --metadata title="$title" --metadata author="tandoku" --metadata lang="$($volume.definition.language)"
+    pandoc $markdownFiles -f commonmark+footnotes -o $tempEpub -t epub3 --metadata title="$title" --metadata author="tandoku" --metadata lang="$($volume.definition.language)"
     Pop-Location
 
-    $tempDestination = "$volumePath/temp/epub"
-    ApplyEpubFixes $targetPath $tempDestination
+    ApplyEpubFixes $tempEpub $tempDestination
+
+    # Move epub to target path only after applying fixes
+    # so any cloud upload does not start on pre-fixed epub
+    if (Test-Path $targetPath) {
+        Remove-Item $targetPath
+    }
+    Move-Item $tempEpub $targetPath
 
     return (Get-Item $targetPath)
 }
