@@ -90,8 +90,9 @@ function GenerateMarkdown($contentPath) {
 
         if ($block.chunks) {
             # TODO - make this an option? separate transform? (how much 'formatting' should be done in content files?)
+            # only including timecode if there are other references (to avoid footnotes that would only have a timecode)
             $timecode = $block.source.timecodes.start
-            if ($timecode) {
+            if ($timecode -and $block.chunks.references) {
                 $fractionalPoint = $timecode.IndexOf('.')
                 $formattedTimecode = $fractionalPoint -gt 0 ? $timecode.Substring(0, $fractionalPoint) : $timecode
                 SetValueByPath $block.chunks[$block.chunks.Count - 1] 'references.time.text' $formattedTimecode
