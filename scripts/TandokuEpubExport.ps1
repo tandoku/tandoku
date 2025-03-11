@@ -127,6 +127,8 @@ $markdownFiles = Get-ChildItem $InputPath -Filter *.md
 if (-not $markdownFiles) {
     Write-Warning "No markdown files found in $InputPath, nothing to do"
     return
+} elseif ($markdownFiles.Count -eq 1) {
+    $Combine = $true
 }
 
 if ($OutputPath) {
@@ -134,14 +136,14 @@ if ($OutputPath) {
 } else {
     $targetPath = "$volumePath/export"
     CreateDirectoryIfNotExists $targetPath
-
-    if ($Combine) {
-        $targetPath = Join-Path $targetPath "$volumeSlug.epub"
-    }
 }
 
 $title = "$($volume.definition.title ?? $volumeSlug)"
 if ($Combine) {
+    if ((Split-Path $targetPath -Extension) -ne '.epub') {
+        $targetPath = Join-Path $targetPath "$volumeSlug.epub"
+    }
+
     $epub = GenerateEpub $markdownFiles $targetPath $title
     Write-Output $epub
 } else {
