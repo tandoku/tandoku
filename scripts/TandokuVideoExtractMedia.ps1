@@ -18,8 +18,6 @@ Import-Module "$PSScriptRoot/modules/tandoku-films.psm1" -Scope Local
 # Prerequisites:
 # scoop install python
 # pip install subs2cia
-# TODO - fork subs2cia repo and merge PR that removes pandas and PR that makes --batch ignore directory
-# (in the meantime - git clone https://github.com/benjaminhottell/subs2cia and pip install in that directory)
 RequireCommand subs2cia
 
 $Volume = ResolveVolume $Volume

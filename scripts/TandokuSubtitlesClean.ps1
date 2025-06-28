@@ -39,32 +39,17 @@ CreateDirectoryIfNotExists $OutputPath
 
 # SubtitleEdit is a GUI application so | Write-Output is used to wait for completion
 # (PowerShell does not wait for GUI applications to finish by default)
-if ((Split-Path $sourceSubtitles -Extension) -contains '.vtt') {
-    # SubtitleEdit /convert produces invalid .ass files when converting from .vtt
-    # TODO - use .ass instead always when this issue is fixed:
-    # https://github.com/SubtitleEdit/subtitleedit/issues/9092
-    SubtitleEdit /convert *.* SubRip `
-        /inputFolder:$InputPath `
-        /outputFolder:$OutputPath `
-        /overwrite `
-        /RemoveUnicodeControlChars `
-        /RemoveFormatting `
-        /MergeSameTexts |
-        Write-Output
-    $targetSubtitles = Get-ChildItem "$OutputPath/*.srt"
-} else {
-    # TODO - more robust removal of .ass drawing mode content (/deletecontains below)
-    SubtitleEdit /convert *.* AdvancedSubStationAlpha `
-        /inputFolder:$InputPath `
-        /outputFolder:$OutputPath `
-        /overwrite `
-        /deletecontains:"\p1" `
-        /RemoveUnicodeControlChars `
-        /RemoveFormatting `
-        /MergeSameTexts |
-        Write-Output
-    $targetSubtitles = Get-ChildItem "$OutputPath/*.ass"
-}
+# TODO - more robust removal of .ass drawing mode content (/deletecontains below)
+SubtitleEdit /convert *.* AdvancedSubStationAlpha `
+    /inputFolder:$InputPath `
+    /outputFolder:$OutputPath `
+    /overwrite `
+    /deletecontains:"\p1" `
+    /RemoveUnicodeControlChars `
+    /RemoveFormatting `
+    /MergeSameTexts |
+    Write-Output
+$targetSubtitles = Get-ChildItem "$OutputPath/*.ass"
 
 if ($targetSubtitles) {
     # Additional cleanup

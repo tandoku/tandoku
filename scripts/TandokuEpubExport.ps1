@@ -19,8 +19,11 @@ param(
 Import-Module "$PSScriptRoot/modules/tandoku-utils.psm1" -Scope Local
 
 function GenerateEpub($markdownFiles, [string]$targetPath, [string]$title) {
-    $tempEpub = "$volumePath/temp/temp.epub"
-    $tempDestination = "$volumePath/temp/epub"
+    $tempPath = "$volumePath/temp"
+    CreateDirectoryIfNotExists $tempPath
+
+    $tempEpub = "$tempPath/temp.epub"
+    $tempDestination = "$tempPath/epub"
 
     # pandoc resolves references to resources (e.g. images, audio) based on the current working directory,
     # not the directory of the input files
@@ -37,9 +40,10 @@ function GenerateEpub($markdownFiles, [string]$targetPath, [string]$title) {
     if (Test-Path $targetPath) {
         Remove-Item $targetPath
     }
-    Move-Item $tempEpub $targetPath
-
-    return (Get-Item $targetPath)
+    
+    # TODO - currently output of pandoc and ApplyEpubFixes is also returned
+    # so caller cannot do anything useful with this output
+    Move-Item $tempEpub $targetPath -PassThru
 }
 
 function ApplyEpubFixes($epubPath, $tempDestination) {
@@ -153,15 +157,13 @@ if ($Combine) {
         $targetPath = Join-Path $targetPath "$volumeSlug.epub"
     }
 
-    $epub = GenerateEpub $markdownFiles $targetPath $title
-    Write-Output $epub
+    GenerateEpub $markdownFiles $targetPath $title
 } else {
     $files = ExtractUniqueNamePart $markdownFiles
     foreach ($file in $files) {
         $markdownFile = $file.File
         $fileSuffix = $file.UniquePart
 
-        $epub = GenerateEpub $markdownFile "$targetPath/$volumeSlug-$fileSuffix.epub" "$title-$fileSuffix"
-        Write-Output $epub
+        GenerateEpub $markdownFile "$targetPath/$volumeSlug-$fileSuffix.epub" "$title-$fileSuffix"
     }
 }

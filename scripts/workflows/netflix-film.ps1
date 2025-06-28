@@ -25,6 +25,7 @@ if (-not $stagingEpub) {
 # configuration variables
 # TODO - get any overrides from volume config
 $config = @{
+    timingRefSubtitleLanguage = $null # set to 'en' to extract timing ref subtitle from PlayOn files
     alignSubtitlesNoFpsGuessing = $true
     alignSubtitlesNoSplit = $false
     extendAudio = 200
@@ -37,11 +38,13 @@ $initialVideoPath = "$volumePath/video"
 # tandoku video init
 TandokuVideoInit -Volume $volume
 
-# timingref_subtitle artifact variables
-$timingRefSubtitlePath = "$volumePath/subtitles/timing-ref"
+if ($config.timingRefSubtitleLanguage) {
+    # timingref_subtitle artifact variables
+    $timingRefSubtitlePath = "$volumePath/subtitles/timing-ref"
 
-# tandoku video extract-subtitles
-TandokuVideoExtractSubtitles $initialVideoPath $timingRefSubtitlePath -Language en
+    # tandoku video extract-subtitles
+    TandokuVideoExtractSubtitles $initialVideoPath $timingRefSubtitlePath -Language $config.timingRefSubtitleLanguage
+}
 
 # src_subtitle artifact variables
 $srcSubtitlePath = "$volumePath/source"
@@ -61,14 +64,21 @@ $cleanSubtitleRefPath = "$volumePath/subtitles/ref-$refLanguage/10-clean"
 TandokuSubtitlesClean $initialSubtitlePath $cleanSubtitlePath -Volume $volume
 TandokuSubtitlesClean $initialSubtitleRefPath $cleanSubtitleRefPath -Volume $volume
 
-# aligned_subtitle artifact variables
-$alignedSubtitlePath = "$volumePath/subtitles/20-aligned"
-$alignedSubtitleRefPath = "$volumePath/subtitles/ref-$refLanguage/20-aligned"
-$subtitlesAlignReferencePath = $timingRefSubtitlePath # or $initialVideoPath if no reference subtitles available
+if ($config.timingRefSubtitleLanguage) {
+    # aligned_subtitle artifact variables
+    $alignedSubtitlePath = "$volumePath/subtitles/20-aligned"
+    $alignedSubtitleRefPath = "$volumePath/subtitles/ref-$refLanguage/20-aligned"
+    $subtitlesAlignReferencePath = $timingRefSubtitlePath # or $initialVideoPath if no reference subtitles available
 
-# tandoku subtitles align
-TandokuSubtitlesAlign $cleanSubtitlePath $alignedSubtitlePath -ReferencePath $subtitlesAlignReferencePath -Volume $volume -NoFpsGuessing:$config.alignSubtitlesNoFpsGuessing -NoSplit:$config.alignSubtitlesNoSplit
-TandokuSubtitlesAlign $cleanSubtitleRefPath $alignedSubtitleRefPath -ReferencePath $subtitlesAlignReferencePath -Volume $volume -NoFpsGuessing:$config.alignSubtitlesNoFpsGuessing -NoSplit:$config.alignSubtitlesNoSplit
+    # tandoku subtitles align
+    TandokuSubtitlesAlign $cleanSubtitlePath $alignedSubtitlePath -ReferencePath $subtitlesAlignReferencePath -Volume $volume -NoFpsGuessing:$config.alignSubtitlesNoFpsGuessing -NoSplit:$config.alignSubtitlesNoSplit
+    TandokuSubtitlesAlign $cleanSubtitleRefPath $alignedSubtitleRefPath -ReferencePath $subtitlesAlignReferencePath -Volume $volume -NoFpsGuessing:$config.alignSubtitlesNoFpsGuessing -NoSplit:$config.alignSubtitlesNoSplit
+} else {
+    # if we don't have a timing-ref subtitle, skip subtitle alignment
+    # (assuming that video and subtitles are direct from Netflix in this case)
+    $alignedSubtitlePath = $cleanSubtitlePath
+    $alignedSubtitleRefPath = $cleanSubtitleRefPath
+}
 
 # initial_content artifact variables
 $initialContentPath = "$volumePath/content/00-initial"
