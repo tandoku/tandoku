@@ -10,12 +10,14 @@ param(
 
 Import-Module "$PSScriptRoot/modules/tandoku-volume.psm1" -Scope Local
 
+$buildParams = $PSBoundParameters
+
 $Volume = ResolveVolume $Volume
 if (-not $Volume) {
     return
 }
-$PSBoundParameters.Volume = $Volume
 $volumePath = $Volume.Path
+$buildParams.Volume = $Volume
 
 $buildScript = "$volumePath/build.ps1"
 if (-not (Test-Path $buildScript)) {
@@ -32,4 +34,12 @@ if (-not (Test-Path $buildScript)) {
     }
 }
 
-& $buildScript @PSBoundParameters
+# TODO - TandokuConfig should support fallback from volume>library>user (or user>volume>library?)
+# should not need to specify -Scope Volume here
+$volumeConfig = TandokuConfig -Scope Volume -Volume $Volume
+$workflowParams = $volumeConfig.'workflow-params'
+if ($workflowParams) {
+    $buildParams.Params = $workflowParams
+}
+
+& $buildScript @buildParams

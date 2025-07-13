@@ -1,8 +1,12 @@
 param(
     [Parameter()]
-    [ValidateSet('epub','markdown')]
+    [ValidateSet('epub','markdown')] # TODO - add or switch to 'kybook-epub' target for KyBook tweaks
     [String]
     $Target = 'epub',
+
+    [Parameter()]
+    [Hashtable]
+    $Params,
 
     [Parameter(Mandatory)]
     $Volume
@@ -18,17 +22,24 @@ if (-not $stagingEpub) {
     # TODO - implement GetStagingPath <module> in tandoku-workflow-utils.psm1
     # which encodes fallback to <core.staging>/<module> and default value for
     # core.staging (~/.tandoku/staging)
+    # BUT - think about how this should interact with change to 'kybook-epub' target.
+    # Maybe this isn't about 'modules' but 'targets'? i.e. default output for
+    # any external target is <core.staging>/<target-name>
+    # In this case though we need a different config hierarchy, something like
+    # staging.<target-name> config keys and maybe staging.base instead of core.staging
+    # OR keep core.staging and use staging-targets.<target-name> for specific targets
+    # Also note that staging is also for *inputs* not just *targets*...
     Write-Error 'Missing configuration for epub.staging'
     return
 }
 
-# configuration variables
-# TODO - get any overrides from volume config
+# workflow configuration variables
 $config = @{
-    timingRefSubtitleLanguage = $null # set to 'en' to extract timing ref subtitle from PlayOn files
-    alignSubtitlesNoFpsGuessing = $true
-    alignSubtitlesNoSplit = $false
-    extendAudio = 200
+    # Set this to 'en' to extract timing ref subtitle from PlayOn files
+    timingRefSubtitleLanguage = $params.timingRefSubtitleLanguage
+    alignSubtitlesNoFpsGuessing = $params.alignSubtitlesNoFpsGuessing ?? $true
+    alignSubtitlesNoSplit = $params.alignSubtitlesNoSplit ?? $false
+    extendAudio = $params.extendAudio ?? 200
 }
 
 # initial_video artifact variables
