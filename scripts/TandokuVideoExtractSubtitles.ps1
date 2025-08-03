@@ -9,7 +9,10 @@ param(
 
     [Parameter()]
     [String]
-    $Language
+    $Language,
+
+    [Parameter()]
+    $StreamIndex
 )
 
 Import-Module "$PSScriptRoot/modules/tandoku-utils.psm1" -Scope Local
@@ -36,9 +39,12 @@ foreach ($sourceVideo in $sourceVideos) {
         Write-Warning "$targetPath already exists, skipping subtitle extraction"
     } else {
         $ffmpegArgs = ArgsToArray -i $sourceVideo
-        if ($Language) {
+        if ($StreamIndex -or $StreamIndex -eq 0) {
+            $ffmpegArgs += ArgsToArray -map "0:s:$StreamIndex"
+        } elseif ($Language) {
+            # Note: this will error out if there are multiple matching subtitle streams
             $langCode = [CultureInfo]::GetCultureInfo($Language).ThreeLetterISOLanguageName
-            $ffmpegArgs += ArgsToArray -map "0:m:language:$langCode"
+            $ffmpegArgs += ArgsToArray -map "0:s:m:language:$langCode"
         } else {
             $ffmpegArgs += ArgsToArray -map 0:s:0
         }

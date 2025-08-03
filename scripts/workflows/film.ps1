@@ -1,6 +1,6 @@
 param(
     [Parameter()]
-    [ValidateSet('epub','markdown')] # TODO - add or switch to 'kybook-epub' target for KyBook tweaks
+    [ValidateSet('epub','markdown')] # TODO - add or switch to 'epub-kybook' target for KyBook tweaks
     [String]
     $Target = 'epub',
 
@@ -22,7 +22,7 @@ if (-not $stagingEpub) {
     # TODO - implement GetStagingPath <module> in tandoku-workflow-utils.psm1
     # which encodes fallback to <core.staging>/<module> and default value for
     # core.staging (~/.tandoku/staging)
-    # BUT - think about how this should interact with change to 'kybook-epub' target.
+    # BUT - think about how this should interact with change to 'epub-kybook' target.
     # Maybe this isn't about 'modules' but 'targets'? i.e. default output for
     # any external target is <core.staging>/<target-name>
     # In this case though we need a different config hierarchy, something like
@@ -37,6 +37,8 @@ if (-not $stagingEpub) {
 $config = @{
     # Set this to 'en' to extract timing ref subtitle from PlayOn files
     timingRefSubtitleLanguage = $params.timingRefSubtitleLanguage
+    subtitleStreamIndex = $params.subtitleStreamIndex
+    refSubtitleStreamIndex = $params.refSubtitleStreamIndex
     alignSubtitlesNoFpsGuessing = $params.alignSubtitlesNoFpsGuessing ?? $true
     alignSubtitlesNoSplit = $params.alignSubtitlesNoSplit ?? $false
     extendAudio = $params.extendAudio ?? 200
@@ -64,8 +66,8 @@ $initialSubtitlePath = "$volumePath/subtitles/00-initial"
 $initialSubtitleRefPath = "$volumePath/subtitles/ref-$refLanguage/00-initial"
 
 # tandoku subtitles init
-TandokuSubtitlesInit $srcSubtitlePath $initialSubtitlePath -Language $volumeLanguage -Volume $volume
-TandokuSubtitlesInit $srcSubtitleRefPath $initialSubtitleRefPath -Language $refLanguage -Volume $volume
+TandokuSubtitlesInit $srcSubtitlePath $initialSubtitlePath -Language $volumeLanguage -VideoPath $initialVideoPath -StreamIndex $config.subtitleStreamIndex -Volume $volume
+TandokuSubtitlesInit $srcSubtitleRefPath $initialSubtitleRefPath -Language $refLanguage -VideoPath $initialVideoPath -StreamIndex $config.refSubtitleStreamIndex -Volume $volume
 
 # clean_subtitle artifact variables
 $cleanSubtitlePath = "$volumePath/subtitles/10-clean"

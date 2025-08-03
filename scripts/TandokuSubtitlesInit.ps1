@@ -12,6 +12,13 @@ param(
     $Language,
 
     [Parameter()]
+    [String]
+    $VideoPath,
+
+    [Parameter()]
+    $StreamIndex,
+
+    [Parameter()]
     $Volume
 )
 
@@ -33,7 +40,8 @@ if (-not $OutputPath) {
 
 $sourceSubtitles = Get-ChildItem "$InputPath/*.*" -Include (GetKnownSubtitleExtensions -FileMask -Language $Language -MatchLanguagePrefix)
 if (-not $sourceSubtitles) {
-    Write-Warning 'No subtitles found in volume source.'
+    Write-Warning 'No subtitles found under input path, attempting to extract from video'
+    TandokuVideoExtractSubtitles ($VideoPath ?? $InputPath) $OutputPath -Language $Language -StreamIndex $StreamIndex
     return
 }
 
