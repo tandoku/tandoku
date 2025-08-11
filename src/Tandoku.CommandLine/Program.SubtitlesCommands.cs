@@ -10,6 +10,7 @@ public sealed partial class Program
         {
             this.CreateSubtitlesGenerateContentCommand(),
             this.CreateSubtitlesGenerateCommand(),
+            this.CreateSubtitlesTtmlToWebVttCommand(),
         };
 
     private Command CreateSubtitlesGenerateContentCommand()
@@ -53,6 +54,27 @@ public sealed partial class Program
             var generator = new SubtitleGenerator(purpose, includeRef, extendAudio, this.fileSystem);
             await generator.GenerateAsync(pathArgs.InputPath.FullName, pathArgs.OutputPath.FullName);
         }, pathArgsBinder, purposeOption, includeRefOption, extendAudioOption);
+
+        return command;
+    }
+
+    private Command CreateSubtitlesTtmlToWebVttCommand()
+    {
+        var pathArgsBinder = new InputOutputPathArgsBinder();
+
+        var command = new Command("ttml-to-webvtt", "Converts TTML subtitles to WebVTT format")
+        {
+            pathArgsBinder,
+        };
+
+        command.SetHandler(async (InputOutputPathArgs pathArgs) =>
+        {
+            var converter = new TtmlToWebVttConverter(
+                pathArgs.InputPath.FullName,
+                pathArgs.OutputPath.FullName,
+                this.fileSystem);
+            await converter.ConvertAsync();
+        }, pathArgsBinder);
 
         return command;
     }

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<tt xmlns="http://www.w3.org/ns/ttml" xmlns:ttp="http://www.w3.org/ns/ttml#parameter" xmlns:tts="http://www.w3.org/ns/ttml#styling" ttp:version="2" xml:lang="jp"> 
+ <head> 
+  <styling> 
+   <initial tts:fontSize="4vh" /> 
+   <initial tts:lineHeight="5vh" /> 
+   <initial tts:showBackground="whenActive" /> 
+   <style tts:textAlign="center" xml:id="s1"></style> 
+   <style tts:textAlign="start" xml:id="s2"></style> 
+   <style tts:ruby="container" xml:id="s3"></style> 
+   <style tts:ruby="base" xml:id="s4"></style> 
+   <style tts:ruby="text" tts:rubyPosition="before" xml:id="s5"></style> 
+   <style tts:fontShear="16.78842%" xml:id="s6"></style> 
+   <style tts:textCombine="all" xml:id="s7"></style> 
+   <style tts:ruby="text" tts:rubyPosition="after" xml:id="s8"></style> 
+   <style tts:fontShear="16.78842%" tts:textAlign="center" xml:id="s9"></style> 
+   <style tts:fontSize="1.5em 1.0em" xml:id="s10"></style> 
+  </styling> 
+  <layout> 
+   <region tts:displayAlign="after" tts:extent="80vw 15vh" tts:position="center bottom 10vh" xml:id="横下" /> 
+   <region tts:extent="15vw 80vh" tts:position="right 10vw center" tts:writingMode="tbrl" xml:id="縦右" /> 
+   <region tts:displayAlign="after" tts:extent="15vw 80vh" tts:position="left 10vw center" tts:writingMode="tbrl" xml:id="縦左" /> 
+  </layout> 
+ </head> 
+ <body region="横下" xml:space="preserve"> 
+  <div> 
+   <p begin="00:00:23.232" end="00:00:27.611" style="s1"><span style="s2">（<span style="s3"><span style="s4">神戸美紗</span><span style="s5">かんべみさ</span></span>）<span style="s6">人生は</span><br /><span style="s6">美しいシーンで紡がれた台本だ</span></span></p> 
+   <p begin="00:00:31.866" end="00:00:35.536" style="s1"><span style="s2">（泣き声続く）</span></p> 
+   <p begin="00:00:45.004" end="00:00:46.255" style="s1"><span style="s2">（７歳の<span style="s3"><span style="s4">江坂麗奈</span><span style="s5">えさかれいな</span></span>）これあげる</span></p> 
+   <p begin="00:00:48.966" end="00:00:49.884" style="s1"><span style="s2">え？</span></p> 
+   <p begin="00:01:10.905" end="00:01:12.490" style="s1"><span style="s2">（７歳の美紗）ね？<br />（７歳の麗奈）高ーい</span></p> 
+   <p begin="00:01:52.571" end="00:01:53.614" style="s1"><span style="s2">知ってる方？</span></p> 
+   <p begin="00:01:54.240" end="00:01:56.367" style="s1"><span style="s2">（女性社員）みんな知ってますよね？<br />（<span style="s3"><span style="s4">平野友也</span><span style="s8">ひらのともや</span></span>）当然ですよねー</span></p> 
+   <p begin="00:01:57.535" end="00:02:01.372" style="s1"><span style="s2">（女性社員）はい で こちらは<br />あの 最新のすずとくんとなっております</span></p> 
+   <p begin="01:08:36.863" end="01:08:38.865" style="s1"><span style="s2">♪～</span></p> 
+   <p begin="01:10:37.359" end="01:10:39.361" region="縦左">～♪</p> 
+  </div> 
+ </body> </tt>

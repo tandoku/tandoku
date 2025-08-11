@@ -9,7 +9,7 @@ function GetKnownVideoExtensions([Switch]$FileMask) {
     return "$prefix.mkv","$prefix.mp4"
 }
 
-function GetKnownSubtitleExtensions([Switch]$FileMask, [String]$Language, [Switch]$MatchLanguagePrefix) {
+function GetKnownSubtitleExtensions([Switch]$FileMask, [String]$Language, [Switch]$MatchLanguagePrefix, [Switch]$TtmlOnly) {
     $prefix = $FileMask ? '*' : ''
     if ($Language) {
         $prefix = "$prefix.$Language"
@@ -17,7 +17,11 @@ function GetKnownSubtitleExtensions([Switch]$FileMask, [String]$Language, [Switc
             $prefix = "$prefix*"
         }
     }
-    return "$prefix.ass","$prefix.srt","$prefix.vtt"
+    $result = "$prefix.ttml","$prefix.dfxp","$prefix.xml"
+    if (-not $TtmlOnly) {
+        $result += "$prefix.vtt","$prefix.ass","$prefix.srt"
+    }
+    return $result
 }
 
 function GetSubtitleBaseName($subtitle) {

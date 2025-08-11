@@ -29,6 +29,20 @@ if (-not $Volume) {
 }
 
 # TODO - add function to module for getting subtitles in directory (optionally with language specified)
+$sourceSubtitles = Get-ChildItem "$InputPath/*.*" -Include (GetKnownSubtitleExtensions -FileMask -TtmlOnly)
+if ($sourceSubtitles) {
+    CreateDirectoryIfNotExists $OutputPath
+
+    tandoku subtitles ttml-to-webvtt $InputPath $OutputPath
+    $targetSubtitles = Get-ChildItem "$OutputPath/*.vtt"
+
+    if ($targetSubtitles) {
+        TandokuVersionControlAdd -Path $targetSubtitles -Kind text
+    }
+    return
+}
+
+# TODO - add function to module for getting subtitles in directory (optionally with language specified)
 $sourceSubtitles = Get-ChildItem "$InputPath/*.*" -Include (GetKnownSubtitleExtensions -FileMask)
 if (-not $sourceSubtitles) {
     Write-Warning 'No subtitles found under input path.'

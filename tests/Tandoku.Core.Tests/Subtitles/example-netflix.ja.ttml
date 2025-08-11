@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<tt ttp:contentProfiles="http://www.w3.org/ns/ttml/profile/imsc1.1/text" xmlns="http://www.w3.org/ns/ttml" xmlns:ebutts="urn:ebu:tt:style" xmlns:nttm="http://www.netflix.com/ns/ttml#metadata" xmlns:tt="http://www.w3.org/ns/ttml" xmlns:ttp="http://www.w3.org/ns/ttml#parameter" xmlns:tts="http://www.w3.org/ns/ttml#styling" xmlns:xml="http://www.w3.org/XML/1998/namespace" ttp:tickRate="10000000" ttp:timeBase="media" xml:lang="ja">
+<head>
+<metadata nttm:schemaVersion="0" nttm:textType="CC" nttm:uuid="d3389491-15eb-4765-b4f3-f2001cc80799"/>
+<styling>
+<initial tts:backgroundColor="transparent" tts:color="white" tts:extent="80.000% 80.000%" tts:fontFamily="Japanese" tts:opacity="1.000" tts:origin="10.000% 10.000%" tts:showBackground="whenActive" tts:textOutline="black 0.050em" tts:writingMode="lrtb"/>
+<style xml:id="style0" tts:fontSize="100.000%" tts:rubyReserve="outside" tts:textAlign="center"/>
+<style xml:id="style1" tts:fontSize="100.000%" tts:rubyReserve="outside"/>
+<style xml:id="style2" tts:fontSize="100.000%" tts:rubyReserve="outside" tts:shear="16.670%" tts:textAlign="start"/>
+<style xml:id="style3" tts:fontSize="100.000%" tts:ruby="container" tts:shear="16.670%"/>
+<style xml:id="style4" tts:fontSize="100.000%" tts:ruby="base" tts:shear="16.670%"/>
+<style xml:id="style5" tts:ruby="text" tts:rubyAlign="center" tts:rubyPosition="outside" tts:shear="16.670%"/>
+<style xml:id="style6" tts:fontSize="100.000%" tts:rubyReserve="outside" tts:shear="16.670%" tts:textCombine="all"/>
+<style xml:id="style7" tts:fontSize="100.000%" tts:rubyReserve="outside" tts:textAlign="start"/>
+<style xml:id="style8" tts:fontSize="100.000%" tts:ruby="container"/>
+<style xml:id="style9" tts:fontSize="100.000%" tts:ruby="base"/>
+<style xml:id="style10" tts:ruby="text" tts:rubyAlign="center" tts:rubyPosition="outside"/>
+<style xml:id="style11" tts:fontSize="100.000%" tts:rubyReserve="outside" tts:shear="16.670%" tts:textAlign="center"/>
+</styling>
+<layout>
+<region xml:id="region0" ebutts:multiRowAlign="start" tts:displayAlign="after" tts:extent="80.000% 80.000%" tts:origin="10.000% 10.000%" tts:writingMode="lrtb"/>
+<region xml:id="region1" ebutts:multiRowAlign="start" tts:displayAlign="after" tts:extent="80.000% 80.000%" tts:origin="10.000% 10.000%" tts:writingMode="tbrl"/>
+<region xml:id="region2" ebutts:multiRowAlign="start" tts:displayAlign="before" tts:extent="80.000% 80.000%" tts:origin="10.000% 10.000%" tts:writingMode="tbrl"/>
+<region xml:id="region3" ebutts:multiRowAlign="start" tts:displayAlign="before" tts:extent="80.000% 80.000%" tts:origin="10.000% 10.000%" tts:writingMode="lrtb"/>
+</layout>
+</head>
+<body>
+<div>
+<p xml:id="subtitle1" begin="140000000t" end="180410000t" region="region0" style="style0"><span style="style1">〈2018年 札幌〉</span></p>
+<p xml:id="subtitle2" begin="379580000t" end="395000000t" region="region1" style="style2">（<span style="style3"><span style="style4">也英</span><span style="style5">やえ</span></span>）誰かが言った</p>
+<p xml:id="subtitle3" begin="404580000t" end="439160000t" region="region1" style="style2">〝人生はまるで<br/>ジグソーパズルだ〞と</p>
+<p xml:id="subtitle4" begin="465410000t" end="486250000t" region="region1" style="style2">どんなキラキラな想い出も</p>
+<p xml:id="subtitle19" begin="1057500000t" end="1081250000t" region="region2" style="style7"><span style="style1">（也英）皆様</span><br/><span style="style1">おはようございます</span></p>
+<p xml:id="subtitle29" begin="1274160000t" end="1294160000t" region="region2" style="style7"><span style="style8"><span style="style9">野口</span><span style="style10">のぐち</span></span><span style="style1">也英でございます</span></p>
+<p xml:id="subtitle712" begin="27612500000t" end="27623750000t" region="region3" style="style11">♪ 今はまだ悲しいlove song</p>
+<p xml:id="subtitle719" begin="27694160000t" end="27720000000t" region="region0" style="style11">大切なピースを<br/>失くしてしまったら？</p>
+<p xml:id="subtitle722" begin="30700830000t" end="30750830000t" region="region0" style="style0"><span style="style1">～♪</span></p>
+</div>
+</body>
+</tt>

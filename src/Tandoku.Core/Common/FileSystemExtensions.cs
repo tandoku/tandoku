@@ -20,6 +20,15 @@ public static class FileSystemExtensions
         return directory?.EnumerateFiles(fileSystem.Path.GetFileName(path)) ?? [];
     }
 
+    public static IEnumerable<IFileInfo> EnumerateFilesByExtension(this IDirectoryInfo directory, params IEnumerable<string> extensions)
+    {
+        foreach (var extension in extensions)
+        {
+            foreach (var file in directory.EnumerateFiles($"*{extension}"))
+                yield return file;
+        }
+    }
+
     public static string GetPath(this IDirectoryInfo directory, string path) =>
         directory.FileSystem.Path.Join(directory.FullName, path);
     public static IDirectoryInfo GetSubdirectory(this IDirectoryInfo directory, string path) =>

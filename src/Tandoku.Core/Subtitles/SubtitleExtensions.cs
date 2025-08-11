@@ -4,14 +4,14 @@ using System.IO.Abstractions;
 
 internal static class SubtitleExtensions
 {
-    private static readonly IReadOnlyList<string> knownSubtitleExtensions = [".ass", ".srt", ".vtt"];
+    internal const string WebVtt = ".vtt";
 
-    internal static IEnumerable<IFileInfo> EnumerateSubtitleFiles(this IDirectoryInfo directory)
-    {
-        foreach (var extension in knownSubtitleExtensions)
-        {
-            foreach (var file in directory.EnumerateFiles($"*{extension}"))
-                yield return file;
-        }
-    }
+    private static readonly IReadOnlyList<string> ttmlSubtitleExtensions = [".ttml", ".dfxp", ".xml"];
+    private static readonly IReadOnlyList<string> knownSubtitleExtensions = [..ttmlSubtitleExtensions, WebVtt, ".ass", ".srt"];
+
+    internal static IEnumerable<IFileInfo> EnumerateSubtitleFiles(this IDirectoryInfo directory) =>
+        directory.EnumerateFilesByExtension(knownSubtitleExtensions);
+
+    internal static IEnumerable<IFileInfo> EnumerateTtmlSubtitleFiles(this IDirectoryInfo directory) =>
+        directory.EnumerateFilesByExtension(ttmlSubtitleExtensions);
 }

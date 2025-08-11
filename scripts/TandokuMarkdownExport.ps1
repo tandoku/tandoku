@@ -240,6 +240,7 @@ function ProcessRubyText([String]$text) {
     if ($RubyBehavior -ne 'None') {
         $rubyMatch = '(^| )([^ \[]+)\[(.+?)\]'
         $rubyReplace = switch -Wildcard ($RubyBehavior) {
+            # TODO - WebVTT doesn't support <rb> tags, can be removed? ($2 directly within <ruby>)
             '*Html' { '<ruby><rb>$2</rb><rt>$3</rt></ruby>' }
             'Remove' { '$2' }
         }

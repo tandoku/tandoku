@@ -84,11 +84,13 @@ if ($config.timingRefSubtitleLanguage) {
     $subtitlesAlignReferencePath = $timingRefSubtitlePath # or $initialVideoPath if no reference subtitles available
 
     # tandoku subtitles align
+    # TODO - consider inverting FPS guessing and split semantics (AllowFpsGuessing, AllowSplit, both false by default)
     TandokuSubtitlesAlign $cleanSubtitlePath $alignedSubtitlePath -ReferencePath $subtitlesAlignReferencePath -Volume $volume -NoFpsGuessing:$config.alignSubtitlesNoFpsGuessing -NoSplit:$config.alignSubtitlesNoSplit
     TandokuSubtitlesAlign $cleanSubtitleRefPath $alignedSubtitleRefPath -ReferencePath $subtitlesAlignReferencePath -Volume $volume -NoFpsGuessing:$config.alignSubtitlesNoFpsGuessing -NoSplit:$config.alignSubtitlesNoSplit
 } else {
     # if we don't have a timing-ref subtitle, skip subtitle alignment
     # (assuming that video and subtitles are direct from Netflix in this case)
+    # TODO - generalize this (no longer Netflix-specific flow)
     $alignedSubtitlePath = $cleanSubtitlePath
     $alignedSubtitleRefPath = $cleanSubtitleRefPath
 }
