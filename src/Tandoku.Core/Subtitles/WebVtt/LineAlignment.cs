@@ -1,4 +1,6 @@
-﻿// ---------------------------------------------------------------------------
+﻿#nullable disable
+
+// ---------------------------------------------------------------------------
 // <copyright file="LineAlignment.cs" owner="svm-git">
 //
 //  Copyright (c) 2018 svm-git
@@ -24,27 +26,26 @@
 // </copyright>
 // ---------------------------------------------------------------------------
 
-namespace Media.Captions.WebVTT
+namespace Tandoku.Subtitles.WebVtt;
+
+/// <summary>
+/// Line alignment setting.
+/// </summary>
+/// <remarks>See http://www.w3.org/TR/webvtt1/#webvtt-line-cue-setting for details.</remarks>
+public enum LineAlignment
 {
     /// <summary>
-    /// Line alignment setting.
+    /// Align to the start of the line.
     /// </summary>
-    /// <remarks>See http://www.w3.org/TR/webvtt1/#webvtt-line-cue-setting for details.</remarks>
-    public enum LineAlignment
-    {
-        /// <summary>
-        /// Align to the start of the line.
-        /// </summary>
-        Start,
+    Start,
 
-        /// <summary>
-        /// Align to the center of the line.
-        /// </summary>
-        Center,
+    /// <summary>
+    /// Align to the center of the line.
+    /// </summary>
+    Center,
 
-        /// <summary>
-        /// Align to the end of the line.
-        /// </summary>
-        End
-    }
+    /// <summary>
+    /// Align to the end of the line.
+    /// </summary>
+    End
 }

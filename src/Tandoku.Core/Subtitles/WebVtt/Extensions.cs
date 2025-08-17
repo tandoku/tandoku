@@ -1,4 +1,6 @@
-﻿// ---------------------------------------------------------------------------
+﻿#nullable disable
+
+// ---------------------------------------------------------------------------
 // <copyright file="Extensions.cs" owner="svm-git">
 //
 //  Copyright (c) 2018 svm-git
@@ -24,34 +26,33 @@
 // </copyright>
 // ---------------------------------------------------------------------------
 
-namespace Media.Captions.WebVTT
+namespace Tandoku.Subtitles.WebVtt;
+
+using System.Text;
+
+/// <summary>
+/// Utility methods.
+/// </summary>
+internal static class Extensions
 {
-    using System.Text;
-
     /// <summary>
-    /// Utility methods.
+    /// Utility method that ensures that text lines are property added to the string builder.
     /// </summary>
-    internal static class Extensions
+    /// <param name="builder">The string builder to use.</param>
+    /// <param name="line">The line to append.</param>
+    /// <returns>The string builder.</returns>
+    public static StringBuilder SafeAppendLine(this StringBuilder builder, string line)
     {
-        /// <summary>
-        /// Utility method that ensures that text lines are property added to the string builder.
-        /// </summary>
-        /// <param name="builder">The string builder to use.</param>
-        /// <param name="line">The line to append.</param>
-        /// <returns>The string builder.</returns>
-        public static StringBuilder SafeAppendLine(this StringBuilder builder, string line)
+        if (line != null)
         {
-            if (line != null)
+            if (builder.Length > 0)
             {
-                if (builder.Length > 0)
-                {
-                    builder.AppendLine();
-                }
-
-                builder.Append(line);
+                builder.AppendLine();
             }
 
-            return builder;
+            builder.Append(line);
         }
+
+        return builder;
     }
 }

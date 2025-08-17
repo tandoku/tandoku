@@ -92,6 +92,9 @@ public sealed class VolumeManager
     public async Task<RenameResult> RenameVolumeDirectory(string volumePath)
     {
         var (info, volumeDirectory) = await this.GetInfoAsyncCore(volumePath);
+        
+        if (string.IsNullOrEmpty(info.Definition.Title))
+            throw new InvalidOperationException("Cannot rename volume with an empty title.");
 
         var newName = this.GetVolumeDirectoryName(info.Definition.Title, info.Definition.Moniker);
 

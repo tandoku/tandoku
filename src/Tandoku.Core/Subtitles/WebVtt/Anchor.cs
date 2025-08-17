@@ -1,4 +1,6 @@
-﻿// ---------------------------------------------------------------------------
+﻿#nullable disable
+
+// ---------------------------------------------------------------------------
 // <copyright file="Anchor.cs" owner="svm-git">
 //
 //  Copyright (c) 2018 svm-git
@@ -24,22 +26,21 @@
 // </copyright>
 // ---------------------------------------------------------------------------
 
-namespace Media.Captions.WebVTT
+namespace Tandoku.Subtitles.WebVtt;
+
+/// <summary>
+/// Region or viewpoer anchor structure.
+/// </summary>
+/// <remarks>See http://www.w3.org/TR/webvtt1/#webvtt-region-anchor-setting for more details.</remarks>
+public struct Anchor
 {
     /// <summary>
-    /// Region or viewpoer anchor structure.
+    /// Measures x-dimension percentage.
     /// </summary>
-    /// <remarks>See http://www.w3.org/TR/webvtt1/#webvtt-region-anchor-setting for more details.</remarks>
-    public struct Anchor
-    {
-        /// <summary>
-        /// Measures x-dimension percentage.
-        /// </summary>
-        public double XPercent;
+    public double XPercent;
 
-        /// <summary>
-        /// Measures y-dimension percentage.
-        /// </summary>
-        public double YPercent;
-    }
+    /// <summary>
+    /// Measures y-dimension percentage.
+    /// </summary>
+    public double YPercent;
 }

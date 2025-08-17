@@ -1,4 +1,6 @@
-﻿// ---------------------------------------------------------------------------
+﻿#nullable disable
+
+// ---------------------------------------------------------------------------
 // <copyright file="LineSettings.cs" owner="svm-git">
 //
 //  Copyright (c) 2018 svm-git
@@ -24,28 +26,27 @@
 // </copyright>
 // ---------------------------------------------------------------------------
 
-namespace Media.Captions.WebVTT
+namespace Tandoku.Subtitles.WebVtt;
+
+/// <summary>
+/// Cue line settings.
+/// </summary>
+/// <remarks></remarks>
+/// <remarks>See http://www.w3.org/TR/webvtt1/#webvtt-line-cue-setting for details.</remarks>
+public struct LineSettings
 {
     /// <summary>
-    /// Cue line settings.
+    /// Offset relative to the video viewport.
     /// </summary>
-    /// <remarks></remarks>
-    /// <remarks>See http://www.w3.org/TR/webvtt1/#webvtt-line-cue-setting for details.</remarks>
-    public struct LineSettings
-    {
-        /// <summary>
-        /// Offset relative to the video viewport.
-        /// </summary>
-        public double? Percent;
+    public double? Percent;
 
-        /// <summary>
-        /// Line number.
-        /// </summary>
-        public int? LineNumber;
+    /// <summary>
+    /// Line number.
+    /// </summary>
+    public int? LineNumber;
 
-        /// <summary>
-        /// Text alignment for the cue.
-        /// </summary>
-        public LineAlignment? Alignment;
-    }
+    /// <summary>
+    /// Text alignment for the cue.
+    /// </summary>
+    public LineAlignment? Alignment;
 }
