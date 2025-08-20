@@ -61,11 +61,27 @@ public class TtmlDiv
 
 public class TtmlParagraph
 {
+    [XmlIgnore]
+    public TimeSpan Begin { get; set; }
+
     [XmlAttribute("begin")]
-    public string? Begin { get; set; }
+    public string BeginString
+    {
+        get => ToString(this.Begin);
+        set => this.Begin = ToTimeSpan(value);
+    }
+
+    [XmlIgnore]
+    public TimeSpan End { get; set; }
 
     [XmlAttribute("end")]
-    public string? End { get; set; }
+    public string EndString
+    {
+        get => ToString(this.End);
+        set => this.End = ToTimeSpan(value);
+    }
+
+    // TODO - support duration attribute
 
     [XmlAttribute("style")]
     public string? Style { get; set; }
@@ -74,6 +90,11 @@ public class TtmlParagraph
     [XmlElement("br", typeof(TtmlBr))]
     [XmlText(typeof(string))]
     public List<object>? Content { get; set; }
+
+    // TODO - support other types of time expressions defined in TTML spec
+    // https://www.w3.org/TR/2018/REC-ttml1-20181108/#timing-value-timeExpression
+    private static TimeSpan ToTimeSpan(string s) => TimeSpan.Parse(s);
+    private static string ToString(TimeSpan timeSpan) => timeSpan.ToString(@"hh\:mm\:ss\.fff");
 }
 
 public class TtmlSpan

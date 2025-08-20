@@ -2,6 +2,7 @@
 
 using System.IO.Abstractions;
 using Tandoku.Subtitles.Ttml;
+using Tandoku.Subtitles.WebVtt;
 
 /// <summary>
 /// Converter for TTML subtitles to WebVTT format. Preserves ruby annotations.
@@ -26,23 +27,81 @@ public sealed class TtmlToWebVttConverter
         outputDir.Create();
         foreach (var inputFile in inputDir.EnumerateTtmlSubtitleFiles())
         {
-            // Note - strip both subtitle extension and language code from filename (i.e. abc.ja.srt -> abc.content.yaml)
             var baseName = this.fileSystem.Path.GetFileNameWithoutExtension(inputFile.Name);
             var targetName = this.fileSystem.Path.ChangeExtension(baseName, SubtitleExtensions.WebVtt);
             var outputFile = outputDir.GetFile(targetName);
-            var ttmlDocument = await TtmlSerializer.DeserializeAsync(inputFile.OpenRead());
-            var webVttContent = ConvertToWebVtt(ttmlDocument);
-            // TODO await YamlSerializer.WriteStreamAsync(outputFile, GenerateContentBlocksAsync(inputFile));
+            var webVttDocument = await ConvertAsync(inputFile.OpenRead());
+            using var outputWriter = outputFile.CreateText();
+            await WebVttSerializer.SerializeAsync(webVttDocument, outputWriter);
         }
     }
 
-    private static object ConvertToWebVtt(TtmlDocument ttmlDocument)
+    public static async Task<WebVttDocument> ConvertAsync(Stream stream)
     {
-        // TODO - write visitor for TtmlDocument, write to WebVTT objects
-        return new object();
+        var ttmlDocument = await TtmlSerializer.DeserializeAsync(stream);
+        return Convert(ttmlDocument);
+    }
+
+    public static WebVttDocument Convert(TtmlDocument ttmlDocument)
+    {
+        var visitor = new ConvertVisitor();
+        visitor.VisitDocument(ttmlDocument);
+        return visitor.Target;
     }
 
     private sealed class ConvertVisitor : TtmlDocumentVisitor
     {
+        private readonly WebVttDocument targetDoc = new();
+        private readonly List<Cue> cues = [];
+        private readonly List<Span> spans = [];
+
+        internal WebVttDocument Target => this.targetDoc;
+
+        public override void VisitDocument(TtmlDocument document)
+        {
+            base.VisitDocument(document);
+
+            this.targetDoc.Cues = [.. this.cues];
+
+            this.cues.Clear();
+        }
+
+        public override void VisitParagraph(TtmlParagraph paragraph)
+        {
+            var cue = new Cue
+            {
+                Start = paragraph.Begin,
+                End = paragraph.End
+            };
+
+            base.VisitParagraph(paragraph);
+
+            cue.Content = [.. this.spans];
+
+            this.cues.Add(cue);
+            this.spans.Clear();
+        }
+
+        public override void VisitText(string text)
+        {
+            base.VisitText(text);
+
+            this.spans.Add(new Span
+            {
+                Type = SpanType.Text,
+                Text = text
+            });
+        }
+
+        public override void VisitBr(TtmlBr br)
+        {
+            base.VisitBr(br);
+
+            this.spans.Add(new Span
+            {
+                Type = SpanType.Text,
+                Text = Environment.NewLine,
+            });
+        }
     }
 }

@@ -27,7 +27,4 @@
     <PackageReference Include="WanaKanaSharp" Version="0.3.1-alpha" />
     <PackageReference Include="YamlDotNet" Version="16.1.3" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Subtitles\WebVtt\" />
-  </ItemGroup>
 </Project>

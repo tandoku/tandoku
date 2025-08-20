@@ -28,8 +28,6 @@
 
 namespace Tandoku.Subtitles.WebVtt;
 
-using System.Text;
-
 /// <summary>
 /// A WebVTT Style block.
 /// </summary>

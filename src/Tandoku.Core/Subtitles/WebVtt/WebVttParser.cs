@@ -41,7 +41,7 @@ public static class WebVttParser
     /// </summary>
     /// <param name="reader">Text reader to read the captions.</param>
     /// <returns>A task that represents the asynchronous read operation.</returns>
-    public static async Task<MediaCaptions> ReadMediaCaptionsAsync(
+    public static async Task<WebVttDocument> ReadAsync(
         TextReader reader)
     {
         if (reader == null)
@@ -61,7 +61,7 @@ public static class WebVttParser
             throw new InvalidDataException("The stream does not start with the correct WebVTT file signature.");
         }
 
-        var result = new MediaCaptions();
+        var result = new WebVttDocument();
 
         // Process (skip over) optional headers from the stream
         while (false == string.IsNullOrEmpty(line))

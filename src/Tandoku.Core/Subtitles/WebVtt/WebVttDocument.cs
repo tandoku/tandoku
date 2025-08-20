@@ -28,13 +28,11 @@
 
 namespace Tandoku.Subtitles.WebVtt;
 
-using System.Text;
-
 /// <summary>
-/// Media captions metadata.
+/// WebVTT document comprising media captions metadata.
 /// </summary>
 /// <remarks>See http://www.w3.org/TR/webvtt1/#file-structure for more details.</remarks>
-public class MediaCaptions
+public class WebVttDocument
 {
     /// <summary>
     /// Gets or sets region definitions.

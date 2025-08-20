@@ -47,7 +47,7 @@ public class WebVttSerializer
     /// <param name="writer">Text writer to write into.</param>
     /// <remarks>See http://www.w3.org/TR/webvtt1/ for more details.</remarks>
     public static Task SerializeAsync(
-        MediaCaptions captions,
+        WebVttDocument captions,
         TextWriter writer)
     {
         return WebVttSerializer.SerializeAsync(
@@ -134,12 +134,12 @@ public class WebVttSerializer
     }
 
     /// <summary>
-    /// Utility method to return all parts of media captions are a sequence of blocks.
+    /// Utility method to return all parts of WebVTT media captions document as a sequence of blocks.
     /// </summary>
     /// <param name="captions">Captions to process.</param>
     /// <returns>Sequence of blocks.</returns>
     private static IEnumerable<BaseBlock> GetMediaCaptionBlocks(
-        MediaCaptions captions)
+        WebVttDocument captions)
     {
         if (captions != null)
         {
