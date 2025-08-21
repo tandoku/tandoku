@@ -14,10 +14,8 @@ public class TtmlToWebVttConverterTests
 
     private async Task<MemoryStream> ConvertToWebVttStreamAsync(string resourceName)
     {
-        // TODO - utility method to get manifest resource stream
-        var ttmlStream = this.GetType().Assembly.GetManifestResourceStream(this.GetType(), resourceName);
-        ttmlStream.Should().NotBeNull($"Missing resource stream: {resourceName}");
-        var targetDoc = await TtmlToWebVttConverter.ConvertAsync(ttmlStream!);
+        var ttmlStream = this.GetType().GetManifestResourceStream(resourceName);
+        var targetDoc = await TtmlToWebVttConverter.ConvertAsync(ttmlStream);
         var targetStream = new MemoryStream();
         using (var streamWriter = new StreamWriter(targetStream, leaveOpen: true))
             await WebVttSerializer.SerializeAsync(targetDoc, streamWriter);
