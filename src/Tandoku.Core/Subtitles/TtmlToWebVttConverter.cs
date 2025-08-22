@@ -104,8 +104,7 @@ public sealed class TtmlToWebVttConverter
 
             this.spans.Add(new Span
             {
-                Type = SpanType.Text,
-                Text = Environment.NewLine,
+                Type = SpanType.LineTerminator,
             });
         }
     }
