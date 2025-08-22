@@ -6,20 +6,17 @@ using Tandoku.Subtitles.WebVtt;
 public class TtmlToWebVttConverterTests
 {
     [Fact]
-    public async Task ConvertAmazonSubtitle()
-    {
-        var targetStream = await this.ConvertToWebVttStreamAsync("SampleAmazon.ja.ttml");
-        await Verify(targetStream, "vtt");
-    }
+    public Task ConvertAmazonSubtitle() => this.TestConversionAsync("Amazon1.ttml");
 
-    private async Task<MemoryStream> ConvertToWebVttStreamAsync(string resourceName)
+    private async Task TestConversionAsync(string resourceName)
     {
         var ttmlStream = this.GetType().GetManifestResourceStream(resourceName);
         var targetDoc = await TtmlToWebVttConverter.ConvertAsync(ttmlStream);
+
         var targetStream = new MemoryStream();
         using (var streamWriter = new StreamWriter(targetStream, leaveOpen: true))
             await WebVttSerializer.SerializeAsync(targetDoc, streamWriter);
-        targetStream.Position = 0;
-        return targetStream;
+
+        await Verify(targetStream, "vtt");
     }
 }

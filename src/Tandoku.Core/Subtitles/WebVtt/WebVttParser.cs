@@ -135,13 +135,18 @@ public static class WebVttParser
     private static async Task<BaseBlock> ReadBlockAsync(
         TextReader reader)
     {
-        var line = await reader.ReadLineAsync()
-            .ConfigureAwait(false);
-
-        if (string.IsNullOrEmpty(line))
+        string line;
+        do
         {
-            return null;
-        }
+            line = await reader.ReadLineAsync()
+                .ConfigureAwait(false);
+
+            if (line is null)
+            {
+                // End of stream reached
+                return null;
+            }
+        } while (string.IsNullOrWhiteSpace(line));
 
         if (line.StartsWith(Constants.RegionToken))
         {
@@ -1028,6 +1033,21 @@ public static class WebVttParser
                         ref result);
                 }
 
+                if (c == '\n')
+                {
+                    SafeAddSpan(new Span { Type = SpanType.LineTerminator }, ref result);
+                }
+                else if (c == '\r')
+                {
+                    if (!last && input[position + 1] == '\n')
+                    {
+                        position++;
+                        last = position == input.Length - 1;
+                    }
+
+                    SafeAddSpan(new Span { Type = SpanType.LineTerminator }, ref result);
+                }
+
                 if (false == last)
                 {
                     if (c == '<' && input[position + 1] == '/')
@@ -1099,9 +1119,16 @@ public static class WebVttParser
             return false;
         }
 
-        if (endTagName != null && false == string.Equals(tagName, endTagName, StringComparison.Ordinal))
+        if (endTagName != null)
         {
-            return false;
+            // RELAXED - per spec, end tag should not include classes, but Netflix WebVTT files do
+            // https://www.w3.org/TR/webvtt1/#webvtt-cue-span-end-tag
+            var classIndex = endTagName.IndexOf('.');
+            if (classIndex > 0)
+                endTagName = endTagName[..classIndex];
+
+            if (!string.Equals(tagName, endTagName, StringComparison.Ordinal))
+                return false;
         }
 
         SpanType spanType;

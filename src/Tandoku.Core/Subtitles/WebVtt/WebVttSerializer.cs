@@ -496,7 +496,6 @@ public class WebVttSerializer
 
         if (cue.Content != null && cue.Content.Length > 0)
         {
-            Span previousSpan = null;
             foreach(var span in cue.Content)
             {
                 if (span == null)
@@ -504,13 +503,7 @@ public class WebVttSerializer
                     throw new ArgumentException("Cue content cannot be null.");
                 }
 
-                if (WebVttSerializer.NeedNewLine(previousSpan, span))
-                {
-                    builder.AppendLine();
-                }
-
                 WebVttSerializer.WriteSpan(span, builder);
-                previousSpan = span;
             }
 
             builder.AppendLine();
@@ -526,20 +519,21 @@ public class WebVttSerializer
         Span span,
         StringBuilder builder)
     {
-        if (span.Type == SpanType.Text)
+        switch (span.Type)
         {
-            if (string.IsNullOrEmpty(span.Text))
-            {
+            case SpanType.Text:
+                if (!string.IsNullOrEmpty(span.Text))
+                {
+                    if (span.Text.Contains(Constants.ArrowToken))
+                        throw new ArgumentException($"Cue text cannot contain '{Constants.ArrowToken}'.");
+
+                    WriteString(span.Text, true, builder);
+                }
                 return;
-            }
 
-            if (span.Text.Contains(Constants.ArrowToken))
-            {
-                throw new ArgumentException("Cue text cannot contain '{0}'.", Constants.ArrowToken);
-            }
-
-            WebVttSerializer.WriteString(span.Text, true, builder);
-            return;
+            case SpanType.LineTerminator:
+                builder.AppendLine();
+                return;
         }
 
         string tagName = WebVttSerializer.GetSpanTagName(span.Type);
@@ -582,35 +576,6 @@ public class WebVttSerializer
         }
 
         builder.Append("</").Append(tagName).Append('>');
-    }
-
-    /// <summary>
-    /// Utility method to check if need to start new line for the next span.
-    /// </summary>
-    /// <param name="previousSpan">Previous span.</param>
-    /// <param name="span">Next span.</param>
-    /// <returns>True if next span should be written on the next line.</returns>
-    private static bool NeedNewLine(
-        Span previousSpan,
-        Span span)
-    {
-        if (previousSpan == null)
-        {
-            return false;
-        }
-
-        if (span.Type == SpanType.Voice
-            || span.Type == SpanType.Ruby)
-        {
-            return true;
-        }
-
-        if (span.Type == SpanType.Text && previousSpan.Type == SpanType.Text)
-        {
-            return true;
-        }
-
-        return false;
     }
 
     /// <summary>

@@ -35,6 +35,11 @@ namespace Tandoku.Subtitles.WebVtt;
 public class Cue : BaseBlock
 {
     /// <summary>
+    /// Gets or sets id of the cue block.
+    /// </summary>
+    public string Id { get; set; }
+
+    /// <summary>
     /// Gets or sets start of the cue block relative to the beginning of a media stream.
     /// </summary>
     public TimeSpan Start { get; set; }
@@ -43,11 +48,6 @@ public class Cue : BaseBlock
     /// Gets or sets end of the cue block relative to the beginning of a media stream.
     /// </summary>
     public TimeSpan End { get; set; }
-
-    /// <summary>
-    /// Gets or sets id of the cue block.
-    /// </summary>
-    public string Id { get; set; }
 
     /// <summary>
     /// ID of a region this cue is a part of.

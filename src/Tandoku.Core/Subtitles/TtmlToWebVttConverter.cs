@@ -7,6 +7,11 @@ using Tandoku.Subtitles.WebVtt;
 /// <summary>
 /// Converter for TTML subtitles to WebVTT format. Preserves ruby annotations.
 /// </summary>
+/// <remarks>
+/// An in-depth description of how to map TTML to WebVTT can be found here:
+/// https://w3c.github.io/ttml-webvtt-mapping/
+/// However, at least currently, it does not specifically cover ruby text.
+/// </remarks>
 public sealed class TtmlToWebVttConverter
 {
     private readonly IFileSystem fileSystem;

@@ -8,20 +8,25 @@ public class WebVttRoundtripTests
     // separately from Verify() or can be integrated into it?
 
     [Fact]
-    public async Task SampleCaption()
-    {
-        var targetStream = await this.RoundtripWebVttStreamAsync("SampleCaption.vtt");
-        await Verify(targetStream, "vtt");
-    }
+    public Task SampleCaption() => this.TestRoundtripWebVttAsync("SampleCaption.vtt");
 
     [Fact]
-    public async Task SampleRuby()
-    {
-        var targetStream = await this.RoundtripWebVttStreamAsync("SampleRuby.vtt");
-        await Verify(targetStream, "vtt");
-    }
+    public Task SampleChapters() => this.TestRoundtripWebVttAsync("SampleChapters.vtt");
 
-    private async Task<MemoryStream> RoundtripWebVttStreamAsync(string resourceName)
+
+    [Fact]
+    public Task SampleMetadata() => this.TestRoundtripWebVttAsync("SampleMetadata.vtt");
+
+    [Fact]
+    public Task SampleRegions() => this.TestRoundtripWebVttAsync("SampleRegions.vtt");
+
+    [Fact]
+    public Task SampleRuby() => this.TestRoundtripWebVttAsync("SampleRuby.vtt");
+
+    [Fact]
+    public Task Netflix2() => this.TestRoundtripWebVttAsync("Netflix2.vtt");
+
+    private async Task TestRoundtripWebVttAsync(string resourceName)
     {
         var inputStream = this.GetType().GetManifestResourceStream(resourceName);
         var doc = await WebVttParser.ReadAsync(new StreamReader(inputStream));
@@ -30,8 +35,7 @@ public class WebVttRoundtripTests
         var targetStream = new MemoryStream();
         using (var streamWriter = new StreamWriter(targetStream, leaveOpen: true))
             await WebVttSerializer.SerializeAsync(doc, streamWriter);
-        targetStream.Position = 0;
 
-        return targetStream;
+        await Verify(targetStream, "vtt");
     }
 }

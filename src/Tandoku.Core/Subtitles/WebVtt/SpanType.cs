@@ -92,5 +92,11 @@ public enum SpanType
     /// A WebVTT cue text span.
     /// </summary>
     /// <remarks>See http://www.w3.org/TR/webvtt1/#webvtt-cue-text-span for details.</remarks>
-    Text
+    Text,
+
+    /// <summary>
+    /// A WebVTT line terminator.
+    /// </summary>
+    /// <remarks>See https://www.w3.org/TR/webvtt1/#webvtt-line-terminator for details.</remarks>
+    LineTerminator,
 }
