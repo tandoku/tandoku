@@ -37,6 +37,7 @@ if ($sourceSubtitles) {
 
     # TODO - implement MergeSameTexts natively as tandoku command over WebVTT files
     # (tandoku subtitles clean - can call ttml-to-webvtt internally if needed)
+    # see SubtitleEdit implementation - https://github.com/SubtitleEdit/subtitleedit/blob/main/src/libse/Common/MergeLinesSameTextUtils.cs#L9
     SubtitleEdit /convert *.* WebVTT `
         /inputFolder:$OutputPath `
         /outputFolder:$OutputPath `
