@@ -1,7 +1,6 @@
 ﻿namespace Tandoku.Content.Alignment;
 
 using System.Collections.Generic;
-using Tandoku.Common;
 
 public sealed class TimecodeContentAligner(string refName) : IContentAligner
 {

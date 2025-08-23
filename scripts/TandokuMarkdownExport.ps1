@@ -238,11 +238,11 @@ function GenerateMarkdownForChunk($chunk, $chunkId) {
 
 function ProcessRubyText([String]$text) {
     if ($RubyBehavior -ne 'None') {
-        $rubyMatch = '(^| )([^ \[]+)\[(.+?)\]'
+        $rubyMatch = '[ ]?(\w+)\[(\w+)\]'
         $rubyReplace = switch -Wildcard ($RubyBehavior) {
-            # TODO - WebVTT doesn't support <rb> tags, can be removed? ($2 directly within <ruby>)
-            '*Html' { '<ruby><rb>$2</rb><rt>$3</rt></ruby>' }
-            'Remove' { '$2' }
+            # TODO - WebVTT doesn't support <rb> tags, can be removed? ($1 directly within <ruby>)
+            '*Html' { '<ruby><rb>$1</rb><rt>$2</rt></ruby>' }
+            'Remove' { '$1' }
         }
         return $text -replace $rubyMatch,$rubyReplace
     }

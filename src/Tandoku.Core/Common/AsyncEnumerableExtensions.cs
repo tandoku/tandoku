@@ -1,4 +1,4 @@
-﻿namespace Tandoku.Common;
+﻿namespace Tandoku;
 
 internal static class AsyncEnumerableExtensions
 {
