@@ -4,6 +4,10 @@ using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Serialization;
 
+/// <summary>
+/// Represents a Timed Text Markup Language 2 (TTML2) document.
+/// </summary>
+/// <remarks>See https://www.w3.org/TR/ttml2/ for details.</remarks>
 [XmlRoot("tt", Namespace = "http://www.w3.org/ns/ttml")]
 public class TtmlDocument
 {
@@ -29,7 +33,7 @@ public class TtmlHead
 public class TtmlMetadata
 {
     [XmlAnyElement]
-    public List<System.Xml.XmlElement>? Any { get; set; }
+    public List<XmlElement>? Any { get; set; }
 }
 
 public class TtmlStyling

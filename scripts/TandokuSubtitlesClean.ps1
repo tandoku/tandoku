@@ -34,7 +34,21 @@ if ($sourceSubtitles) {
     CreateDirectoryIfNotExists $OutputPath
 
     tandoku subtitles ttml-to-webvtt $InputPath $OutputPath
+
+    # TODO - implement MergeSameTexts natively as tandoku command over WebVTT files
+    # (tandoku subtitles clean - can call ttml-to-webvtt internally if needed)
+    SubtitleEdit /convert *.* WebVTT `
+        /inputFolder:$OutputPath `
+        /outputFolder:$OutputPath `
+        /overwrite `
+        /MergeSameTexts |
+        Write-Output
+
     $targetSubtitles = Get-ChildItem "$OutputPath/*.vtt"
+
+    # Revert SubtitleEdit corruption of <rt> tags
+    $targetSubtitles |
+        ReplaceStringInFiles '&lt;rt&gt;' '<rt>'
 
     if ($targetSubtitles) {
         TandokuVersionControlAdd -Path $targetSubtitles -Kind text

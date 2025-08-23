@@ -32,8 +32,7 @@ public sealed class TtmlToWebVttConverter
         outputDir.Create();
         foreach (var inputFile in inputDir.EnumerateTtmlSubtitleFiles())
         {
-            var baseName = this.fileSystem.Path.GetFileNameWithoutExtension(inputFile.Name);
-            var targetName = this.fileSystem.Path.ChangeExtension(baseName, SubtitleExtensions.WebVtt);
+            var targetName = this.fileSystem.Path.ChangeExtension(inputFile.Name, SubtitleExtensions.WebVtt);
             var outputFile = outputDir.GetFile(targetName);
             var webVttDocument = await ConvertAsync(inputFile.OpenRead());
             using var outputWriter = outputFile.CreateText();

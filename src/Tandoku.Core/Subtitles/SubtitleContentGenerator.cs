@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using Nikse.SubtitleEdit.Core.Common;
 using Tandoku.Content;
 using Tandoku.Serialization;
+using Tandoku.Subtitles.WebVtt;
 
 public sealed class SubtitleContentGenerator
 {
@@ -31,7 +32,10 @@ public sealed class SubtitleContentGenerator
             var baseName = this.fileSystem.Path.GetFileNameWithoutExtension(inputFile.Name);
             var targetName = this.fileSystem.Path.ChangeExtension(baseName, ".content.yaml");
             var outputFile = outputDir.GetFile(targetName);
-            await YamlSerializer.WriteStreamAsync(outputFile, GenerateContentBlocksAsync(inputFile));
+            if (inputFile.ExtensionEquals(SubtitleExtensions.WebVtt))
+                await YamlSerializer.WriteStreamAsync(outputFile, GenerateContentBlocksWebVttAsync(inputFile));
+            else
+                await YamlSerializer.WriteStreamAsync(outputFile, GenerateContentBlocksAsync(inputFile));
         }
     }
 
@@ -47,7 +51,7 @@ public sealed class SubtitleContentGenerator
             if (para.StartTime.TimeSpan > para.EndTime.TimeSpan)
                 continue;
             var text = para.Text;
-            text = Regex.Replace(para.Text, @"\{.+?\}", string.Empty);
+            text = Regex.Replace(text, @"\{.+?\}", string.Empty);
             if (string.IsNullOrWhiteSpace(text) || text.Length == 1)
                 continue;
 
@@ -63,6 +67,32 @@ public sealed class SubtitleContentGenerator
                     Text = ConvertSubtitleText(text)
                 }],
             };
+        }
+    }
+
+    private static async IAsyncEnumerable<ContentBlock> GenerateContentBlocksWebVttAsync(IFileInfo inputFile)
+    {
+        var doc = await WebVttParser.ReadAsync(inputFile.OpenText());
+        if (doc.Cues is not null)
+        {
+            var ordinal = 0;
+            foreach (var cue in doc.Cues)
+            {
+                ordinal++;
+
+                yield return new ContentBlock
+                {
+                    Source = new BlockSource
+                    {
+                        Ordinal = ordinal,
+                        Timecodes = new TimecodePair(cue.Start, cue.End),
+                    },
+                    Chunks = [new ContentBlockChunk
+                    {
+                        Text = WebVttToMarkdownConverter.Convert(cue.Content),
+                    }],
+                };
+            }
         }
     }
 
