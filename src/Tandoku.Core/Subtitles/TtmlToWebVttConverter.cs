@@ -56,6 +56,7 @@ public sealed class TtmlToWebVttConverter
 
     private sealed class ConvertVisitor : TtmlDocumentVisitor
     {
+        private readonly Dictionary<string, TtmlRuby> rubyStyles = [];
         private readonly WebVttDocument targetDoc = new();
         private readonly List<Cue> cues = [];
         private readonly List<Span> spans = [];
@@ -69,6 +70,12 @@ public sealed class TtmlToWebVttConverter
             this.targetDoc.Cues = [.. this.cues];
 
             this.cues.Clear();
+        }
+
+        public override void VisitStyle(TtmlStyle style)
+        {
+            if (style.Ruby is not null && style.Id is not null)
+                this.rubyStyles.Add(style.Id, style.Ruby.Value);
         }
 
         public override void VisitParagraph(TtmlParagraph paragraph)
@@ -87,10 +94,34 @@ public sealed class TtmlToWebVttConverter
             this.spans.Clear();
         }
 
+        public override void VisitSpan(TtmlSpan span)
+        {
+            var spanIndex = -1;
+            var container = false;
+            if (span.Style is not null &&
+                this.rubyStyles.TryGetValue(span.Style, out var ruby) &&
+                ruby != TtmlRuby.Base)
+            {
+                spanIndex = this.spans.Count;
+                container = ruby == TtmlRuby.Container;
+            }
+
+            base.VisitSpan(span);
+
+            if (spanIndex >= 0)
+            {
+                var nestedSpans = this.spans[spanIndex..];
+                this.spans.RemoveRange(spanIndex, nestedSpans.Count);
+                this.spans.Add(new Span
+                {
+                    Type = container ? SpanType.Ruby : SpanType.RubyText,
+                    Children = [.. nestedSpans],
+                });
+            }
+        }
+
         public override void VisitText(string text)
         {
-            base.VisitText(text);
-
             this.spans.Add(new Span
             {
                 Type = SpanType.Text,
@@ -100,8 +131,6 @@ public sealed class TtmlToWebVttConverter
 
         public override void VisitBr(TtmlBr br)
         {
-            base.VisitBr(br);
-
             this.spans.Add(new Span
             {
                 Type = SpanType.LineTerminator,

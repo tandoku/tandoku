@@ -86,7 +86,7 @@ public enum SpanType
     /// A WebVTT cue timestamp.
     /// </summary>
     /// <remarks>See http://www.w3.org/TR/webvtt1/#webvtt-cue-timestamp for details.</remarks>
-    TimeStamp,
+    Timestamp,
 
     /// <summary>
     /// A WebVTT cue text span.

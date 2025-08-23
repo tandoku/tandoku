@@ -1,5 +1,7 @@
 ﻿namespace Tandoku.Subtitles.Ttml;
 
+using System.Text.RegularExpressions;
+using System.Xml;
 using System.Xml.Serialization;
 
 [XmlRoot("tt", Namespace = "http://www.w3.org/ns/ttml")]
@@ -36,13 +38,27 @@ public class TtmlStyling
     public List<TtmlStyle>? Styles { get; set; }
 }
 
+public enum TtmlRuby
+{
+    Container,
+    Base,
+    Text,
+}
+
 public class TtmlStyle
 {
     [XmlAttribute("xml:id", Namespace = "http://www.w3.org/XML/1998/namespace")]
     public string? Id { get; set; }
 
+    [XmlIgnore]
+    public TtmlRuby? Ruby { get; set; }
+
     [XmlAttribute("ruby", Namespace = "http://www.w3.org/ns/ttml#styling")]
-    public string? Ruby { get; set; }
+    public string? RubyString
+    {
+        get => this.Ruby?.ToString().ToLowerInvariant();
+        set => this.Ruby = value is not null ? Enum.Parse<TtmlRuby>(value, ignoreCase: true) : null;
+    }
 
     // Add other tts: attributes as needed
 }
@@ -59,7 +75,7 @@ public class TtmlDiv
     public List<TtmlParagraph>? Paragraphs { get; set; }
 }
 
-public class TtmlParagraph
+public partial class TtmlParagraph
 {
     [XmlIgnore]
     public TimeSpan Begin { get; set; }
@@ -91,10 +107,39 @@ public class TtmlParagraph
     [XmlText(typeof(string))]
     public List<object>? Content { get; set; }
 
-    // TODO - support other types of time expressions defined in TTML spec
-    // https://www.w3.org/TR/2018/REC-ttml1-20181108/#timing-value-timeExpression
-    private static TimeSpan ToTimeSpan(string s) => TimeSpan.Parse(s);
+    /// <summary>
+    /// Parses a TTML time expression.
+    /// </summary>
+    /// <remarks>See https://www.w3.org/TR/2018/REC-ttml1-20181108/#timing-value-timeExpression for details.</remarks>
+    private static TimeSpan ToTimeSpan(string s)
+    {
+        // NOTE - Frames in clock time and offset time are not implemented and would require a different structure
+        // (cannot convert to TimeSpan until we've parsed the TTML document and can identify the ttp:frameRate)
+        // Also wallclock-time is not currently implemented
+
+        var offsetTime = OffsetTimeRegex().Match(s);
+        if (offsetTime.Success)
+        {
+            var timeCount = double.Parse(offsetTime.Groups[1].ValueSpan);
+            var metric = offsetTime.Groups[2].ValueSpan;
+            return metric switch
+            {
+                "h" => TimeSpan.FromHours(timeCount),
+                "m" => TimeSpan.FromMinutes(timeCount),
+                "s" => TimeSpan.FromSeconds(timeCount),
+                "ms" => TimeSpan.FromMilliseconds(timeCount),
+                "f" => throw new NotSupportedException($"Frames in time expression are not currently supported."),
+                "t" => TimeSpan.FromTicks((long)timeCount),
+                _ => throw new InvalidDataException($"Unexpected metric '{metric}'. This should not be possible."),
+            };
+        }
+        return TimeSpan.Parse(s);
+    }
+
     private static string ToString(TimeSpan timeSpan) => timeSpan.ToString(@"hh\:mm\:ss\.fff");
+
+    [GeneratedRegex(@"^(\d+(?:\.\d+)?)(h|m|s|ms|f|t)$")]
+    private static partial Regex OffsetTimeRegex();
 }
 
 public class TtmlSpan

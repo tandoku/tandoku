@@ -8,6 +8,9 @@ public class TtmlToWebVttConverterTests
     [Fact]
     public Task ConvertAmazonSubtitle() => this.TestConversionAsync("Amazon1.ttml");
 
+    [Fact]
+    public Task ConvertNetflixSubtitle() => this.TestConversionAsync("Netflix1.ttml");
+
     private async Task TestConversionAsync(string resourceName)
     {
         var ttmlStream = this.GetType().GetManifestResourceStream(resourceName);

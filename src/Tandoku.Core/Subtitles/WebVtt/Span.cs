@@ -40,12 +40,12 @@ public class Span
     public SpanType Type { get; set; }
 
     /// <summary>
-    /// Gets or sets classes of the span.
+    /// Gets or sets classes of the span. Only valid for tag-type spans.
     /// </summary>
     public string[] Classes { get; set; }
 
     /// <summary>
-    /// Gets or sets children spans.
+    /// Gets or sets children spans. Only valid for tag-type spans.
     /// </summary>
     public Span[] Children { get; set; }
 
@@ -55,7 +55,7 @@ public class Span
     public string Annotation { get; set; }
 
     /// <summary>
-    /// Gets or sets span text.
+    /// Gets or sets span text. Only valid for text spans.
     /// </summary>
     public string Text { get; set; }
 }
