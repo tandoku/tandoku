@@ -61,7 +61,11 @@ public enum SpanType
     /// <summary>
     /// A WebVTT cue ruby span.
     /// </summary>
-    /// <remarks>See http://www.w3.org/TR/webvtt1/#webvtt-cue-ruby-span for details.</remarks>
+    /// <remarks>
+    /// See http://www.w3.org/TR/webvtt1/#webvtt-cue-ruby-span for details.
+    /// Note that WebVTT ruby support is limited compared to HTML5/CSS or the full W3C ruby annotation
+    /// specification (https://www.w3.org/TR/ruby/).
+    /// </remarks>
     Ruby,
 
     /// <summary>
