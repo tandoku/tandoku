@@ -80,6 +80,15 @@ function GenerateMarkdown($contentPath) {
         if ($heading -and -not $NoHeadings) {
             Write-Output "# $heading"
             Write-Output ''
+        } elseif (($blockIndex % 50) -eq 0) {
+            # TODO - clean this up (with heading styling overall)
+            # also this code is partially copied from below (formatted timecode)
+            $timecode = $block.source.timecodes.start
+            if ($timecode) {
+                $fractionalPoint = $timecode.IndexOf('.')
+                $formattedTimecode = $fractionalPoint -gt 0 ? $timecode.Substring(0, $fractionalPoint) : $timecode
+                Write-Output "## $formattedTimecode"
+            }
         }
 
         # Image
@@ -131,10 +140,10 @@ function GenerateMarkdownForMedia($media, $container, $caption) {
         # Use line breaks between media for KyBook 3 to reduce wasted space
         $outputSuffix = $Quirks -eq 'KyBook3' ? '  ' : ''
 
-        if ($container -eq "audio" -and $Quirks -eq 'KyBook3') {
-            # Use explicit <audio> tag because the anchor link that pandoc embeds
-            # within the <audio> tag if ![]() is used causes issues for KyBook 3 on iOS
-            Write-Output "<audio src=`"$mediaUrl`" controls=`"1`"></audio>$outputSuffix"
+        if ($container -eq "audio") {
+            # Use explicit <audio> tag because the anchor link that pandoc embeds within the <audio> tag
+            # if ![]() is used fails EPUB3 validation and causes issues for KyBook 3 on iOS
+            Write-Output "<audio src=`"$mediaUrl`" controls=`"`"></audio>$outputSuffix"
         } else {
             Write-Output "![$caption]($mediaUrl)$outputSuffix"
         }
@@ -240,8 +249,8 @@ function ProcessRubyText([String]$text) {
     if ($RubyBehavior -ne 'None') {
         $rubyMatch = '[ ]?(\w+)\[(\w+)\]'
         $rubyReplace = switch -Wildcard ($RubyBehavior) {
-            # TODO - WebVTT doesn't support <rb> tags, can be removed? ($1 directly within <ruby>)
-            '*Html' { '<ruby><rb>$1</rb><rt>$2</rt></ruby>' }
+            # NOTE - WebVTT doesn't support <rb> tags, using simplified HTML form for consistency
+            '*Html' { '<ruby>$1<rt>$2</rt></ruby>' }
             'Remove' { '$1' }
         }
         return $text -replace $rubyMatch,$rubyReplace
@@ -319,6 +328,11 @@ if ($OutputPath) {
     $targetDirectory = "$volumePath/markdown"
 }
 CreateDirectoryIfNotExists $targetDirectory
+
+if ($Quirks -eq 'KyBook3' -and $RubyBehavior -like '*Html') {
+    # KyBook does not support ruby rendering
+    $RubyBehavior = 'None'
+}
 
 if ($Combine) {
     if (-not $targetPath) {

@@ -5,6 +5,10 @@ param(
     $Target,
 
     [Parameter()]
+    [String]
+    $Configuration,
+
+    [Parameter()]
     $Volume
 )
 

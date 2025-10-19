@@ -12,6 +12,15 @@ param(
     $Combine,
 
     [Parameter()]
+    [int]
+    $SplitLevel = 2,
+
+    [Parameter()]
+    [ValidateSet('None', 'KyBook3')]
+    [String]
+    $Quirks = 'None',
+
+    [Parameter()]
     [String]
     $VolumePath
 )
@@ -30,10 +39,16 @@ function GenerateEpub($markdownFiles, [string]$targetPath, [string]$title) {
     Push-Location $volumePath
     # Note that we do not use --file-scope because it breaks html splitting in the epub output (https://github.com/jgm/pandoc/issues/8741)
     # TandokuMarkdownExport writes out unique footnotes across files so --file-scope is not needed
-    pandoc $markdownFiles -f commonmark+footnotes -o $tempEpub -t epub3 --metadata title="$title" --metadata author="tandoku" --metadata lang="$($volume.definition.language)"
+    pandoc $markdownFiles -f commonmark+footnotes -o $tempEpub -t epub3 `
+        --metadata title="$title" `
+        --metadata author="tandoku" `
+        --metadata lang="$($volume.definition.language)" `
+        --split-level=$SplitLevel
     Pop-Location
 
-    ApplyEpubFixes $tempEpub $tempDestination
+    if ($Quirks -eq 'KyBook3') {
+        ApplyEpubFixes $tempEpub $tempDestination
+    }
 
     # Move epub to target path only after applying fixes
     # so any cloud upload does not start on pre-fixed epub
@@ -47,13 +62,16 @@ function GenerateEpub($markdownFiles, [string]$targetPath, [string]$title) {
 }
 
 function ApplyEpubFixes($epubPath, $tempDestination) {
+    # TODO - repacked EPUB fails validation because mimetype is not first entry in archive
     ExpandArchive -Path $epubPath -DestinationPath $tempDestination -ClobberDestination
 
     # Disabling this for now since it's really only an issue for the first 9 footnotes
     # Could also use a shorter prefix like '#'
     #PrefixFootnotes $tempDestination 'ref'
 
-    RenameAudioMpegaToMp3 $tempDestination
+    if ($Quirks -eq 'KyBook3') {
+        RenameAudioMpegaToMp3 $tempDestination
+    }
 
     Push-Location $tempDestination
     CompressArchive -Path * -DestinationPath $epubPath -Force
@@ -70,6 +88,7 @@ function PrefixFootnotes($epubContentPath, $prefix) {
 function RenameAudioMpegaToMp3($epubContentPath) {
     # pandoc renames audio files to mpega extension which breaks KyBook 3 on iOS
     # rename mpega back to mp3
+    # TODO - this isn't updating the manifest so the resulting EPUB isn't fully valid
     $mediaPath = "$epubContentPath/EPUB/media"
     if (Test-Path $mediaPath) {
         Get-ChildItem $mediaPath -Filter '*.mpega' | ForEach-Object {

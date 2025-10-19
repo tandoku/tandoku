@@ -57,8 +57,7 @@ class ValidKeysGenerator : IValidateSetValuesGenerator {
         return @(
             'azure-computer-vision.apikey',
             'azure-computer-vision.endpoint',
-            'core.staging',
-            'epub.staging',
+            'targets.*',
             'workflow-params.*'
         )
     }
