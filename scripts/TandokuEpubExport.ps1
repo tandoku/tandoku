@@ -39,10 +39,11 @@ function GenerateEpub($markdownFiles, [string]$targetPath, [string]$title) {
     Push-Location $volumePath
     # Note that we do not use --file-scope because it breaks html splitting in the epub output (https://github.com/jgm/pandoc/issues/8741)
     # TandokuMarkdownExport writes out unique footnotes across files so --file-scope is not needed
-    pandoc $markdownFiles -f commonmark+footnotes -o $tempEpub -t epub3 `
+    pandoc $markdownFiles -f commonmark+fenced_divs+footnotes -o $tempEpub -t epub3 `
         --metadata title="$title" `
         --metadata author="tandoku" `
         --metadata lang="$($volume.definition.language)" `
+        --css "$PSScriptRoot/../resources/styles/epub.css" `
         --split-level=$SplitLevel
     Pop-Location
 

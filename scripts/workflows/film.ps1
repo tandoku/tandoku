@@ -156,7 +156,7 @@ tandoku content transform merge-ref-chunks $contentDirectory50 $mergeRefChunksCo
 $markdownPath = "$volumePath/markdown/$Configuration"
 
 # tandoku markdown export
-TandokuMarkdownExport $mergeRefChunksContentPath $markdownPath -NoHeadings -RubyBehavior Html -ReferenceBehavior Footnotes -ReferenceLabels None -Quirks $config.markdownQuirks
+TandokuMarkdownExport $mergeRefChunksContentPath $markdownPath -NoHeadings -KeepTogether -RubyBehavior Html -ReferenceBehavior Footnotes -ReferenceLabels None -Quirks $config.markdownQuirks
 
 if ($Target -like '*epub') {
     # epub artifact variables

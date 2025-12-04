@@ -23,6 +23,10 @@ param(
     $NoHeadings,
 
     [Parameter()]
+    [Switch]
+    $KeepTogether,
+
+    [Parameter()]
     [ValidateSet('None', 'Html', 'BlurHtml', 'Remove')]
     [String]
     $RubyBehavior = 'None',
@@ -75,6 +79,10 @@ function GenerateMarkdown($contentPath) {
 
         # TODO - generalize this (markdown templates)
 
+        if ($KeepTogether) {
+            Write-Output '::: {.keep-together}'
+        }
+
         # Heading
         $heading = GetHeading $block
         if ($heading -and -not $NoHeadings) {
@@ -117,6 +125,11 @@ function GenerateMarkdown($contentPath) {
                 }
                 GenerateMarkdownForChunk $chunk $chunkId
             }
+        }
+
+        if ($KeepTogether) {
+            Write-Output ':::'
+            Write-Output ''
         }
     }
 }
