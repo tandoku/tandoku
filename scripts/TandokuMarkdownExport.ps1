@@ -156,7 +156,8 @@ function GenerateMarkdownForMedia($media, $container, $caption) {
         if ($container -eq "audio") {
             # Use explicit <audio> tag because the anchor link that pandoc embeds within the <audio> tag
             # if ![]() is used fails EPUB3 validation and causes issues for KyBook 3 on iOS
-            Write-Output "<audio src=`"$mediaUrl`" controls=`"`"></audio>$outputSuffix"
+            $controlsContent = $Quirks -eq 'KyBook3' ? 'controls' : ''
+            Write-Output "<audio src=`"$mediaUrl`" controls=`"$controlsContent`"></audio>$outputSuffix"
         } else {
             Write-Output "![$caption]($mediaUrl)$outputSuffix"
         }
