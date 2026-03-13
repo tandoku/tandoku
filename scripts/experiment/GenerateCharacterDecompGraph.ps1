@@ -59,6 +59,8 @@ function Get-UchisenDecomposition {
         # Find the end of the components section
         $endIdx = $html.IndexOf('class="vocab_div"', $compIdx)
         if ($endIdx -lt 0) { $endIdx = $html.IndexOf('class="queue_container"', $compIdx) }
+        if ($endIdx -lt 0) { $endIdx = $html.IndexOf("class='sub_header'", $compIdx) }
+        if ($endIdx -lt 0) { $endIdx = $html.IndexOf('class="sub_header"', $compIdx) }
         if ($endIdx -lt 0) { $endIdx = [Math]::Min($compIdx + 5000, $html.Length) }
         $compHtml = $html.Substring($compIdx, $endIdx - $compIdx)
 
