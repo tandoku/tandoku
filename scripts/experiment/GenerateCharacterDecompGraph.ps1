@@ -151,9 +151,12 @@ foreach ($kanjiChar in $kanjiChars) {
     }
 
     # Build Mermaid graph
+    $rootNode = $script:nodes[$rootId]
     $lines = [System.Collections.Generic.List[string]]::new()
+    $lines.Add("---")
+    $lines.Add("title: $($rootNode.Character) $($rootNode.Name) - Uchisen")
+    $lines.Add("---")
     $lines.Add("graph LR")
-    $lines.Add("    Uchisen(Uchisen) --> $rootId")
     foreach ($id in $ordered) {
         foreach ($child in $script:nodes[$id].Children) {
             $lines.Add("    $id --> $child")

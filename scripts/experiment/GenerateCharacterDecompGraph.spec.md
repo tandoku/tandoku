@@ -35,8 +35,10 @@ The graph should follow the format below.
 
 ## Example graph for kanji character `知`
 ```mermaid
+---
+title: 知 Know - Uchisen
+---
 graph LR
-    Uchisen(Uchisen) --> Know
     Know --> Arrow
     Know --> Mouth
     Arrow --> roundhouse_kick
