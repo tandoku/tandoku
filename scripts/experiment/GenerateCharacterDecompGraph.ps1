@@ -8,7 +8,9 @@ param(
 
     [string]$Path,
 
-    [string]$WaniKaniApiToken
+    [string]$WaniKaniApiToken,
+
+    [switch]$NoCache
 )
 
 $ErrorActionPreference = 'Stop'
@@ -50,9 +52,23 @@ function Get-NodeId {
     return ($first -replace ' ', '_')
 }
 
+# Web cache directory
+$script:webCacheDir = Join-Path $PSScriptRoot '.web-cache'
+if (-not $NoCache -and -not (Test-Path $script:webCacheDir)) {
+    New-Item -ItemType Directory -Path $script:webCacheDir -Force | Out-Null
+}
+
 # Track last request time per host to throttle requests
 $script:lastRequestTime = @{}
 $script:throttleDelayMs = 1000
+
+function Get-CacheFilePath {
+    param([string]$Uri)
+    $bytes = [System.Text.Encoding]::UTF8.GetBytes($Uri)
+    $hash = [System.Security.Cryptography.SHA256]::HashData($bytes)
+    $hex = ([System.BitConverter]::ToString($hash) -replace '-', '').ToLowerInvariant()
+    return Join-Path $script:webCacheDir $hex
+}
 
 function Invoke-WebRequestWithRetry {
     param(
@@ -62,6 +78,20 @@ function Invoke-WebRequestWithRetry {
         [int]$MaxRetries = 5,
         [int]$BaseDelayMs = 5000
     )
+
+    # Check cache
+    if (-not $NoCache) {
+        $cacheFile = Get-CacheFilePath $Uri
+        if (Test-Path $cacheFile) {
+            Write-Verbose "Cache hit for $Uri"
+            $cached = [System.IO.File]::ReadAllText($cacheFile, [System.Text.UTF8Encoding]::new($false))
+            if ($ParseJson) {
+                return ($cached | ConvertFrom-Json)
+            }
+            $result = [PSCustomObject]@{ Content = $cached }
+            return $result
+        }
+    }
 
     # Throttle: ensure minimum delay between requests to the same host
     $host_ = ([Uri]$Uri).Host
@@ -76,9 +106,17 @@ function Invoke-WebRequestWithRetry {
         try {
             $script:lastRequestTime[$host_] = [DateTime]::UtcNow
             if ($ParseJson) {
-                return (Invoke-RestMethod -Uri $Uri -Headers $Headers -ProgressAction SilentlyContinue)
+                $response = Invoke-RestMethod -Uri $Uri -Headers $Headers -ProgressAction SilentlyContinue
+                if (-not $NoCache) {
+                    $response | ConvertTo-Json -Depth 20 | Set-Content -Path $cacheFile -Encoding utf8NoBOM -NoNewline
+                }
+                return $response
             } else {
-                return (Invoke-WebRequest -Uri $Uri -UseBasicParsing -ProgressAction SilentlyContinue)
+                $response = Invoke-WebRequest -Uri $Uri -UseBasicParsing -ProgressAction SilentlyContinue
+                if (-not $NoCache) {
+                    [System.IO.File]::WriteAllText($cacheFile, $response.Content, [System.Text.UTF8Encoding]::new($false))
+                }
+                return $response
             }
         } catch {
             if ($attempt -eq $MaxRetries) { throw }

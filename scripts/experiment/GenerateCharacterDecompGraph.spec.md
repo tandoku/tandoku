@@ -11,6 +11,7 @@ GenerateCharacterDecompGraph.ps1 -Character <string> [-Source <source[]>] [-Wani
 - `-Source` — Optional. One or more decomposition sources: "wanikani", "uchisen", "jpdb", "kanjisense". If omitted, all sources are used. Each character is processed for each source (outer loop is characters, inner loop is sources).
 - `-Path` — Optional output path. If omitted, graphs are written to standard output.
 - `-WaniKaniApiToken` — API token for WaniKani. If not provided, falls back to the `WANIKANI_API_TOKEN` environment variable. Required when wanikani is included in `-Source` (or when `-Source` is omitted).
+- `-NoCache` — Switch. When specified, skips the web cache entirely (no reads, writes, or directory creation).
 
 ## Behavior
 When `-Path` is specified, behavior varies by path type:
@@ -45,6 +46,10 @@ roundhouse kick: 𠂉
 When the script runs, it loads the file and uses any mapped characters in the graph output. If a prime is encountered at runtime that is not already in the file, a new entry is added with a blank value. The updated file is written back after each run, so the user can fill in missing values offline and re-run the script.
 
 The graph should follow the format below.
+
+## Web cache
+
+Web responses are cached locally in a `.web-cache/` directory (relative to the script). Each cached response is stored as a file named with the SHA-256 hash of the request URL. On subsequent runs, cached responses are used instead of making network requests, which avoids rate limiting and speeds up repeated runs. Use `-NoCache` to bypass the cache.
 
 ## Example graph for kanji character `知`
 
