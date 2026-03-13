@@ -3,14 +3,21 @@ GenerateCharacterDecompGraph.ps1 script generates kanji character decomposition 
 
 ## Usage
 ```powershell
-GenerateCharacterDecompGraph.ps1 -Character <kanji> -Source uchisen -Path <output-path>
+GenerateCharacterDecompGraph.ps1 -Character <string> -Source uchisen [-Path <output-path>]
 ```
 
+## Parameters
+- `-Character` — A string containing one or more kanji characters. Non-kanji characters (punctuation, numbers, Latin letters, kana, etc.) are ignored. A graph is generated for each kanji character in the string.
+- `-Source` — The decomposition source to use. Currently only "uchisen" is supported.
+- `-Path` — Optional output path. If omitted, graphs are written to standard output.
+
 ## Behavior
-Behavior varies by <output-path>:
-- If <output-path> refers to a directory, a "<kanji>-<source>.mermaid" file is created in the directory
-- If <output-path> refers to a Mermaid file (.mermaid), the graph is written to this file
-- If <output-path> refers to a Markdown file (.md), the graph is appended with a preceding newline and surrounding ```mermaid code block
+When `-Path` is specified, behavior varies by path type:
+- If <output-path> refers to a directory, a "<kanji>-<source>.mermaid" file is created in the directory for each character
+- If <output-path> refers to a Mermaid file (.mermaid), graphs are written to this file (separated by blank lines for multiple characters)
+- If <output-path> refers to a Markdown file (.md), each graph is appended with a preceding newline and surrounding ```mermaid code block
+
+When `-Path` is omitted, graphs are written to standard output (separated by blank lines for multiple characters).
 
 The only supported source right now is "uchisen". The script should look up the specified kanji character on the uchisen website and recursively extract the decomposition of the character to primes and compound kanji components.
 

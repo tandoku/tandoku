@@ -7,13 +7,10 @@ param(
     [ValidateSet('uchisen')]
     [string]$Source,
 
-    [Parameter(Mandatory)]
     [string]$Path
 )
 
 $ErrorActionPreference = 'Stop'
-
-$script:nodes = @{}
 
 function Get-NodeId {
     param([string]$Name)
@@ -93,73 +90,106 @@ function Get-UchisenDecomposition {
     return $nodeId
 }
 
-# Perform recursive decomposition
-$rootId = Get-UchisenDecomposition -KanjiChar $Character
+# Filter to kanji characters only (CJK Unified Ideographs + Extension A)
+$kanjiChars = $Character.ToCharArray() | Where-Object {
+    $code = [int]$_
+    ($code -ge 0x4E00 -and $code -le 0x9FFF) -or ($code -ge 0x3400 -and $code -le 0x4DBF)
+}
 
-# BFS traversal for output ordering
-$ordered = [System.Collections.Generic.List[string]]::new()
-$queue = [System.Collections.Queue]::new()
-$visited = @{}
-$queue.Enqueue($rootId)
-$visited[$rootId] = $true
+if (-not $kanjiChars) {
+    throw "No kanji characters found in input '$Character'"
+}
 
-while ($queue.Count -gt 0) {
-    $current = $queue.Dequeue()
-    $ordered.Add($current)
-    foreach ($child in $script:nodes[$current].Children) {
-        if (-not $visited.ContainsKey($child)) {
-            $visited[$child] = $true
-            $queue.Enqueue($child)
+if ($Path) {
+    $resolvedPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Path)
+    # For .mermaid file mode with multiple characters, clear the file first
+    if ($resolvedPath -like '*.mermaid' -and $kanjiChars.Count -gt 1 -and (Test-Path $resolvedPath)) {
+        Remove-Item $resolvedPath
+    }
+}
+
+$isFirst = $true
+foreach ($kanjiChar in $kanjiChars) {
+    $script:nodes = @{}
+
+    # Perform recursive decomposition
+    $rootId = Get-UchisenDecomposition -KanjiChar $kanjiChar
+
+    # BFS traversal for output ordering
+    $ordered = [System.Collections.Generic.List[string]]::new()
+    $queue = [System.Collections.Queue]::new()
+    $visited = @{}
+    $queue.Enqueue($rootId)
+    $visited[$rootId] = $true
+
+    while ($queue.Count -gt 0) {
+        $current = $queue.Dequeue()
+        $ordered.Add($current)
+        foreach ($child in $script:nodes[$current].Children) {
+            if (-not $visited.ContainsKey($child)) {
+                $visited[$child] = $true
+                $queue.Enqueue($child)
+            }
         }
     }
-}
 
-# Build Mermaid graph
-$lines = [System.Collections.Generic.List[string]]::new()
-$lines.Add("graph LR")
-$lines.Add("    Uchisen(Uchisen) --> $rootId")
-foreach ($id in $ordered) {
-    foreach ($child in $script:nodes[$id].Children) {
-        $lines.Add("    $id --> $child")
+    # Build Mermaid graph
+    $lines = [System.Collections.Generic.List[string]]::new()
+    $lines.Add("graph LR")
+    $lines.Add("    Uchisen(Uchisen) --> $rootId")
+    foreach ($id in $ordered) {
+        foreach ($child in $script:nodes[$id].Children) {
+            $lines.Add("    $id --> $child")
+        }
     }
-}
-$lines.Add("    ")
-for ($i = 0; $i -lt $ordered.Count; $i++) {
-    $id = $ordered[$i]
-    $node = $script:nodes[$id]
-    if ($node.Type -eq 'kanji') {
-        $lines.Add("    ${id}[$($node.Character)<br/>$($node.Name)]")
-    } elseif ($node.Character) {
-        $lines.Add("    ${id}{$($node.Character)<br/>$($node.Name)}")
+    $lines.Add("    ")
+    for ($i = 0; $i -lt $ordered.Count; $i++) {
+        $id = $ordered[$i]
+        $node = $script:nodes[$id]
+        if ($node.Type -eq 'kanji') {
+            $lines.Add("    ${id}[$($node.Character)<br/>$($node.Name)]")
+        } elseif ($node.Character) {
+            $lines.Add("    ${id}{$($node.Character)<br/>$($node.Name)}")
+        } else {
+            $lines.Add("    ${id}{$($node.Name)}")
+        }
+        $lines.Add("    click $id `"$($node.Url)`"")
+        if ($i -lt $ordered.Count - 1) {
+            $lines.Add("    ")
+        }
+    }
+
+    $mermaidContent = $lines -join "`n"
+
+    # Output the graph
+    if (-not $Path) {
+        # No path: write to standard output
+        if (-not $isFirst) {
+            Write-Output ""
+        }
+        Write-Output $mermaidContent
+    } elseif (Test-Path $resolvedPath -PathType Container) {
+        # Directory: create <kanji>-<source>.mermaid file
+        $fileName = "$kanjiChar-$Source.mermaid"
+        $outputFile = Join-Path $resolvedPath $fileName
+        [System.IO.File]::WriteAllText($outputFile, $mermaidContent, [System.Text.UTF8Encoding]::new($false))
+        Write-Verbose "Written to $outputFile"
+    } elseif ($resolvedPath -like '*.mermaid') {
+        # Mermaid file: write/append graph to file
+        if ($isFirst) {
+            [System.IO.File]::WriteAllText($resolvedPath, $mermaidContent, [System.Text.UTF8Encoding]::new($false))
+        } else {
+            [System.IO.File]::AppendAllText($resolvedPath, ("`n`n" + $mermaidContent), [System.Text.UTF8Encoding]::new($false))
+        }
+        Write-Verbose "Written to $resolvedPath"
+    } elseif ($resolvedPath -like '*.md') {
+        # Markdown file: append with preceding newline and code block
+        $mdBlock = "`n" + '```mermaid' + "`n" + $mermaidContent + "`n" + '```' + "`n"
+        [System.IO.File]::AppendAllText($resolvedPath, $mdBlock, [System.Text.UTF8Encoding]::new($false))
+        Write-Verbose "Appended to $resolvedPath"
     } else {
-        $lines.Add("    ${id}{$($node.Name)}")
+        throw "Unsupported output path '$resolvedPath'. Must be a directory, .mermaid file, or .md file."
     }
-    $lines.Add("    click $id `"$($node.Url)`"")
-    if ($i -lt $ordered.Count - 1) {
-        $lines.Add("    ")
-    }
-}
 
-$mermaidContent = $lines -join "`n"
-
-# Determine output based on path type
-$resolvedPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Path)
-
-if (Test-Path $resolvedPath -PathType Container) {
-    # Directory: create <kanji>-<source>.mermaid file
-    $fileName = "$Character-$Source.mermaid"
-    $outputFile = Join-Path $resolvedPath $fileName
-    [System.IO.File]::WriteAllText($outputFile, $mermaidContent, [System.Text.UTF8Encoding]::new($false))
-    Write-Verbose "Written to $outputFile"
-} elseif ($resolvedPath -like '*.mermaid') {
-    # Mermaid file: write graph to file
-    [System.IO.File]::WriteAllText($resolvedPath, $mermaidContent, [System.Text.UTF8Encoding]::new($false))
-    Write-Verbose "Written to $resolvedPath"
-} elseif ($resolvedPath -like '*.md') {
-    # Markdown file: append with preceding newline and code block
-    $mdBlock = "`n" + '```mermaid' + "`n" + $mermaidContent + "`n" + '```' + "`n"
-    [System.IO.File]::AppendAllText($resolvedPath, $mdBlock, [System.Text.UTF8Encoding]::new($false))
-    Write-Verbose "Appended to $resolvedPath"
-} else {
-    throw "Unsupported output path '$resolvedPath'. Must be a directory, .mermaid file, or .md file."
+    $isFirst = $false
 }
