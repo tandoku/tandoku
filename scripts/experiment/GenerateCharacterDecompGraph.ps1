@@ -3,7 +3,7 @@ param(
     [Parameter(Mandatory)]
     [string]$Character,
 
-    [ValidateSet('uchisen', 'wanikani', 'jpdb')]
+    [ValidateSet('wanikani', 'uchisen', 'jpdb')]
     [string[]]$Source,
 
     [string]$Path,
@@ -21,7 +21,7 @@ $sourceDisplayNames = @{
 }
 
 # Default to all sources if not specified
-$allSources = @('uchisen', 'wanikani', 'jpdb')
+$allSources = @('wanikani', 'uchisen', 'jpdb')
 if (-not $Source) { $Source = $allSources }
 
 # Load prime Unicode characters from uchisen-primes.yaml (if uchisen is a selected source)

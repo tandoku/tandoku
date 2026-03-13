@@ -8,7 +8,7 @@ GenerateCharacterDecompGraph.ps1 -Character <string> [-Source <source[]>] [-Wani
 
 ## Parameters
 - `-Character` — A string containing one or more kanji characters. Non-kanji characters (punctuation, numbers, Latin letters, kana, etc.) are ignored. A graph is generated for each kanji character in the string.
-- `-Source` — Optional. One or more decomposition sources: "uchisen", "wanikani", "jpdb". If omitted, all sources are used. Each character is processed for each source (outer loop is characters, inner loop is sources).
+- `-Source` — Optional. One or more decomposition sources: "wanikani", "uchisen", "jpdb". If omitted, all sources are used. Each character is processed for each source (outer loop is characters, inner loop is sources).
 - `-Path` — Optional output path. If omitted, graphs are written to standard output.
 - `-WaniKaniApiToken` — API token for WaniKani. If not provided, falls back to the `WANIKANI_API_TOKEN` environment variable. Required when wanikani is included in `-Source` (or when `-Source` is omitted).
 
@@ -22,11 +22,11 @@ When `-Path` is omitted, graphs are written to standard output (separated by bla
 
 ## Sources
 
-### Uchisen
-Looks up kanji on uchisen.com and recursively extracts the decomposition into primes and compound kanji components. Primes use diamond `{}` shape and kanji use rectangle `[]` shape.
-
 ### WaniKani
 Uses the WaniKani API (v2) to look up kanji and extract their radical components. Decomposition is single-level only (kanji → radicals, no recursion). Radicals use diamond `{}` shape and kanji use rectangle `[]` shape. If a radical has the same name as the root kanji (self-decomposition), it is skipped.
+
+### Uchisen
+Looks up kanji on uchisen.com and recursively extracts the decomposition into primes and compound kanji components. Primes use diamond `{}` shape and kanji use rectangle `[]` shape.
 
 ### jpdb
 Looks up kanji on jpdb.io and recursively extracts the decomposition into components. Characters in the standard CJK Unified Ideographs range are treated as kanji (rectangle `[]` shape) and recursed into; characters outside that range (e.g., CJK Extension B) are treated as primes (diamond `{}` shape). All component URLs use the `/kanji/` path on jpdb.io. Names are lowercase as provided by jpdb.
@@ -44,6 +44,25 @@ When the script runs, it loads the file and uses any mapped characters in the gr
 The graph should follow the format below.
 
 ## Example graph for kanji character `知`
+
+### WaniKani
+```mermaid
+---
+title: 知 Know - WaniKani
+---
+graph LR
+    Know --> Arrow
+    Know --> Mouth
+    
+    Know[知<br/>Know]
+    click Know "https://www.wanikani.com/kanji/%E7%9F%A5"
+    
+    Arrow{矢<br/>Arrow}
+    click Arrow "https://www.wanikani.com/radicals/arrow"
+    
+    Mouth{口<br/>Mouth}
+    click Mouth "https://www.wanikani.com/radicals/mouth"
+```
 
 ### Uchisen
 ```mermaid
@@ -78,25 +97,6 @@ graph LR
     
     Person[人<br/>Person]
     click Person "https://uchisen.com/kanji/%E4%BA%BA"
-```
-
-### WaniKani
-```mermaid
----
-title: 知 Know - WaniKani
----
-graph LR
-    Know --> Arrow
-    Know --> Mouth
-    
-    Know[知<br/>Know]
-    click Know "https://www.wanikani.com/kanji/%E7%9F%A5"
-    
-    Arrow{矢<br/>Arrow}
-    click Arrow "https://www.wanikani.com/radicals/arrow"
-    
-    Mouth{口<br/>Mouth}
-    click Mouth "https://www.wanikani.com/radicals/mouth"
 ```
 
 ### jpdb
