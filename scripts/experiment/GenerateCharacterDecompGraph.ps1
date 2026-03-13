@@ -50,6 +50,50 @@ function Get-NodeId {
     return ($first -replace ' ', '_')
 }
 
+# Track last request time per host to throttle requests
+$script:lastRequestTime = @{}
+$script:throttleDelayMs = 1000
+
+function Invoke-WebRequestWithRetry {
+    param(
+        [Parameter(Mandatory)][string]$Uri,
+        [hashtable]$Headers,
+        [switch]$ParseJson,
+        [int]$MaxRetries = 5,
+        [int]$BaseDelayMs = 5000
+    )
+
+    # Throttle: ensure minimum delay between requests to the same host
+    $host_ = ([Uri]$Uri).Host
+    if ($script:lastRequestTime.ContainsKey($host_)) {
+        $elapsed = ([DateTime]::UtcNow - $script:lastRequestTime[$host_]).TotalMilliseconds
+        if ($elapsed -lt $script:throttleDelayMs) {
+            Start-Sleep -Milliseconds ([int]($script:throttleDelayMs - $elapsed))
+        }
+    }
+
+    for ($attempt = 1; $attempt -le $MaxRetries; $attempt++) {
+        try {
+            $script:lastRequestTime[$host_] = [DateTime]::UtcNow
+            if ($ParseJson) {
+                return (Invoke-RestMethod -Uri $Uri -Headers $Headers -ProgressAction SilentlyContinue)
+            } else {
+                return (Invoke-WebRequest -Uri $Uri -UseBasicParsing -ProgressAction SilentlyContinue)
+            }
+        } catch {
+            if ($attempt -eq $MaxRetries) { throw }
+            # Only retry on likely transient errors (rate limiting, server errors)
+            $statusCode = $_.Exception.Response.StatusCode.value__
+            if ($statusCode -and $statusCode -lt 429 -and $statusCode -ne 408) { throw }
+            $delay = $BaseDelayMs * [Math]::Pow(2, $attempt - 1)
+            Write-Verbose "Request to $Uri failed (attempt $attempt/$MaxRetries): $($_.Exception.Message). Retrying in $($delay / 1000)s..."
+            Start-Sleep -Milliseconds $delay
+        }
+    }
+}
+
+
+
 function Get-UchisenDecomposition {
     param([string]$KanjiChar)
 
@@ -62,10 +106,9 @@ function Get-UchisenDecomposition {
     }
 
     Write-Verbose "Fetching decomposition for $KanjiChar from $url"
-    $response = Invoke-WebRequest -Uri $url -UseBasicParsing -ProgressAction SilentlyContinue
-    $html = $response.Content
+    $html = (Invoke-WebRequestWithRetry -Uri $url).Content
 
-    # Extract kanji name (e.g., "知 - Know" or "口 - Mouth, Entrance")
+    # Extract kanji name(e.g., "知 - Know" or "口 - Mouth, Entrance")
     if ($html -notmatch '<div class="kanji_name">\s*<span>(.+?)\s+-\s+(.+?)</span>') {
         throw "Could not extract name for character '$KanjiChar' from $url"
     }
@@ -142,7 +185,7 @@ function Get-WaniKaniDecomposition {
     }
 
     Write-Verbose "Fetching WaniKani kanji data for $KanjiChar"
-    $response = Invoke-RestMethod -Uri "https://api.wanikani.com/v2/subjects?types=kanji&slugs=$encodedChar" -Headers $apiHeaders -ProgressAction SilentlyContinue
+    $response = Invoke-WebRequestWithRetry -Uri "https://api.wanikani.com/v2/subjects?types=kanji&slugs=$encodedChar" -Headers $apiHeaders -ParseJson
 
     if ($response.total_count -eq 0) {
         throw "Kanji '$KanjiChar' not found on WaniKani"
@@ -158,7 +201,7 @@ function Get-WaniKaniDecomposition {
     if ($componentIds.Count -gt 0) {
         $idsParam = $componentIds -join ','
         Write-Verbose "Fetching WaniKani radical data for IDs: $idsParam"
-        $radResponse = Invoke-RestMethod -Uri "https://api.wanikani.com/v2/subjects?ids=$idsParam" -Headers $apiHeaders -ProgressAction SilentlyContinue
+        $radResponse = Invoke-WebRequestWithRetry -Uri "https://api.wanikani.com/v2/subjects?ids=$idsParam" -Headers $apiHeaders -ParseJson
 
         # Build lookup by subject ID, preserving order from component_subject_ids
         $radLookup = @{}
@@ -216,8 +259,7 @@ function Get-JpdbDecomposition {
     }
 
     Write-Verbose "Fetching decomposition for $KanjiChar from $url"
-    $response = Invoke-WebRequest -Uri $url -UseBasicParsing -ProgressAction SilentlyContinue
-    $html = $response.Content
+    $html = (Invoke-WebRequestWithRetry -Uri $url).Content
 
     # Extract keyword
     if ($html -notmatch '<h6 class="subsection-label">Keyword</h6>\s*<div class="subsection">([^<]+)</div>') {
@@ -294,8 +336,8 @@ function Get-KanjisenseDecomposition {
     $displayChar = if ($isCodeId) { '' } else { $DictPath }
 
     Write-Verbose "Fetching decomposition for $DictPath from $url"
-    $response = Invoke-WebRequest -Uri $url -UseBasicParsing -ProgressAction SilentlyContinue
-    $html = $response.Content
+    # Strip null bytes (kanjisense bug with supplementary Unicode chars)
+    $html = (Invoke-WebRequestWithRetry -Uri $url).Content -replace "`0", ''
 
     # Extract keyword from the content <h1>(not the site header h1 which contains <a>)
     if ($html -match 'text-xl\s*"><h1>(.*?)</h1>') {
