@@ -8,7 +8,7 @@ GenerateCharacterDecompGraph.ps1 -Character <string> [-Source <source[]>] [-Wani
 
 ## Parameters
 - `-Character` — A string containing one or more kanji characters. Non-kanji characters (punctuation, numbers, Latin letters, kana, etc.) are ignored. A graph is generated for each kanji character in the string.
-- `-Source` — Optional. One or more decomposition sources: "wanikani", "uchisen", "jpdb". If omitted, all sources are used. Each character is processed for each source (outer loop is characters, inner loop is sources).
+- `-Source` — Optional. One or more decomposition sources: "wanikani", "uchisen", "jpdb", "kanjisense". If omitted, all sources are used. Each character is processed for each source (outer loop is characters, inner loop is sources).
 - `-Path` — Optional output path. If omitted, graphs are written to standard output.
 - `-WaniKaniApiToken` — API token for WaniKani. If not provided, falls back to the `WANIKANI_API_TOKEN` environment variable. Required when wanikani is included in `-Source` (or when `-Source` is omitted).
 
@@ -25,11 +25,14 @@ When `-Path` is omitted, graphs are written to standard output (separated by bla
 ### WaniKani
 Uses the WaniKani API (v2) to look up kanji and extract their radical components. Decomposition is single-level only (kanji → radicals, no recursion). Radicals use diamond `{}` shape and kanji use rectangle `[]` shape. If a radical has the same name as the root kanji (self-decomposition), it is skipped.
 
-### Uchisen
+### uchisen
 Looks up kanji on uchisen.com and recursively extracts the decomposition into primes and compound kanji components. Primes use diamond `{}` shape and kanji use rectangle `[]` shape.
 
 ### jpdb
 Looks up kanji on jpdb.io and recursively extracts the decomposition into components. Characters in the standard CJK Unified Ideographs range are treated as kanji (rectangle `[]` shape) and recursed into; characters outside that range (e.g., CJK Extension B) are treated as primes (diamond `{}` shape). All component URLs use the `/kanji/` path on jpdb.io. Names are lowercase as provided by jpdb.
+
+### kanjisense
+Looks up kanji on kanjisense.com and recursively extracts the decomposition into components. "Component only" entries (marked with ○ on kanjisense) use diamond `{}` shape; all other entries use rectangle `[]` shape. Names may include semicolons for multiple meanings (e.g., "know; wisdom"). Components with non-standard identifiers (CDP-*, GWS-*) are included but displayed without a character glyph. Parenthetical suffixes like "(cf. ...)" and "(via ...)" are stripped from names.
 
 ## Prime Unicode characters
 
@@ -64,10 +67,10 @@ graph LR
     click Mouth "https://www.wanikani.com/radicals/mouth"
 ```
 
-### Uchisen
+### uchisen
 ```mermaid
 ---
-title: 知 Know - Uchisen
+title: 知 Know - uchisen
 ---
 graph LR
     Know --> Arrow
@@ -132,4 +135,23 @@ graph LR
     
     person[人<br/>person]
     click person "https://jpdb.io/kanji/%E4%BA%BA"
+```
+
+### kanjisense
+```mermaid
+---
+title: 知 know; wisdom - kanjisense
+---
+graph LR
+    know --> arrow
+    know --> mouth
+    
+    know[知<br/>know; wisdom]
+    click know "https://kanjisense.com/dict/%E7%9F%A5"
+    
+    arrow[矢<br/>arrow; dart]
+    click arrow "https://kanjisense.com/dict/%E7%9F%A2"
+    
+    mouth[口<br/>mouth]
+    click mouth "https://kanjisense.com/dict/%E5%8F%A3"
 ```

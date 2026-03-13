@@ -3,7 +3,7 @@ param(
     [Parameter(Mandatory)]
     [string]$Character,
 
-    [ValidateSet('wanikani', 'uchisen', 'jpdb')]
+    [ValidateSet('wanikani', 'uchisen', 'jpdb', 'kanjisense')]
     [string[]]$Source,
 
     [string]$Path,
@@ -15,13 +15,14 @@ $ErrorActionPreference = 'Stop'
 
 # Source display names
 $sourceDisplayNames = @{
-    'uchisen'  = 'Uchisen'
-    'wanikani' = 'WaniKani'
-    'jpdb'     = 'jpdb.io'
+    'uchisen'    = 'uchisen'
+    'wanikani'   = 'WaniKani'
+    'jpdb'       = 'jpdb.io'
+    'kanjisense' = 'kanjisense'
 }
 
 # Default to all sources if not specified
-$allSources = @('wanikani', 'uchisen', 'jpdb')
+$allSources = @('wanikani', 'uchisen', 'jpdb', 'kanjisense')
 if (-not $Source) { $Source = $allSources }
 
 # Load prime Unicode characters from uchisen-primes.yaml (if uchisen is a selected source)
@@ -45,7 +46,7 @@ if ($Source -contains 'wanikani') {
 
 function Get-NodeId {
     param([string]$Name)
-    $first = ($Name -split ',')[0].Trim()
+    $first = ($Name -split '[,;]')[0].Trim()
     return ($first -replace ' ', '_')
 }
 
@@ -277,6 +278,74 @@ function Get-JpdbDecomposition {
     return $nodeId
 }
 
+function Get-KanjisenseDecomposition {
+    param([string]$DictPath)
+
+    $encodedPath = [Uri]::EscapeDataString($DictPath)
+    $url = "https://kanjisense.com/dict/$encodedPath"
+
+    # Return existing node ID if already processed
+    foreach ($n in $script:nodes.Values) {
+        if ($n.Url -eq $url) { return $n.NodeId }
+    }
+
+    # Determine if this is a displayable character or a code identifier (CDP-*, GWS-*)
+    $isCodeId = $DictPath -match '^[A-Za-z]'
+    $displayChar = if ($isCodeId) { '' } else { $DictPath }
+
+    Write-Verbose "Fetching decomposition for $DictPath from $url"
+    $response = Invoke-WebRequest -Uri $url -UseBasicParsing
+    $html = $response.Content
+
+    # Extract keyword from the content <h1> (not the site header h1 which contains <a>)
+    if ($html -match 'text-xl\s*"><h1>(.*?)</h1>') {
+        $rawName = $Matches[1]
+        # Strip HTML tags and comments, then clean up component mnemonic prefix and cf. suffix
+        $name = ($rawName -replace '<!--.*?-->', '' -replace '<[^>]+>', '').Trim()
+        $name = ($name -replace '^component mnemonic:\s*', '').Trim()
+        $name = ($name -replace '\s*\(cf\..*?\)', '').Trim()
+        $name = ($name -replace '\s*\(via\s.*?\)', '').Trim()
+    } else {
+        throw "Could not extract keyword for '$DictPath' from $url"
+    }
+    $nodeId = Get-NodeId $name
+
+    # Detect type: "component only" entries use diamond shape
+    $type = if ($html -match '>○ component only<') { 'component' } else { 'kanji' }
+
+    $children = [System.Collections.Generic.List[string]]::new()
+
+    # Extract the "components" section
+    $compIdx = $html.IndexOf('>components</h2>')
+    if ($compIdx -ge 0) {
+        # Find the section element containing components
+        $sectionStart = $html.IndexOf('<section', $compIdx)
+        if ($sectionStart -ge 0) {
+            $sectionEnd = $html.IndexOf('</section>', $sectionStart)
+            if ($sectionEnd -lt 0) { $sectionEnd = [Math]::Min($sectionStart + 5000, $html.Length) }
+            $compHtml = $html.Substring($sectionStart, $sectionEnd - $sectionStart)
+
+            # Extract component paths from href="/dict/PATH"
+            foreach ($m in [regex]::Matches($compHtml, 'href="/dict/([^"]+)"')) {
+                $childPath = [Uri]::UnescapeDataString($m.Groups[1].Value)
+                $childId = Get-KanjisenseDecomposition -DictPath $childPath
+                $children.Add($childId)
+            }
+        }
+    }
+
+    $script:nodes[$nodeId] = @{
+        NodeId    = $nodeId
+        Character = $displayChar
+        Name      = $name
+        Type      = $type
+        Url       = $url
+        Children  = $children
+    }
+
+    return $nodeId
+}
+
 # Filter to kanji characters only(CJK Unified Ideographs + Extension A)
 $kanjiChars = $Character.ToCharArray() | Where-Object {
     $code = [int]$_
@@ -309,9 +378,10 @@ foreach ($kanjiChar in $kanjiChars) {
 
         # Perform decomposition using the selected source
         $rootId = switch ($currentSource) {
-            'uchisen'  { Get-UchisenDecomposition -KanjiChar $kanjiChar }
-            'wanikani' { Get-WaniKaniDecomposition -KanjiChar $kanjiChar }
-            'jpdb'     { Get-JpdbDecomposition -KanjiChar $kanjiChar }
+            'uchisen'    { Get-UchisenDecomposition -KanjiChar $kanjiChar }
+            'wanikani'   { Get-WaniKaniDecomposition -KanjiChar $kanjiChar }
+            'jpdb'       { Get-JpdbDecomposition -KanjiChar $kanjiChar }
+            'kanjisense' { Get-KanjisenseDecomposition -DictPath $kanjiChar }
         }
 
         # BFS traversal for output ordering
@@ -350,7 +420,7 @@ foreach ($kanjiChar in $kanjiChars) {
             $node = $script:nodes[$id]
             if ($node.Type -eq 'kanji') {
                 $lines.Add("    ${id}[$($node.Character)<br/>$($node.Name)]")
-            } elseif ($node.Type -in 'prime', 'radical') {
+            } elseif ($node.Type -in 'prime', 'radical', 'component') {
                 if ($node.Character) {
                     $lines.Add("    ${id}{$($node.Character)<br/>$($node.Name)}")
                 } else {
