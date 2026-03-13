@@ -4,12 +4,14 @@ GenerateCharacterDecompGraph.ps1 script generates kanji character decomposition 
 ## Usage
 ```powershell
 GenerateCharacterDecompGraph.ps1 -Character <string> -Source uchisen [-Path <output-path>]
+GenerateCharacterDecompGraph.ps1 -Character <string> -Source wanikani [-WaniKaniApiToken <token>] [-Path <output-path>]
 ```
 
 ## Parameters
 - `-Character` — A string containing one or more kanji characters. Non-kanji characters (punctuation, numbers, Latin letters, kana, etc.) are ignored. A graph is generated for each kanji character in the string.
-- `-Source` — The decomposition source to use. Currently only "uchisen" is supported.
+- `-Source` — The decomposition source to use: "uchisen" or "wanikani".
 - `-Path` — Optional output path. If omitted, graphs are written to standard output.
+- `-WaniKaniApiToken` — API token for WaniKani. If not provided, falls back to the `WANIKANI_API_TOKEN` environment variable. Required when `-Source wanikani`.
 
 ## Behavior
 When `-Path` is specified, behavior varies by path type:
@@ -19,7 +21,13 @@ When `-Path` is specified, behavior varies by path type:
 
 When `-Path` is omitted, graphs are written to standard output (separated by blank lines for multiple characters).
 
-The only supported source right now is "uchisen". The script should look up the specified kanji character on the uchisen website and recursively extract the decomposition of the character to primes and compound kanji components.
+## Sources
+
+### Uchisen
+Looks up kanji on uchisen.com and recursively extracts the decomposition into primes and compound kanji components. Primes use diamond `{}` shape and kanji use rectangle `[]` shape.
+
+### WaniKani
+Uses the WaniKani API (v2) to look up kanji and extract their radical components. Decomposition is single-level only (kanji → radicals, no recursion). Radicals use diamond `{}` shape and kanji use rectangle `[]` shape. If a radical has the same name as the root kanji (self-decomposition), it is skipped.
 
 ## Prime Unicode characters
 
@@ -34,6 +42,8 @@ When the script runs, it loads the file and uses any mapped characters in the gr
 The graph should follow the format below.
 
 ## Example graph for kanji character `知`
+
+### Uchisen
 ```mermaid
 ---
 title: 知 Know - Uchisen
@@ -66,4 +76,23 @@ graph LR
     
     Person[人<br/>Person]
     click Person "https://uchisen.com/kanji/%E4%BA%BA"
+```
+
+### WaniKani
+```mermaid
+---
+title: 知 Know - WaniKani
+---
+graph LR
+    Know --> Arrow
+    Know --> Mouth
+    
+    Know[知<br/>Know]
+    click Know "https://www.wanikani.com/kanji/%E7%9F%A5"
+    
+    Arrow{矢<br/>Arrow}
+    click Arrow "https://www.wanikani.com/radicals/arrow"
+    
+    Mouth{口<br/>Mouth}
+    click Mouth "https://www.wanikani.com/radicals/mouth"
 ```

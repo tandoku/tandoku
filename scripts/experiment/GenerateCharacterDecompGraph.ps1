@@ -4,22 +4,39 @@ param(
     [string]$Character,
 
     [Parameter(Mandatory)]
-    [ValidateSet('uchisen')]
+    [ValidateSet('uchisen', 'wanikani')]
     [string]$Source,
 
-    [string]$Path
+    [string]$Path,
+
+    [string]$WaniKaniApiToken
 )
 
 $ErrorActionPreference = 'Stop'
 
-# Load prime Unicode characters from uchisen-primes.yaml
+# Source display names
+$sourceDisplayNames = @{
+    'uchisen'  = 'Uchisen'
+    'wanikani' = 'WaniKani'
+}
+$sourceDisplayName = $sourceDisplayNames[$Source]
+
+# Load prime Unicode characters from uchisen-primes.yaml (uchisen only)
 $script:primesFile = Join-Path $PSScriptRoot 'uchisen-primes.yaml'
 $script:primeChars = [ordered]@{}
-if (Test-Path $script:primesFile) {
+if ($Source -eq 'uchisen' -and (Test-Path $script:primesFile)) {
     foreach ($line in [System.IO.File]::ReadAllLines($script:primesFile, [System.Text.UTF8Encoding]::new($false))) {
         if ($line -match '^([^#:]+):\s*(.*)$') {
             $script:primeChars[$Matches[1].Trim()] = $Matches[2].Trim()
         }
+    }
+}
+
+# Resolve WaniKani API token
+if ($Source -eq 'wanikani') {
+    $script:waniKaniToken = if ($WaniKaniApiToken) { $WaniKaniApiToken } else { $env:WANIKANI_API_TOKEN }
+    if (-not $script:waniKaniToken) {
+        throw "WaniKani API token required. Pass -WaniKaniApiToken or set WANIKANI_API_TOKEN environment variable."
     }
 }
 
@@ -109,7 +126,81 @@ function Get-UchisenDecomposition {
     return $nodeId
 }
 
-# Filter to kanji characters only (CJK Unified Ideographs + Extension A)
+function Get-WaniKaniDecomposition {
+    param([string]$KanjiChar)
+
+    $encodedChar = [Uri]::EscapeDataString($KanjiChar)
+    $kanjiUrl = "https://www.wanikani.com/kanji/$encodedChar"
+
+    $apiHeaders = @{
+        'Wanikani-Revision' = '20170710'
+        'Authorization'     = "Bearer $script:waniKaniToken"
+    }
+
+    Write-Verbose "Fetching WaniKani kanji data for $KanjiChar"
+    $response = Invoke-RestMethod -Uri "https://api.wanikani.com/v2/subjects?types=kanji&slugs=$encodedChar" -Headers $apiHeaders
+
+    if ($response.total_count -eq 0) {
+        throw "Kanji '$KanjiChar' not found on WaniKani"
+    }
+
+    $kanjiData = $response.data[0].data
+    $name = ($kanjiData.meanings | Where-Object { $_.primary }).meaning
+    $rootId = Get-NodeId $name
+    $componentIds = $kanjiData.component_subject_ids
+
+    $children = [System.Collections.Generic.List[string]]::new()
+
+    if ($componentIds.Count -gt 0) {
+        $idsParam = $componentIds -join ','
+        Write-Verbose "Fetching WaniKani radical data for IDs: $idsParam"
+        $radResponse = Invoke-RestMethod -Uri "https://api.wanikani.com/v2/subjects?ids=$idsParam" -Headers $apiHeaders
+
+        # Build lookup by subject ID, preserving order from component_subject_ids
+        $radLookup = @{}
+        foreach ($rad in $radResponse.data) {
+            $radLookup[$rad.id] = $rad
+        }
+
+        foreach ($compId in $componentIds) {
+            $rad = $radLookup[$compId]
+            $radData = $rad.data
+            $radName = ($radData.meanings | Where-Object { $_.primary }).meaning
+            $radChar = $radData.characters
+            $radSlug = $radData.slug
+            $radId = Get-NodeId $radName
+            $radUrl = "https://www.wanikani.com/radicals/$radSlug"
+
+            # Skip radical if it has same node ID as root kanji (self-decomposition)
+            if ($radId -ceq $rootId) { continue }
+
+            if (-not $script:nodes.ContainsKey($radId)) {
+                $script:nodes[$radId] = @{
+                    NodeId    = $radId
+                    Character = if ($radChar) { $radChar } else { '' }
+                    Name      = $radName
+                    Type      = 'radical'
+                    Url       = $radUrl
+                    Children  = [System.Collections.Generic.List[string]]::new()
+                }
+            }
+            $children.Add($radId)
+        }
+    }
+
+    $script:nodes[$rootId] = @{
+        NodeId    = $rootId
+        Character = $KanjiChar
+        Name      = $name
+        Type      = 'kanji'
+        Url       = $kanjiUrl
+        Children  = $children
+    }
+
+    return $rootId
+}
+
+# Filter to kanji characters only(CJK Unified Ideographs + Extension A)
 $kanjiChars = $Character.ToCharArray() | Where-Object {
     $code = [int]$_
     ($code -ge 0x4E00 -and $code -le 0x9FFF) -or ($code -ge 0x3400 -and $code -le 0x4DBF)
@@ -131,8 +222,11 @@ $isFirst = $true
 foreach ($kanjiChar in $kanjiChars) {
     $script:nodes = [System.Collections.Hashtable]::new([System.StringComparer]::Ordinal)
 
-    # Perform recursive decomposition
-    $rootId = Get-UchisenDecomposition -KanjiChar $kanjiChar
+    # Perform decomposition using the selected source
+    $rootId = switch ($Source) {
+        'uchisen'  { Get-UchisenDecomposition -KanjiChar $kanjiChar }
+        'wanikani' { Get-WaniKaniDecomposition -KanjiChar $kanjiChar }
+    }
 
     # BFS traversal for output ordering
     $ordered = [System.Collections.Generic.List[string]]::new()
@@ -156,7 +250,7 @@ foreach ($kanjiChar in $kanjiChars) {
     $rootNode = $script:nodes[$rootId]
     $lines = [System.Collections.Generic.List[string]]::new()
     $lines.Add("---")
-    $lines.Add("title: $($rootNode.Character) $($rootNode.Name) - Uchisen")
+    $lines.Add("title: $($rootNode.Character) $($rootNode.Name) - $sourceDisplayName")
     $lines.Add("---")
     $lines.Add("graph LR")
     foreach ($id in $ordered) {
@@ -170,10 +264,12 @@ foreach ($kanjiChar in $kanjiChars) {
         $node = $script:nodes[$id]
         if ($node.Type -eq 'kanji') {
             $lines.Add("    ${id}[$($node.Character)<br/>$($node.Name)]")
-        } elseif ($node.Character) {
-            $lines.Add("    ${id}{$($node.Character)<br/>$($node.Name)}")
-        } else {
-            $lines.Add("    ${id}{$($node.Name)}")
+        } elseif ($node.Type -in 'prime', 'radical') {
+            if ($node.Character) {
+                $lines.Add("    ${id}{$($node.Character)<br/>$($node.Name)}")
+            } else {
+                $lines.Add("    ${id}{$($node.Name)}")
+            }
         }
         $lines.Add("    click $id `"$($node.Url)`"")
         if ($i -lt $ordered.Count - 1) {
@@ -216,15 +312,17 @@ foreach ($kanjiChar in $kanjiChars) {
     $isFirst = $false
 }
 
-# Write updated primes back to YAML (preserves existing entries, adds new ones)
-$yamlLines = [System.Collections.Generic.List[string]]::new()
-foreach ($key in $script:primeChars.Keys) {
-    $val = $script:primeChars[$key]
-    if ($val) {
-        $yamlLines.Add("${key}: $val")
-    } else {
-        $yamlLines.Add("${key}:")
+# Write updated primes back to YAML (uchisen only)
+if ($Source -eq 'uchisen') {
+    $yamlLines = [System.Collections.Generic.List[string]]::new()
+    foreach ($key in $script:primeChars.Keys) {
+        $val = $script:primeChars[$key]
+        if ($val) {
+            $yamlLines.Add("${key}: $val")
+        } else {
+            $yamlLines.Add("${key}:")
+        }
     }
+    $yamlLines.Add('')
+    [System.IO.File]::WriteAllLines($script:primesFile, $yamlLines, [System.Text.UTF8Encoding]::new($false))
 }
-$yamlLines.Add('')
-[System.IO.File]::WriteAllLines($script:primesFile, $yamlLines, [System.Text.UTF8Encoding]::new($false))
