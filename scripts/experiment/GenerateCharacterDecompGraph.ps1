@@ -12,6 +12,17 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+# Load prime Unicode characters from uchisen-primes.yaml
+$script:primesFile = Join-Path $PSScriptRoot 'uchisen-primes.yaml'
+$script:primeChars = [ordered]@{}
+if (Test-Path $script:primesFile) {
+    foreach ($line in [System.IO.File]::ReadAllLines($script:primesFile, [System.Text.UTF8Encoding]::new($false))) {
+        if ($line -match '^([^#:]+):\s*(.*)$') {
+            $script:primeChars[$Matches[1].Trim()] = $Matches[2].Trim()
+        }
+    }
+}
+
 function Get-NodeId {
     param([string]$Name)
     $first = ($Name -split ',')[0].Trim()
@@ -58,9 +69,15 @@ function Get-UchisenDecomposition {
             $primeId = Get-NodeId $primeName
 
             if (-not $script:nodes.ContainsKey($primeId)) {
+                $primeChar = ''
+                if ($script:primeChars.Contains($primeName)) {
+                    $primeChar = $script:primeChars[$primeName]
+                } else {
+                    $script:primeChars[$primeName] = ''
+                }
                 $script:nodes[$primeId] = @{
                     NodeId    = $primeId
-                    Character = ''
+                    Character = $primeChar
                     Name      = $primeName
                     Type      = 'prime'
                     Url       = "https://uchisen.com/primes/$primePath"
@@ -110,7 +127,7 @@ if ($Path) {
 
 $isFirst = $true
 foreach ($kanjiChar in $kanjiChars) {
-    $script:nodes = @{}
+    $script:nodes = [System.Collections.Hashtable]::new([System.StringComparer]::Ordinal)
 
     # Perform recursive decomposition
     $rootId = Get-UchisenDecomposition -KanjiChar $kanjiChar
@@ -118,7 +135,7 @@ foreach ($kanjiChar in $kanjiChars) {
     # BFS traversal for output ordering
     $ordered = [System.Collections.Generic.List[string]]::new()
     $queue = [System.Collections.Queue]::new()
-    $visited = @{}
+    $visited = [System.Collections.Hashtable]::new([System.StringComparer]::Ordinal)
     $queue.Enqueue($rootId)
     $visited[$rootId] = $true
 
@@ -193,3 +210,16 @@ foreach ($kanjiChar in $kanjiChars) {
 
     $isFirst = $false
 }
+
+# Write updated primes back to YAML (preserves existing entries, adds new ones)
+$yamlLines = [System.Collections.Generic.List[string]]::new()
+foreach ($key in $script:primeChars.Keys) {
+    $val = $script:primeChars[$key]
+    if ($val) {
+        $yamlLines.Add("${key}: $val")
+    } else {
+        $yamlLines.Add("${key}:")
+    }
+}
+$yamlLines.Add('')
+[System.IO.File]::WriteAllLines($script:primesFile, $yamlLines, [System.Text.UTF8Encoding]::new($false))

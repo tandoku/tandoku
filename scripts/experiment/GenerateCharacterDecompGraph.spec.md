@@ -21,6 +21,16 @@ When `-Path` is omitted, graphs are written to standard output (separated by bla
 
 The only supported source right now is "uchisen". The script should look up the specified kanji character on the uchisen website and recursively extract the decomposition of the character to primes and compound kanji components.
 
+## Prime Unicode characters
+
+The `uchisen-primes.yaml` file (in the same directory as the script) provides Unicode characters for uchisen primes, which are displayed as SVG images on the website and cannot be scraped directly. The file uses simple `key: value` format:
+
+```yaml
+roundhouse kick: 𠂉
+```
+
+When the script runs, it loads the file and uses any mapped characters in the graph output. If a prime is encountered at runtime that is not already in the file, a new entry is added with a blank value. The updated file is written back after each run, so the user can fill in missing values offline and re-run the script.
+
 The graph should follow the format below.
 
 ## Example graph for kanji character `知`
