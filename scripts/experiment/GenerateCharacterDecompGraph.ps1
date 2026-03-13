@@ -3,7 +3,7 @@ param(
     [Parameter(Mandatory)]
     [string]$Character,
 
-    [ValidateSet('uchisen', 'wanikani')]
+    [ValidateSet('uchisen', 'wanikani', 'jpdb')]
     [string[]]$Source,
 
     [string]$Path,
@@ -17,10 +17,11 @@ $ErrorActionPreference = 'Stop'
 $sourceDisplayNames = @{
     'uchisen'  = 'Uchisen'
     'wanikani' = 'WaniKani'
+    'jpdb'     = 'jpdb.io'
 }
 
 # Default to all sources if not specified
-$allSources = @('uchisen', 'wanikani')
+$allSources = @('uchisen', 'wanikani', 'jpdb')
 if (-not $Source) { $Source = $allSources }
 
 # Load prime Unicode characters from uchisen-primes.yaml (if uchisen is a selected source)
@@ -202,6 +203,80 @@ function Get-WaniKaniDecomposition {
     return $rootId
 }
 
+function Get-JpdbDecomposition {
+    param([string]$KanjiChar)
+
+    $encodedChar = [Uri]::EscapeDataString($KanjiChar)
+    $url = "https://jpdb.io/kanji/$encodedChar"
+
+    # Return existing node ID if already processed
+    foreach ($n in $script:nodes.Values) {
+        if ($n.Url -eq $url) { return $n.NodeId }
+    }
+
+    Write-Verbose "Fetching decomposition for $KanjiChar from $url"
+    $response = Invoke-WebRequest -Uri $url -UseBasicParsing
+    $html = $response.Content
+
+    # Extract keyword
+    if ($html -notmatch '<h6 class="subsection-label">Keyword</h6>\s*<div class="subsection">([^<]+)</div>') {
+        throw "Could not extract keyword for character '$KanjiChar' from $url"
+    }
+    $name = $Matches[1].Trim()
+    $nodeId = Get-NodeId $name
+
+    $children = [System.Collections.Generic.List[string]]::new()
+
+    # Extract the first "Composed of" section
+    $compIdx = $html.IndexOf('>Composed of</h6>')
+    if ($compIdx -ge 0) {
+        $sectionStart = $html.IndexOf('<div class="subsection">', $compIdx)
+        if ($sectionStart -ge 0) {
+            # Find end by looking for the next section heading
+            $sectionEnd = $html.IndexOf('class="subsection-label"', $sectionStart)
+            if ($sectionEnd -lt 0) { $sectionEnd = [Math]::Min($sectionStart + 2000, $html.Length) }
+            $compHtml = $html.Substring($sectionStart, $sectionEnd - $sectionStart)
+
+            # Extract components: <a class="plain" href="/kanji/X#a">CHAR</a> followed by <div class="description">NAME</div>
+            foreach ($m in [regex]::Matches($compHtml, 'href="/kanji/([^"#]+)#a">([^<]+)</a></div>\s*<div class="description">([^<]+)</div>')) {
+                $childChar = $m.Groups[2].Value.Trim()
+                $childName = $m.Groups[3].Value.Trim()
+
+                # Determine type: standard CJK = kanji (recurse), otherwise = prime (leaf)
+                $code = [int][char]$childChar[0]
+                if ($childChar.Length -eq 1 -and (($code -ge 0x4E00 -and $code -le 0x9FFF) -or ($code -ge 0x3400 -and $code -le 0x4DBF))) {
+                    $childId = Get-JpdbDecomposition -KanjiChar $childChar
+                } else {
+                    $childId = Get-NodeId $childName
+                    if (-not $script:nodes.ContainsKey($childId)) {
+                        $childEncoded = [Uri]::EscapeDataString($childChar)
+                        $script:nodes[$childId] = @{
+                            NodeId    = $childId
+                            Character = $childChar
+                            Name      = $childName
+                            Type      = 'prime'
+                            Url       = "https://jpdb.io/kanji/$childEncoded"
+                            Children  = [System.Collections.Generic.List[string]]::new()
+                        }
+                    }
+                }
+                $children.Add($childId)
+            }
+        }
+    }
+
+    $script:nodes[$nodeId] = @{
+        NodeId    = $nodeId
+        Character = $KanjiChar
+        Name      = $name
+        Type      = 'kanji'
+        Url       = $url
+        Children  = $children
+    }
+
+    return $nodeId
+}
+
 # Filter to kanji characters only(CJK Unified Ideographs + Extension A)
 $kanjiChars = $Character.ToCharArray() | Where-Object {
     $code = [int]$_
@@ -236,6 +311,7 @@ foreach ($kanjiChar in $kanjiChars) {
         $rootId = switch ($currentSource) {
             'uchisen'  { Get-UchisenDecomposition -KanjiChar $kanjiChar }
             'wanikani' { Get-WaniKaniDecomposition -KanjiChar $kanjiChar }
+            'jpdb'     { Get-JpdbDecomposition -KanjiChar $kanjiChar }
         }
 
         # BFS traversal for output ordering

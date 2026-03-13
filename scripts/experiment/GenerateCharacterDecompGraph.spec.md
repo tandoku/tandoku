@@ -8,7 +8,7 @@ GenerateCharacterDecompGraph.ps1 -Character <string> [-Source <source[]>] [-Wani
 
 ## Parameters
 - `-Character` — A string containing one or more kanji characters. Non-kanji characters (punctuation, numbers, Latin letters, kana, etc.) are ignored. A graph is generated for each kanji character in the string.
-- `-Source` — Optional. One or more decomposition sources: "uchisen", "wanikani", or both. If omitted, all sources are used. Each character is processed for each source (outer loop is characters, inner loop is sources).
+- `-Source` — Optional. One or more decomposition sources: "uchisen", "wanikani", "jpdb". If omitted, all sources are used. Each character is processed for each source (outer loop is characters, inner loop is sources).
 - `-Path` — Optional output path. If omitted, graphs are written to standard output.
 - `-WaniKaniApiToken` — API token for WaniKani. If not provided, falls back to the `WANIKANI_API_TOKEN` environment variable. Required when wanikani is included in `-Source` (or when `-Source` is omitted).
 
@@ -27,6 +27,9 @@ Looks up kanji on uchisen.com and recursively extracts the decomposition into pr
 
 ### WaniKani
 Uses the WaniKani API (v2) to look up kanji and extract their radical components. Decomposition is single-level only (kanji → radicals, no recursion). Radicals use diamond `{}` shape and kanji use rectangle `[]` shape. If a radical has the same name as the root kanji (self-decomposition), it is skipped.
+
+### jpdb
+Looks up kanji on jpdb.io and recursively extracts the decomposition into components. Characters in the standard CJK Unified Ideographs range are treated as kanji (rectangle `[]` shape) and recursed into; characters outside that range (e.g., CJK Extension B) are treated as primes (diamond `{}` shape). All component URLs use the `/kanji/` path on jpdb.io. Names are lowercase as provided by jpdb.
 
 ## Prime Unicode characters
 
@@ -94,4 +97,39 @@ graph LR
     
     Mouth{口<br/>Mouth}
     click Mouth "https://www.wanikani.com/radicals/mouth"
+```
+
+### jpdb
+```mermaid
+---
+title: 知 know - jpdb.io
+---
+graph LR
+    know --> arrow
+    know --> mouth
+    arrow --> cow_head
+    arrow --> large
+    large --> one
+    large --> person
+    
+    know[知<br/>know]
+    click know "https://jpdb.io/kanji/%E7%9F%A5"
+    
+    arrow[矢<br/>arrow]
+    click arrow "https://jpdb.io/kanji/%E7%9F%A2"
+    
+    mouth[口<br/>mouth]
+    click mouth "https://jpdb.io/kanji/%E5%8F%A3"
+    
+    cow_head{𠂉<br/>cow head}
+    click cow_head "https://jpdb.io/kanji/%F0%A0%82%89"
+    
+    large[大<br/>large]
+    click large "https://jpdb.io/kanji/%E5%A4%A7"
+    
+    one[一<br/>one]
+    click one "https://jpdb.io/kanji/%E4%B8%80"
+    
+    person[人<br/>person]
+    click person "https://jpdb.io/kanji/%E4%BA%BA"
 ```
