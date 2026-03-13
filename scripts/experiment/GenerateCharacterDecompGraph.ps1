@@ -3,9 +3,8 @@ param(
     [Parameter(Mandatory)]
     [string]$Character,
 
-    [Parameter(Mandatory)]
     [ValidateSet('uchisen', 'wanikani')]
-    [string]$Source,
+    [string[]]$Source,
 
     [string]$Path,
 
@@ -19,12 +18,15 @@ $sourceDisplayNames = @{
     'uchisen'  = 'Uchisen'
     'wanikani' = 'WaniKani'
 }
-$sourceDisplayName = $sourceDisplayNames[$Source]
 
-# Load prime Unicode characters from uchisen-primes.yaml (uchisen only)
+# Default to all sources if not specified
+$allSources = @('uchisen', 'wanikani')
+if (-not $Source) { $Source = $allSources }
+
+# Load prime Unicode characters from uchisen-primes.yaml (if uchisen is a selected source)
 $script:primesFile = Join-Path $PSScriptRoot 'uchisen-primes.yaml'
 $script:primeChars = [ordered]@{}
-if ($Source -eq 'uchisen' -and (Test-Path $script:primesFile)) {
+if ($Source -contains 'uchisen' -and (Test-Path $script:primesFile)) {
     foreach ($line in [System.IO.File]::ReadAllLines($script:primesFile, [System.Text.UTF8Encoding]::new($false))) {
         if ($line -match '^([^#:]+):\s*(.*)$') {
             $script:primeChars[$Matches[1].Trim()] = $Matches[2].Trim()
@@ -33,7 +35,7 @@ if ($Source -eq 'uchisen' -and (Test-Path $script:primesFile)) {
 }
 
 # Resolve WaniKani API token
-if ($Source -eq 'wanikani') {
+if ($Source -contains 'wanikani') {
     $script:waniKaniToken = if ($WaniKaniApiToken) { $WaniKaniApiToken } else { $env:WANIKANI_API_TOKEN }
     if (-not $script:waniKaniToken) {
         throw "WaniKani API token required. Pass -WaniKaniApiToken or set WANIKANI_API_TOKEN environment variable."
@@ -212,108 +214,111 @@ if (-not $kanjiChars) {
 
 if ($Path) {
     $resolvedPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Path)
-    # For .mermaid file mode with multiple characters, clear the file first
-    if ($resolvedPath -like '*.mermaid' -and $kanjiChars.Count -gt 1 -and (Test-Path $resolvedPath)) {
+    # For .mermaid file mode, clear the file first
+    if ($resolvedPath -like '*.mermaid' -and (Test-Path $resolvedPath)) {
         Remove-Item $resolvedPath
     }
 }
 
 $isFirst = $true
 foreach ($kanjiChar in $kanjiChars) {
-    $script:nodes = [System.Collections.Hashtable]::new([System.StringComparer]::Ordinal)
+    foreach ($currentSource in $Source) {
+        $sourceDisplayName = $sourceDisplayNames[$currentSource]
+        $script:nodes = [System.Collections.Hashtable]::new([System.StringComparer]::Ordinal)
 
-    # Perform decomposition using the selected source
-    $rootId = switch ($Source) {
-        'uchisen'  { Get-UchisenDecomposition -KanjiChar $kanjiChar }
-        'wanikani' { Get-WaniKaniDecomposition -KanjiChar $kanjiChar }
-    }
+        # Perform decomposition using the selected source
+        $rootId = switch ($currentSource) {
+            'uchisen'  { Get-UchisenDecomposition -KanjiChar $kanjiChar }
+            'wanikani' { Get-WaniKaniDecomposition -KanjiChar $kanjiChar }
+        }
 
-    # BFS traversal for output ordering
-    $ordered = [System.Collections.Generic.List[string]]::new()
-    $queue = [System.Collections.Queue]::new()
-    $visited = [System.Collections.Hashtable]::new([System.StringComparer]::Ordinal)
-    $queue.Enqueue($rootId)
-    $visited[$rootId] = $true
+        # BFS traversal for output ordering
+        $ordered = [System.Collections.Generic.List[string]]::new()
+        $queue = [System.Collections.Queue]::new()
+        $visited = [System.Collections.Hashtable]::new([System.StringComparer]::Ordinal)
+        $queue.Enqueue($rootId)
+        $visited[$rootId] = $true
 
-    while ($queue.Count -gt 0) {
-        $current = $queue.Dequeue()
-        $ordered.Add($current)
-        foreach ($child in $script:nodes[$current].Children) {
-            if (-not $visited.ContainsKey($child)) {
-                $visited[$child] = $true
-                $queue.Enqueue($child)
+        while ($queue.Count -gt 0) {
+            $current = $queue.Dequeue()
+            $ordered.Add($current)
+            foreach ($child in $script:nodes[$current].Children) {
+                if (-not $visited.ContainsKey($child)) {
+                    $visited[$child] = $true
+                    $queue.Enqueue($child)
+                }
             }
         }
-    }
 
-    # Build Mermaid graph
-    $rootNode = $script:nodes[$rootId]
-    $lines = [System.Collections.Generic.List[string]]::new()
-    $lines.Add("---")
-    $lines.Add("title: $($rootNode.Character) $($rootNode.Name) - $sourceDisplayName")
-    $lines.Add("---")
-    $lines.Add("graph LR")
-    foreach ($id in $ordered) {
-        foreach ($child in $script:nodes[$id].Children) {
-            $lines.Add("    $id --> $child")
+        # Build Mermaid graph
+        $rootNode = $script:nodes[$rootId]
+        $lines = [System.Collections.Generic.List[string]]::new()
+        $lines.Add("---")
+        $lines.Add("title: $($rootNode.Character) $($rootNode.Name) - $sourceDisplayName")
+        $lines.Add("---")
+        $lines.Add("graph LR")
+        foreach ($id in $ordered) {
+            foreach ($child in $script:nodes[$id].Children) {
+                $lines.Add("    $id --> $child")
+            }
         }
-    }
-    $lines.Add("    ")
-    for ($i = 0; $i -lt $ordered.Count; $i++) {
-        $id = $ordered[$i]
-        $node = $script:nodes[$id]
-        if ($node.Type -eq 'kanji') {
-            $lines.Add("    ${id}[$($node.Character)<br/>$($node.Name)]")
-        } elseif ($node.Type -in 'prime', 'radical') {
-            if ($node.Character) {
-                $lines.Add("    ${id}{$($node.Character)<br/>$($node.Name)}")
+        $lines.Add("    ")
+        for ($i = 0; $i -lt $ordered.Count; $i++) {
+            $id = $ordered[$i]
+            $node = $script:nodes[$id]
+            if ($node.Type -eq 'kanji') {
+                $lines.Add("    ${id}[$($node.Character)<br/>$($node.Name)]")
+            } elseif ($node.Type -in 'prime', 'radical') {
+                if ($node.Character) {
+                    $lines.Add("    ${id}{$($node.Character)<br/>$($node.Name)}")
+                } else {
+                    $lines.Add("    ${id}{$($node.Name)}")
+                }
+            }
+            $lines.Add("    click $id `"$($node.Url)`"")
+            if ($i -lt $ordered.Count - 1) {
+                $lines.Add("    ")
+            }
+        }
+
+        $mermaidContent = $lines -join "`n"
+
+        # Output the graph
+        if (-not $Path) {
+            # No path: write to standard output
+            if (-not $isFirst) {
+                Write-Output ""
+            }
+            Write-Output $mermaidContent
+        } elseif (Test-Path $resolvedPath -PathType Container) {
+            # Directory: create <kanji>-<source>.mermaid file
+            $fileName = "$kanjiChar-$currentSource.mermaid"
+            $outputFile = Join-Path $resolvedPath $fileName
+            [System.IO.File]::WriteAllText($outputFile, $mermaidContent, [System.Text.UTF8Encoding]::new($false))
+            Write-Verbose "Written to $outputFile"
+        } elseif ($resolvedPath -like '*.mermaid') {
+            # Mermaid file: write/append graph to file
+            if ($isFirst) {
+                [System.IO.File]::WriteAllText($resolvedPath, $mermaidContent, [System.Text.UTF8Encoding]::new($false))
             } else {
-                $lines.Add("    ${id}{$($node.Name)}")
+                [System.IO.File]::AppendAllText($resolvedPath, ("`n`n" + $mermaidContent), [System.Text.UTF8Encoding]::new($false))
             }
-        }
-        $lines.Add("    click $id `"$($node.Url)`"")
-        if ($i -lt $ordered.Count - 1) {
-            $lines.Add("    ")
-        }
-    }
-
-    $mermaidContent = $lines -join "`n"
-
-    # Output the graph
-    if (-not $Path) {
-        # No path: write to standard output
-        if (-not $isFirst) {
-            Write-Output ""
-        }
-        Write-Output $mermaidContent
-    } elseif (Test-Path $resolvedPath -PathType Container) {
-        # Directory: create <kanji>-<source>.mermaid file
-        $fileName = "$kanjiChar-$Source.mermaid"
-        $outputFile = Join-Path $resolvedPath $fileName
-        [System.IO.File]::WriteAllText($outputFile, $mermaidContent, [System.Text.UTF8Encoding]::new($false))
-        Write-Verbose "Written to $outputFile"
-    } elseif ($resolvedPath -like '*.mermaid') {
-        # Mermaid file: write/append graph to file
-        if ($isFirst) {
-            [System.IO.File]::WriteAllText($resolvedPath, $mermaidContent, [System.Text.UTF8Encoding]::new($false))
+            Write-Verbose "Written to $resolvedPath"
+        } elseif ($resolvedPath -like '*.md') {
+            # Markdown file: append with preceding newline and code block
+            $mdBlock = "`n" + '```mermaid' + "`n" + $mermaidContent + "`n" + '```' + "`n"
+            [System.IO.File]::AppendAllText($resolvedPath, $mdBlock, [System.Text.UTF8Encoding]::new($false))
+            Write-Verbose "Appended to $resolvedPath"
         } else {
-            [System.IO.File]::AppendAllText($resolvedPath, ("`n`n" + $mermaidContent), [System.Text.UTF8Encoding]::new($false))
+            throw "Unsupported output path '$resolvedPath'. Must be a directory, .mermaid file, or .md file."
         }
-        Write-Verbose "Written to $resolvedPath"
-    } elseif ($resolvedPath -like '*.md') {
-        # Markdown file: append with preceding newline and code block
-        $mdBlock = "`n" + '```mermaid' + "`n" + $mermaidContent + "`n" + '```' + "`n"
-        [System.IO.File]::AppendAllText($resolvedPath, $mdBlock, [System.Text.UTF8Encoding]::new($false))
-        Write-Verbose "Appended to $resolvedPath"
-    } else {
-        throw "Unsupported output path '$resolvedPath'. Must be a directory, .mermaid file, or .md file."
-    }
 
-    $isFirst = $false
+        $isFirst = $false
+    }
 }
 
-# Write updated primes back to YAML (uchisen only)
-if ($Source -eq 'uchisen') {
+# Write updated primes back to YAML (if uchisen was a selected source)
+if ($Source -contains 'uchisen') {
     $yamlLines = [System.Collections.Generic.List[string]]::new()
     foreach ($key in $script:primeChars.Keys) {
         $val = $script:primeChars[$key]

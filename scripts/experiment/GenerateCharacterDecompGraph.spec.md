@@ -3,23 +3,22 @@ GenerateCharacterDecompGraph.ps1 script generates kanji character decomposition 
 
 ## Usage
 ```powershell
-GenerateCharacterDecompGraph.ps1 -Character <string> -Source uchisen [-Path <output-path>]
-GenerateCharacterDecompGraph.ps1 -Character <string> -Source wanikani [-WaniKaniApiToken <token>] [-Path <output-path>]
+GenerateCharacterDecompGraph.ps1 -Character <string> [-Source <source[]>] [-WaniKaniApiToken <token>] [-Path <output-path>]
 ```
 
 ## Parameters
 - `-Character` — A string containing one or more kanji characters. Non-kanji characters (punctuation, numbers, Latin letters, kana, etc.) are ignored. A graph is generated for each kanji character in the string.
-- `-Source` — The decomposition source to use: "uchisen" or "wanikani".
+- `-Source` — Optional. One or more decomposition sources: "uchisen", "wanikani", or both. If omitted, all sources are used. Each character is processed for each source (outer loop is characters, inner loop is sources).
 - `-Path` — Optional output path. If omitted, graphs are written to standard output.
-- `-WaniKaniApiToken` — API token for WaniKani. If not provided, falls back to the `WANIKANI_API_TOKEN` environment variable. Required when `-Source wanikani`.
+- `-WaniKaniApiToken` — API token for WaniKani. If not provided, falls back to the `WANIKANI_API_TOKEN` environment variable. Required when wanikani is included in `-Source` (or when `-Source` is omitted).
 
 ## Behavior
 When `-Path` is specified, behavior varies by path type:
-- If <output-path> refers to a directory, a "<kanji>-<source>.mermaid" file is created in the directory for each character
-- If <output-path> refers to a Mermaid file (.mermaid), graphs are written to this file (separated by blank lines for multiple characters)
+- If <output-path> refers to a directory, a "<kanji>-<source>.mermaid" file is created for each character/source combination
+- If <output-path> refers to a Mermaid file (.mermaid), graphs are written to this file (separated by blank lines for multiple graphs)
 - If <output-path> refers to a Markdown file (.md), each graph is appended with a preceding newline and surrounding ```mermaid code block
 
-When `-Path` is omitted, graphs are written to standard output (separated by blank lines for multiple characters).
+When `-Path` is omitted, graphs are written to standard output (separated by blank lines for multiple graphs).
 
 ## Sources
 
