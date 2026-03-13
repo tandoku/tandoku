@@ -212,7 +212,10 @@ function Get-UchisenDecomposition {
 }
 
 function Get-WaniKaniDecomposition {
-    param([string]$KanjiChar)
+    param(
+        [string]$KanjiChar,
+        [string]$OriginatingRadicalId
+    )
 
     $encodedChar = [Uri]::EscapeDataString($KanjiChar)
     $kanjiUrl = "https://www.wanikani.com/kanji/$encodedChar"
@@ -257,16 +260,43 @@ function Get-WaniKaniDecomposition {
             $radUrl = "https://www.wanikani.com/radicals/$radSlug"
 
             # Skip radical if it has same node ID as root kanji (self-decomposition)
+            # or if it references the radical that introduced this kanji (prevent back-edge)
             if ($radId -ceq $rootId) { continue }
+            if ($OriginatingRadicalId -and $radId -ceq $OriginatingRadicalId) { continue }
 
             if (-not $script:nodes.ContainsKey($radId)) {
+                # Check if radical's character is also a standalone kanji (recurse)
+                $kanjiNodeId = $null
+                if ($radChar -and $radId -cne $OriginatingRadicalId) {
+                    $radEncodedChar = [Uri]::EscapeDataString($radChar)
+                    $kanjiCheckResponse = Invoke-WebRequestWithRetry -Uri "https://api.wanikani.com/v2/subjects?types=kanji&slugs=$radEncodedChar" -Headers $apiHeaders -ParseJson
+                    if ($kanjiCheckResponse.total_count -gt 0) {
+                        Write-Verbose "Radical '$radName' ($radChar) is also a kanji, recursing"
+                        $kanjiNodeId = Get-WaniKaniDecomposition -KanjiChar $radChar -OriginatingRadicalId $radId
+                        if ($kanjiNodeId -ceq $radId) {
+                            # Same name: rename the kanji node to avoid collision with radical
+                            $newKanjiId = "${kanjiNodeId}_kanji"
+                            $kanjiNode = $script:nodes[$kanjiNodeId]
+                            $script:nodes.Remove($kanjiNodeId)
+                            $kanjiNode.NodeId = $newKanjiId
+                            $script:nodes[$newKanjiId] = $kanjiNode
+                            $kanjiNodeId = $newKanjiId
+                        }
+                    }
+                }
+
+                $radChildren = [System.Collections.Generic.List[string]]::new()
+                if ($kanjiNodeId) {
+                    $script:dashedEdges["$radId-->$kanjiNodeId"] = $true
+                    $radChildren.Add($kanjiNodeId)
+                }
                 $script:nodes[$radId] = @{
                     NodeId    = $radId
                     Character = if ($radChar) { $radChar } else { '' }
                     Name      = $radName
                     Type      = 'radical'
                     Url       = $radUrl
-                    Children  = [System.Collections.Generic.List[string]]::new()
+                    Children  = $radChildren
                 }
             }
             $children.Add($radId)
@@ -455,6 +485,7 @@ foreach ($kanjiChar in $kanjiChars) {
 
         $sourceDisplayName = $sourceDisplayNames[$currentSource]
         $script:nodes = [System.Collections.Hashtable]::new([System.StringComparer]::Ordinal)
+        $script:dashedEdges = [System.Collections.Hashtable]::new([System.StringComparer]::Ordinal)
 
         # Perform decomposition using the selected source
         $rootId = switch ($currentSource) {
@@ -491,7 +522,12 @@ foreach ($kanjiChar in $kanjiChars) {
         $lines.Add("graph LR")
         foreach ($id in $ordered) {
             foreach ($child in $script:nodes[$id].Children) {
-                $lines.Add("    $id --> $child")
+                $edgeKey = "$id-->$child"
+                if ($script:dashedEdges.ContainsKey($edgeKey)) {
+                    $lines.Add("    $id -.-> $child")
+                } else {
+                    $lines.Add("    $id --> $child")
+                }
             }
         }
         $lines.Add("    ")

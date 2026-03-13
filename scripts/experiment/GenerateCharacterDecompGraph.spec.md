@@ -24,7 +24,9 @@ When `-Path` is omitted, graphs are written to standard output (separated by bla
 ## Sources
 
 ### WaniKani
-Uses the WaniKani API (v2) to look up kanji and extract their radical components. Decomposition is single-level only (kanji → radicals, no recursion). Radicals use diamond `{}` shape and kanji use rectangle `[]` shape. If a radical has the same name as the root kanji (self-decomposition), it is skipped.
+Uses the WaniKani API (v2) to look up kanji and extract their radical components. Radicals use diamond `{}` shape and kanji use rectangle `[]` shape. If a radical has the same name as the root kanji (self-decomposition), it is skipped.
+
+When a radical's character is also a standalone kanji on WaniKani, the script recursively decomposes that kanji. A dashed edge (`-.->`) connects the radical to the kanji node. If the radical and kanji share the same name, the kanji node ID is suffixed with `_kanji` to distinguish them. Recursion terminates when the kanji's decomposition references the originating radical.
 
 ### uchisen
 Looks up kanji on uchisen.com and recursively extracts the decomposition into primes and compound kanji components. Primes use diamond `{}` shape and kanji use rectangle `[]` shape.
@@ -61,6 +63,8 @@ title: 知 Know - WaniKani
 graph LR
     Know --> Arrow
     Know --> Mouth
+    Arrow -.-> Arrow_kanji
+    Mouth -.-> Mouth_kanji
     
     Know[知<br/>Know]
     click Know "https://www.wanikani.com/kanji/%E7%9F%A5"
@@ -70,6 +74,12 @@ graph LR
     
     Mouth{口<br/>Mouth}
     click Mouth "https://www.wanikani.com/radicals/mouth"
+    
+    Arrow_kanji[矢<br/>Arrow]
+    click Arrow_kanji "https://www.wanikani.com/kanji/%E7%9F%A2"
+    
+    Mouth_kanji[口<br/>Mouth]
+    click Mouth_kanji "https://www.wanikani.com/kanji/%E5%8F%A3"
 ```
 
 ### uchisen
