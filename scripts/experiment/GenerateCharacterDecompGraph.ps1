@@ -220,9 +220,15 @@ if ($Path) {
     }
 }
 
+$totalGraphs = $kanjiChars.Count * $Source.Count
+$graphIndex = 0
 $isFirst = $true
 foreach ($kanjiChar in $kanjiChars) {
+    $isFirstSourceForChar = $true
     foreach ($currentSource in $Source) {
+        $graphIndex++
+        Write-Progress -Activity "Generating decomposition graphs" -Status "$kanjiChar ($currentSource)" -PercentComplete ([int]($graphIndex / $totalGraphs * 100))
+
         $sourceDisplayName = $sourceDisplayNames[$currentSource]
         $script:nodes = [System.Collections.Hashtable]::new([System.StringComparer]::Ordinal)
 
@@ -305,8 +311,13 @@ foreach ($kanjiChar in $kanjiChars) {
             }
             Write-Verbose "Written to $resolvedPath"
         } elseif ($resolvedPath -like '*.md') {
-            # Markdown file: append with preceding newline and code block
-            $mdBlock = "`n" + '```mermaid' + "`n" + $mermaidContent + "`n" + '```' + "`n"
+            # Markdown file: add character heading when using multiple sources, then code block
+            $mdBlock = ''
+            if ($Source.Count -gt 1 -and $isFirstSourceForChar) {
+                $mdBlock += "`n# $kanjiChar`n"
+            }
+            $fence = '```'
+            $mdBlock += "`n${fence}mermaid`n" + $mermaidContent + "`n$fence`n"
             [System.IO.File]::AppendAllText($resolvedPath, $mdBlock, [System.Text.UTF8Encoding]::new($false))
             Write-Verbose "Appended to $resolvedPath"
         } else {
@@ -314,8 +325,10 @@ foreach ($kanjiChar in $kanjiChars) {
         }
 
         $isFirst = $false
+        $isFirstSourceForChar = $false
     }
 }
+Write-Progress -Activity "Generating decomposition graphs" -Completed
 
 # Write updated primes back to YAML (if uchisen was a selected source)
 if ($Source -contains 'uchisen') {

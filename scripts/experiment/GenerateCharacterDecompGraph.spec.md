@@ -16,7 +16,7 @@ GenerateCharacterDecompGraph.ps1 -Character <string> [-Source <source[]>] [-Wani
 When `-Path` is specified, behavior varies by path type:
 - If <output-path> refers to a directory, a "<kanji>-<source>.mermaid" file is created for each character/source combination
 - If <output-path> refers to a Mermaid file (.mermaid), graphs are written to this file (separated by blank lines for multiple graphs)
-- If <output-path> refers to a Markdown file (.md), each graph is appended with a preceding newline and surrounding ```mermaid code block
+- If <output-path> refers to a Markdown file (.md), each graph is appended with a preceding newline and surrounding ```mermaid code block. When multiple sources are used, a `# <character>` heading is inserted before the graphs for each character.
 
 When `-Path` is omitted, graphs are written to standard output (separated by blank lines for multiple graphs).
 
