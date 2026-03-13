@@ -62,7 +62,7 @@ function Get-UchisenDecomposition {
     }
 
     Write-Verbose "Fetching decomposition for $KanjiChar from $url"
-    $response = Invoke-WebRequest -Uri $url -UseBasicParsing
+    $response = Invoke-WebRequest -Uri $url -UseBasicParsing -ProgressAction SilentlyContinue
     $html = $response.Content
 
     # Extract kanji name (e.g., "知 - Know" or "口 - Mouth, Entrance")
@@ -142,7 +142,7 @@ function Get-WaniKaniDecomposition {
     }
 
     Write-Verbose "Fetching WaniKani kanji data for $KanjiChar"
-    $response = Invoke-RestMethod -Uri "https://api.wanikani.com/v2/subjects?types=kanji&slugs=$encodedChar" -Headers $apiHeaders
+    $response = Invoke-RestMethod -Uri "https://api.wanikani.com/v2/subjects?types=kanji&slugs=$encodedChar" -Headers $apiHeaders -ProgressAction SilentlyContinue
 
     if ($response.total_count -eq 0) {
         throw "Kanji '$KanjiChar' not found on WaniKani"
@@ -158,7 +158,7 @@ function Get-WaniKaniDecomposition {
     if ($componentIds.Count -gt 0) {
         $idsParam = $componentIds -join ','
         Write-Verbose "Fetching WaniKani radical data for IDs: $idsParam"
-        $radResponse = Invoke-RestMethod -Uri "https://api.wanikani.com/v2/subjects?ids=$idsParam" -Headers $apiHeaders
+        $radResponse = Invoke-RestMethod -Uri "https://api.wanikani.com/v2/subjects?ids=$idsParam" -Headers $apiHeaders -ProgressAction SilentlyContinue
 
         # Build lookup by subject ID, preserving order from component_subject_ids
         $radLookup = @{}
@@ -216,7 +216,7 @@ function Get-JpdbDecomposition {
     }
 
     Write-Verbose "Fetching decomposition for $KanjiChar from $url"
-    $response = Invoke-WebRequest -Uri $url -UseBasicParsing
+    $response = Invoke-WebRequest -Uri $url -UseBasicParsing -ProgressAction SilentlyContinue
     $html = $response.Content
 
     # Extract keyword
@@ -294,10 +294,10 @@ function Get-KanjisenseDecomposition {
     $displayChar = if ($isCodeId) { '' } else { $DictPath }
 
     Write-Verbose "Fetching decomposition for $DictPath from $url"
-    $response = Invoke-WebRequest -Uri $url -UseBasicParsing
+    $response = Invoke-WebRequest -Uri $url -UseBasicParsing -ProgressAction SilentlyContinue
     $html = $response.Content
 
-    # Extract keyword from the content <h1> (not the site header h1 which contains <a>)
+    # Extract keyword from the content <h1>(not the site header h1 which contains <a>)
     if ($html -match 'text-xl\s*"><h1>(.*?)</h1>') {
         $rawName = $Matches[1]
         # Strip HTML tags and comments, then clean up component mnemonic prefix and cf. suffix
