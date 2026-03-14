@@ -3,23 +3,26 @@ GenerateCharacterDecompGraph.ps1 script generates kanji character decomposition 
 
 ## Usage
 ```powershell
-GenerateCharacterDecompGraph.ps1 -Character <string> [-Source <source[]>] [-WaniKaniApiToken <token>] [-Path <output-path>]
+GenerateCharacterDecompGraph.ps1 -Character <string> [-Source <source[]>] [-WaniKaniApiToken <token>] [-Path <output-path>] [-OutputType Auto|Mermaid|Markdown] [-SourceProperties] [-NoCache]
 ```
 
 ## Parameters
 - `-Character` — A string containing one or more kanji characters. Non-kanji characters (punctuation, numbers, Latin letters, kana, etc.) are ignored. A graph is generated for each kanji character in the string.
 - `-Source` — Optional. One or more decomposition sources: "wanikani", "uchisen", "jpdb", "kanjisense". If omitted, all sources are used. Each character is processed for each source (outer loop is characters, inner loop is sources).
 - `-Path` — Optional output path. If omitted, graphs are written to standard output.
+- `-OutputType` — Controls output format: `Auto` (default), `Mermaid`, or `Markdown`. `Auto` infers the format from the file extension (`.md` → Markdown, `.mermaid` → Mermaid) and defaults to Mermaid for directory paths or when `-Path` is omitted.
 - `-WaniKaniApiToken` — API token for WaniKani. If not provided, falls back to the `WANIKANI_API_TOKEN` environment variable. Required when wanikani is included in `-Source` (or when `-Source` is omitted).
+- `-SourceProperties` — Switch. When specified with Markdown output to a directory, adds empty YAML frontmatter properties for each source to each per-character file.
 - `-NoCache` — Switch. When specified, skips the web cache entirely (no reads, writes, or directory creation).
 
 ## Behavior
-When `-Path` is specified, behavior varies by path type:
-- If <output-path> refers to a directory, a "<kanji>-<source>.mermaid" file is created for each character/source combination
-- If <output-path> refers to a Mermaid file (.mermaid), graphs are written to this file (separated by blank lines for multiple graphs)
-- If <output-path> refers to a Markdown file (.md), each graph is appended with a preceding newline and surrounding ```mermaid code block. When multiple sources are used, a `# <character>` heading is inserted before the graphs for each character.
+When `-Path` is specified, behavior varies by path type and output type:
+- **Directory + Mermaid**: a `<kanji>-<source>.mermaid` file is created for each character/source combination.
+- **Directory + Markdown**: a `<kanji>.md` file is created for each character, containing all source graphs (no headings). If `-SourceProperties` is specified, each file includes YAML frontmatter with empty properties for each source.
+- **Mermaid file (.mermaid)**: graphs are written to a single file (separated by blank lines for multiple graphs).
+- **Markdown file (.md)**: each graph is appended with a preceding newline and surrounding ` ```mermaid ` code block. When multiple sources are used, a `# <character>` heading is inserted before the graphs for each character.
 
-When `-Path` is omitted, graphs are written to standard output (separated by blank lines for multiple graphs).
+When `-Path` is omitted, graphs are written to standard output. Mermaid format outputs raw graphs; Markdown format wraps each graph in a ` ```mermaid ` code block.
 
 ## Sources
 

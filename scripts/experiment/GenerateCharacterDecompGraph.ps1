@@ -8,9 +8,14 @@ param(
 
     [string]$Path,
 
+    [ValidateSet('Auto', 'Mermaid', 'Markdown')]
+    [string]$OutputType = 'Auto',
+
     [string]$WaniKaniApiToken,
 
-    [switch]$NoCache
+    [switch]$NoCache,
+
+    [switch]$SourceProperties
 )
 
 $ErrorActionPreference = 'Stop'
@@ -468,10 +473,28 @@ if (-not $kanjiChars) {
 
 if ($Path) {
     $resolvedPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Path)
-    # For .mermaid file mode, clear the file first
-    if ($resolvedPath -like '*.mermaid' -and (Test-Path $resolvedPath)) {
-        Remove-Item $resolvedPath
+}
+
+# Resolve effective output type
+$effectiveOutputType = switch ($OutputType) {
+    'Mermaid'  { 'Mermaid' }
+    'Markdown' { 'Markdown' }
+    'Auto' {
+        if (-not $Path) { 'Mermaid' }
+        elseif (Test-Path $resolvedPath -PathType Container) { 'Mermaid' }
+        elseif ($resolvedPath -like '*.md') { 'Markdown' }
+        elseif ($resolvedPath -like '*.mermaid') { 'Mermaid' }
+        else { 'Mermaid' }
     }
+}
+
+# For .mermaid file mode, clear the file first
+if ($Path -and $resolvedPath -like '*.mermaid' -and (Test-Path $resolvedPath)) {
+    Remove-Item $resolvedPath
+}
+# For .md file mode, clear the file first
+if ($Path -and $resolvedPath -like '*.md' -and (Test-Path $resolvedPath)) {
+    Remove-Item $resolvedPath
 }
 
 $totalGraphs = $kanjiChars.Count * $Source.Count
@@ -479,6 +502,8 @@ $graphIndex = 0
 $isFirst = $true
 foreach ($kanjiChar in $kanjiChars) {
     $isFirstSourceForChar = $true
+    # For directory + Markdown, collect all sources into one file per character
+    $mdCharContent = ''
     foreach ($currentSource in $Source) {
         $graphIndex++
         Write-Progress -Activity "Generating decomposition graphs" -Status "$kanjiChar ($currentSource)" -PercentComplete ([int]($graphIndex / $totalGraphs * 100))
@@ -550,22 +575,31 @@ foreach ($kanjiChar in $kanjiChars) {
         }
 
         $mermaidContent = $lines -join "`n"
+        $fence = '```'
 
         # Output the graph
-        if (-not $Path) {
-            # No path: write to standard output
-            if (-not $isFirst) {
-                Write-Output ""
-            }
-            Write-Output $mermaidContent
-        } elseif (Test-Path $resolvedPath -PathType Container) {
-            # Directory: create <kanji>-<source>.mermaid file
+        $isDir = $Path -and (Test-Path $resolvedPath -PathType Container)
+        if ($isDir -and $effectiveOutputType -eq 'Markdown') {
+            # Directory + Markdown: collect into per-character file (written after inner loop)
+            $mdCharContent += "`n${fence}mermaid`n" + $mermaidContent + "`n$fence`n"
+        } elseif ($isDir) {
+            # Directory + Mermaid: one file per character/source
             $fileName = "$kanjiChar-$currentSource.mermaid"
             $outputFile = Join-Path $resolvedPath $fileName
             [System.IO.File]::WriteAllText($outputFile, $mermaidContent, [System.Text.UTF8Encoding]::new($false))
             Write-Verbose "Written to $outputFile"
+        } elseif (-not $Path) {
+            # No path: write to standard output
+            if ($effectiveOutputType -eq 'Markdown') {
+                $content = "${fence}mermaid`n" + $mermaidContent + "`n$fence"
+                if (-not $isFirst) { Write-Output "" }
+                Write-Output $content
+            } else {
+                if (-not $isFirst) { Write-Output "" }
+                Write-Output $mermaidContent
+            }
         } elseif ($resolvedPath -like '*.mermaid') {
-            # Mermaid file: write/append graph to file
+            # Mermaid file: write/append graph
             if ($isFirst) {
                 [System.IO.File]::WriteAllText($resolvedPath, $mermaidContent, [System.Text.UTF8Encoding]::new($false))
             } else {
@@ -578,7 +612,6 @@ foreach ($kanjiChar in $kanjiChars) {
             if ($Source.Count -gt 1 -and $isFirstSourceForChar) {
                 $mdBlock += "`n# $kanjiChar`n"
             }
-            $fence = '```'
             $mdBlock += "`n${fence}mermaid`n" + $mermaidContent + "`n$fence`n"
             [System.IO.File]::AppendAllText($resolvedPath, $mdBlock, [System.Text.UTF8Encoding]::new($false))
             Write-Verbose "Appended to $resolvedPath"
@@ -588,6 +621,26 @@ foreach ($kanjiChar in $kanjiChars) {
 
         $isFirst = $false
         $isFirstSourceForChar = $false
+    }
+
+    # Write per-character markdown file for directory + Markdown mode
+    if ($Path -and (Test-Path $resolvedPath -PathType Container) -and $effectiveOutputType -eq 'Markdown') {
+        $fileName = "$kanjiChar.md"
+        $outputFile = Join-Path $resolvedPath $fileName
+        # Build frontmatter if -SourceProperties is specified
+        $fileContent = ''
+        if ($SourceProperties) {
+            $fmLines = [System.Collections.Generic.List[string]]::new()
+            $fmLines.Add('---')
+            foreach ($s in $Source) {
+                $fmLines.Add("${s}:")
+            }
+            $fmLines.Add('---')
+            $fileContent = ($fmLines -join "`n") + "`n"
+        }
+        $fileContent += $mdCharContent
+        [System.IO.File]::WriteAllText($outputFile, $fileContent, [System.Text.UTF8Encoding]::new($false))
+        Write-Verbose "Written to $outputFile"
     }
 }
 Write-Progress -Activity "Generating decomposition graphs" -Completed
