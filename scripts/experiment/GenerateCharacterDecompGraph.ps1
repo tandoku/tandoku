@@ -221,7 +221,8 @@ function Get-UchisenDecomposition {
 function Get-WaniKaniDecomposition {
     param(
         [string]$KanjiChar,
-        [string]$OriginatingRadicalId
+        [string]$OriginatingRadicalId,
+        [System.Collections.Generic.HashSet[string]]$AncestorKanjiIds
     )
 
     $encodedChar = [Uri]::EscapeDataString($KanjiChar)
@@ -243,6 +244,12 @@ function Get-WaniKaniDecomposition {
     $name = ($kanjiData.meanings | Where-Object { $_.primary }).meaning
     $rootId = Get-NodeId $name
     $componentIds = $kanjiData.component_subject_ids
+
+    # Track ancestor kanji to prevent back-edges
+    if (-not $AncestorKanjiIds) {
+        $AncestorKanjiIds = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
+    }
+    $AncestorKanjiIds.Add($rootId) | Out-Null
 
     $children = [System.Collections.Generic.List[string]]::new()
 
@@ -278,16 +285,21 @@ function Get-WaniKaniDecomposition {
                     $radEncodedChar = [Uri]::EscapeDataString($radChar)
                     $kanjiCheckResponse = Invoke-WebRequestWithRetry -Uri "https://api.wanikani.com/v2/subjects?types=kanji&slugs=$radEncodedChar" -Headers $apiHeaders -ParseJson
                     if ($kanjiCheckResponse.total_count -gt 0) {
-                        Write-Verbose "Radical '$radName' ($radChar) is also a kanji, recursing"
-                        $kanjiNodeId = Get-WaniKaniDecomposition -KanjiChar $radChar -OriginatingRadicalId $radId
-                        if ($kanjiNodeId -ceq $radId) {
-                            # Same name: rename the kanji node to avoid collision with radical
-                            $newKanjiId = "${kanjiNodeId}_kanji"
-                            $kanjiNode = $script:nodes[$kanjiNodeId]
-                            $script:nodes.Remove($kanjiNodeId)
-                            $kanjiNode.NodeId = $newKanjiId
-                            $script:nodes[$newKanjiId] = $kanjiNode
-                            $kanjiNodeId = $newKanjiId
+                        # Check if the kanji would be an ancestor (back-edge); peek at its name
+                        $peekName = ($kanjiCheckResponse.data[0].data.meanings | Where-Object { $_.primary }).meaning
+                        $peekId = Get-NodeId $peekName
+                        if (-not $AncestorKanjiIds.Contains($peekId)) {
+                            Write-Verbose "Radical '$radName' ($radChar) is also a kanji, recursing"
+                            $kanjiNodeId = Get-WaniKaniDecomposition -KanjiChar $radChar -OriginatingRadicalId $radId -AncestorKanjiIds $AncestorKanjiIds
+                            if ($kanjiNodeId -ceq $radId) {
+                                # Same name: rename the kanji node to avoid collision with radical
+                                $newKanjiId = "${kanjiNodeId}_kanji"
+                                $kanjiNode = $script:nodes[$kanjiNodeId]
+                                $script:nodes.Remove($kanjiNodeId)
+                                $kanjiNode.NodeId = $newKanjiId
+                                $script:nodes[$newKanjiId] = $kanjiNode
+                                $kanjiNodeId = $newKanjiId
+                            }
                         }
                     }
                 }
