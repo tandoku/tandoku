@@ -3,7 +3,7 @@ GenerateCharacterDecompGraph.ps1 script generates kanji character decomposition 
 
 ## Usage
 ```powershell
-GenerateCharacterDecompGraph.ps1 -Character <string> [-Source <source[]>] [-WaniKaniApiToken <token>] [-Path <output-path>] [-OutputType Auto|Mermaid|Markdown] [-SourceProperties] [-NoCache]
+GenerateCharacterDecompGraph.ps1 -Character <string> [-Source <source[]>] [-WaniKaniApiToken <token>] [-Path <output-path>] [-OutputType Auto|Mermaid|Markdown] [-SourceProperties] [-NumericPrefix] [-NoCache]
 ```
 
 ## Parameters
@@ -13,6 +13,7 @@ GenerateCharacterDecompGraph.ps1 -Character <string> [-Source <source[]>] [-Wani
 - `-OutputType` — Controls output format: `Auto` (default), `Mermaid`, or `Markdown`. `Auto` infers the format from the file extension (`.md` → Markdown, `.mermaid` → Mermaid) and defaults to Mermaid for directory paths or when `-Path` is omitted.
 - `-WaniKaniApiToken` — API token for WaniKani. If not provided, falls back to the `WANIKANI_API_TOKEN` environment variable. Required when wanikani is included in `-Source` (or when `-Source` is omitted).
 - `-SourceProperties` — Switch. When specified with Markdown output to a directory, adds empty YAML frontmatter properties for each source to each per-character file.
+- `-NumericPrefix` — Switch. When writing to a directory, prepends a zero-padded numeric prefix (e.g., `001-`, `002-`) to filenames to preserve the original character order. The prefix increments per character, so all source files for the same character share the same prefix.
 - `-NoCache` — Switch. When specified, skips the web cache entirely (no reads, writes, or directory creation).
 
 ## Behavior

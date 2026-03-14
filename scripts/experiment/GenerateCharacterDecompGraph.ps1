@@ -15,7 +15,9 @@ param(
 
     [switch]$NoCache,
 
-    [switch]$SourceProperties
+    [switch]$SourceProperties,
+
+    [switch]$NumericPrefix
 )
 
 $ErrorActionPreference = 'Stop'
@@ -499,8 +501,13 @@ if ($Path -and $resolvedPath -like '*.md' -and (Test-Path $resolvedPath)) {
 
 $totalGraphs = $kanjiChars.Count * $Source.Count
 $graphIndex = 0
+$charIndex = 0
+$padWidth = "$($kanjiChars.Count)".Length
+if ($padWidth -lt 3) { $padWidth = 3 }
 $isFirst = $true
 foreach ($kanjiChar in $kanjiChars) {
+    $charIndex++
+    $filePrefix = if ($NumericPrefix) { "$($charIndex.ToString().PadLeft($padWidth, '0'))-" } else { '' }
     $isFirstSourceForChar = $true
     # For directory + Markdown, collect all sources into one file per character
     $mdCharContent = ''
@@ -584,7 +591,7 @@ foreach ($kanjiChar in $kanjiChars) {
             $mdCharContent += "`n${fence}mermaid`n" + $mermaidContent + "`n$fence`n"
         } elseif ($isDir) {
             # Directory + Mermaid: one file per character/source
-            $fileName = "$kanjiChar-$currentSource.mermaid"
+            $fileName = "${filePrefix}$kanjiChar-$currentSource.mermaid"
             $outputFile = Join-Path $resolvedPath $fileName
             [System.IO.File]::WriteAllText($outputFile, $mermaidContent, [System.Text.UTF8Encoding]::new($false))
             Write-Verbose "Written to $outputFile"
@@ -625,7 +632,7 @@ foreach ($kanjiChar in $kanjiChars) {
 
     # Write per-character markdown file for directory + Markdown mode
     if ($Path -and (Test-Path $resolvedPath -PathType Container) -and $effectiveOutputType -eq 'Markdown') {
-        $fileName = "$kanjiChar.md"
+        $fileName = "${filePrefix}$kanjiChar.md"
         $outputFile = Join-Path $resolvedPath $fileName
         # Build frontmatter if -SourceProperties is specified
         $fileContent = ''
