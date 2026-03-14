@@ -56,7 +56,7 @@ if ($Source -contains 'wanikani') {
 function Get-NodeId {
     param([string]$Name)
     $first = ($Name -split '[,;]')[0].Trim()
-    return ($first -replace ' ', '_')
+    return ($first -replace '[()]', '' -replace ' ', '_')
 }
 
 # Web cache directory
@@ -429,8 +429,9 @@ function Get-KanjisenseDecomposition {
     # Extract keyword from the content <h1>(not the site header h1 which contains <a>)
     if ($html -match 'text-xl\s*"><h1>(.*?)</h1>') {
         $rawName = $Matches[1]
-        # Strip HTML tags and comments, then clean up component mnemonic prefix and cf. suffix
+        # Strip HTML tags and comments, decode entities, then clean up prefixes/suffixes
         $name = ($rawName -replace '<!--.*?-->', '' -replace '<[^>]+>', '').Trim()
+        $name = [System.Net.WebUtility]::HtmlDecode($name)
         $name = ($name -replace '^component mnemonic:\s*', '').Trim()
         $name = ($name -replace '\s*\(cf\..*?\)', '').Trim()
         $name = ($name -replace '\s*\(via\s.*?\)', '').Trim()
@@ -578,14 +579,13 @@ foreach ($kanjiChar in $kanjiChars) {
         for ($i = 0; $i -lt $ordered.Count; $i++) {
             $id = $ordered[$i]
             $node = $script:nodes[$id]
+            $label = if ($node.Character) { "$($node.Character)<br/>$($node.Name)" } else { $node.Name }
+            $needsQuote = $label -match '[()]'
+            $q = if ($needsQuote) { '"' } else { '' }
             if ($node.Type -eq 'kanji') {
-                $lines.Add("    ${id}[$($node.Character)<br/>$($node.Name)]")
+                $lines.Add("    ${id}[${q}${label}${q}]")
             } elseif ($node.Type -in 'prime', 'radical', 'component') {
-                if ($node.Character) {
-                    $lines.Add("    ${id}{$($node.Character)<br/>$($node.Name)}")
-                } else {
-                    $lines.Add("    ${id}{$($node.Name)}")
-                }
+                $lines.Add("    ${id}{${q}${label}${q}}")
             }
             $lines.Add("    click $id `"$($node.Url)`"")
             if ($i -lt $ordered.Count - 1) {
