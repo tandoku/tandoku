@@ -43,13 +43,13 @@ Looks up kanji on kanjisense.com and recursively extracts the decomposition into
 
 ## Prime Unicode characters
 
-The `uchisen-primes.yaml` file (in the same directory as the script) provides Unicode characters for uchisen primes, which are displayed as SVG images on the website and cannot be scraped directly. The file uses simple `key: value` format:
+Many uchisen primes have Unicode characters displayed directly on their prime pages, which the script extracts automatically. Some primes use SVG images instead, and for these the `uchisen-primes.yaml` file (in the same directory as the script) provides the Unicode character mapping. The file uses simple `key: value` format:
 
 ```yaml
 roundhouse kick: 𠂉
 ```
 
-When the script runs, it loads the file and uses any mapped characters in the graph output. If a prime is encountered at runtime that is not already in the file, a new entry is added with a blank value. The updated file is written back after each run, so the user can fill in missing values offline and re-run the script.
+When the script encounters an SVG prime at runtime that is not already in the file, a new entry is added with a blank value and a warning is written (e.g., "Missing uchisen prime character for 'name'"). The updated file is written back after each run, so the user can fill in missing values offline and re-run the script.
 
 The graph should follow the format below.
 

@@ -174,17 +174,27 @@ function Get-UchisenDecomposition {
         $compHtml = $html.Substring($compIdx, $endIdx - $compIdx)
 
         # Extract primes (listed before compound kanji in the HTML)
-        foreach ($m in [regex]::Matches($compHtml, 'href="/primes/([^"]+)"[^>]*>([^:]+):')) {
+        foreach ($m in [regex]::Matches($compHtml, 'href="/primes/([^"]+)"[^>]*>([^:]+):\s*(?:&nbsp;)?\s*<span class="component_symbol">([^<]*(?:<img[^>]*/>)?)</span>')) {
             $primePath = $m.Groups[1].Value
             $primeName = $m.Groups[2].Value.Trim()
+            $primeSymbol = $m.Groups[3].Value.Trim()
             $primeId = Get-NodeId $primeName
 
             if (-not $script:nodes.ContainsKey($primeId)) {
                 $primeChar = ''
-                if ($script:primeChars.Contains($primeName)) {
-                    $primeChar = $script:primeChars[$primeName]
+                if ($primeSymbol -and $primeSymbol -notmatch '<img') {
+                    # Unicode character present on kanji page
+                    $primeChar = $primeSymbol
                 } else {
-                    $script:primeChars[$primeName] = ''
+                    # SVG prime: fall back to uchisen-primes.yaml
+                    if ($script:primeChars.Contains($primeName)) {
+                        $primeChar = $script:primeChars[$primeName]
+                    } else {
+                        $script:primeChars[$primeName] = ''
+                    }
+                    if (-not $primeChar) {
+                        Write-Warning "Missing uchisen prime character for '$primeName'"
+                    }
                 }
                 $script:nodes[$primeId] = @{
                     NodeId    = $primeId
