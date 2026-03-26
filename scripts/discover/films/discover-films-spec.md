@@ -33,4 +33,16 @@ ImportNetflixWatchlist.ps1 -Path <netflix-my-list.json> -DatabasePath <films.yam
 - `-DatabasePath` - Path to the films.yaml database file.
 
 ### Behavior
-Imports Netflix watch list into films.yaml by looking up the wikidata entity ID associated with the Netflix videoId and adding or updating the corresponding entry in films.yaml, including the following fields: `wikidata`, `providers.netflix.id`, `providers.netflix.title`, and `providers.netflix.watchlist`. Additionally, any items in films.yaml with `providers.netflix.watchlist` set to `true` that are no longer in the imported watch list should be set to `false`.
+Imports Netflix watch list into films.yaml by adding or updating entries matched by `providers.netflix.id`, including the following fields: `providers.netflix.id`, `providers.netflix.title`, and `providers.netflix.watchlist`. Additionally, any items in films.yaml with `providers.netflix.watchlist` set to `true` that are no longer in the imported watch list should be set to `false`.
+
+## PopulateWikidata.ps1
+### Usage
+```powershell
+PopulateWikidata.ps1 -DatabasePath <films.yaml>
+```
+
+### Parameters
+- `-DatabasePath` - Path to the films.yaml database file.
+
+### Behavior
+Iterates over each entry in films.yaml that is missing the `wikidata` field. For entries that have `providers.netflix.id`, looks up the wikidata entity ID associated with the Netflix ID (using Wikidata property P1874) and updates the `wikidata` field.
