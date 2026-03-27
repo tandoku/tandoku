@@ -46,7 +46,8 @@ tmdb:
   id: 2146
   kind: tv-series
 natively:
-  level: 30??
+  level: 30
+  temporaryLevel: true
   url: https://learnnatively.com/tv/8c14b5b860/
 providers:
   netflix:
@@ -108,7 +109,7 @@ PopulateNatively.ps1 -DatabasePath <films.yaml>
 - `-DatabasePath` - Path to the films.yaml database file.
 
 ### Behavior
-For each entry in films.yaml with `originalLanguage` of `ja` that has `title-ja` and `tmdb.id` but is missing `natively`, searches [Natively](https://learnnatively.com) for the Japanese title and matches results by TMDB ID. If a match is found, populates `natively.level` (difficulty level, with `??` suffix for temporary ratings) and `natively.url`. Warns if no matching result is found. Sleeps 1-2 seconds between requests to avoid overwhelming the site.
+For each entry in films.yaml with `originalLanguage` of `ja` that has `title-ja` and `tmdb.id` but is missing `natively`, searches [Natively](https://learnnatively.com) for the Japanese title and matches results by TMDB ID. If a match is found, populates `natively.level` (difficulty level), `natively.url`, and `natively.temporaryLevel` (set to `true` when the level is a temporary rating). Warns if no matching result is found. Sleeps 1-2 seconds between requests to avoid overwhelming the site.
 
 ## ExportFilms.ps1
 ### Usage

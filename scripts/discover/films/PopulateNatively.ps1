@@ -43,9 +43,6 @@ function Search-Natively($query) {
 
 function Format-NativelyLevel($rating) {
     if (-not $rating -or $null -eq $rating.lvl) { return $null }
-    if ($rating.temporary) {
-        return "$($rating.lvl)??"
-    }
     return [int]$rating.lvl
 }
 
@@ -100,8 +97,9 @@ foreach ($film in $needsNatively) {
         if ($result.widget -eq 'series') {
             if ([int]$result.series.tmdb_id -eq [int]$tmdbId) {
                 $matchedResult = @{
-                    level = Format-NativelyLevel $result.series.rating
-                    url   = "$nativelyBaseUrl$($result.series.url)"
+                    level     = Format-NativelyLevel $result.series.rating
+                    temporary = [bool]$result.series.rating.temporary
+                    url       = "$nativelyBaseUrl$($result.series.url)"
                 }
                 break
             }
@@ -109,15 +107,17 @@ foreach ($film in $needsNatively) {
             # 'item' widget - check both item-level and series-level tmdb_id
             if ([int]$result.item.tmdb_id -eq [int]$tmdbId) {
                 $matchedResult = @{
-                    level = Format-NativelyLevel $result.item.rating
-                    url   = "$nativelyBaseUrl$($result.item.url)"
+                    level     = Format-NativelyLevel $result.item.rating
+                    temporary = [bool]$result.item.rating.temporary
+                    url       = "$nativelyBaseUrl$($result.item.url)"
                 }
                 break
             }
             if ($result.item.series -and [int]$result.item.series.tmdb_id -eq [int]$tmdbId) {
                 $matchedResult = @{
-                    level = Format-NativelyLevel $result.item.rating
-                    url   = "$nativelyBaseUrl$($result.item.series.url)"
+                    level     = Format-NativelyLevel $result.item.rating
+                    temporary = [bool]$result.item.rating.temporary
+                    url       = "$nativelyBaseUrl$($result.item.series.url)"
                 }
                 break
             }
@@ -128,6 +128,9 @@ foreach ($film in $needsNatively) {
         $film['natively'] = [ordered]@{
             level = $matchedResult.level
             url   = $matchedResult.url
+        }
+        if ($matchedResult.temporary) {
+            $film['natively']['temporaryLevel'] = $true
         }
         $matched++
         Write-Host "Matched '$titleJa' -> $($matchedResult.url) (level $($matchedResult.level))"
