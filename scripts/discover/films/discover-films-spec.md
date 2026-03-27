@@ -15,6 +15,8 @@ originalLanguage: ja
 year: 2025 # derived from wikidata 'start time'
 imdb:
   id: tt36592690
+  rating: 8.3
+  votes: 12000
 myAnimeList:
   id: 59845
 tmdb:
@@ -35,6 +37,8 @@ originalLanguage: ja
 year: 2003
 imdb:
   id: tt0399971
+  rating: 7.5
+  votes: 830
 tmdb:
   id: 2146
   kind: tv-series
@@ -73,3 +77,17 @@ Iterates over each entry in films.yaml and populates data from Wikidata in two p
 
 1. **QID lookup** - For entries missing the `wikidata` field that have `providers.netflix.id`, looks up the Wikidata entity ID associated with the Netflix ID (using Wikidata property P1874).
 2. **Details enrichment** - For entries that have a `wikidata` QID but are missing a `title`, queries Wikidata to populate additional fields: `title` (English label), `title-ja` (Japanese label), `type` (instance of / P31, kebab-cased), `originCountry` (country of origin / P495), `originalLanguage` (original language code / P364 + P424), `year` (start time / P580, or publication date / P577), `imdb.id` (P345), `myAnimeList.id` (P4086), `tmdb.id` (TMDb movie P4947 or TV series P4983), and `tmdb.kind` (`movie` or `tv-series` to disambiguate the TMDb ID).
+
+## PopulateIMDb.ps1
+### Usage
+```powershell
+PopulateIMDb.ps1 -DatabasePath <films.yaml> -ImdbDataPath <path> [-UpdateImdbData]
+```
+
+### Parameters
+- `-DatabasePath` - Path to the films.yaml database file.
+- `-ImdbDataPath` - Path to a local folder for storing IMDb data files downloaded from https://datasets.imdbws.com.
+- `-UpdateImdbData` - When specified, re-downloads IMDb data files even if they already exist locally.
+
+### Behavior
+Downloads `title.ratings.tsv.gz` from IMDb daily data dumps and extracts it to the folder specified by `-ImdbDataPath`. Uses existing data files at that path unless `-UpdateImdbData` is specified. For each entry in films.yaml that has `imdb.id`, looks up the IMDb rating and vote count and updates the `imdb.rating` and `imdb.votes` fields.
