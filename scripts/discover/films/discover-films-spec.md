@@ -91,3 +91,16 @@ PopulateIMDb.ps1 -DatabasePath <films.yaml> -ImdbDataPath <path> [-UpdateImdbDat
 
 ### Behavior
 Downloads `title.ratings.tsv.gz` from IMDb daily data dumps and extracts it to the folder specified by `-ImdbDataPath`. Uses existing data files at that path unless `-UpdateImdbData` is specified. For each entry in films.yaml that has `imdb.id`, looks up the IMDb rating and vote count and updates the `imdb.rating` and `imdb.votes` fields.
+
+## ExportFilms.ps1
+### Usage
+```powershell
+ExportFilms.ps1 -DatabasePath <films.yaml> [-OutputPath <films.json>]
+```
+
+### Parameters
+- `-DatabasePath` - Path to the films.yaml database file.
+- `-OutputPath` - Path to the output JSON file. Defaults to `films.json` in the current directory.
+
+### Behavior
+Exports films.yaml to a JSON file with the same structure, wrapping all film records in an outer JSON array.
