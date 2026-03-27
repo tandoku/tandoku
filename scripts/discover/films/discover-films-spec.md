@@ -22,6 +22,9 @@ myAnimeList:
 tmdb:
   id: 271607
   kind: tv-series
+natively:
+  level: 21
+  url: https://learnnatively.com/tv/66797d747a/
 providers:
   netflix:
     id: 82024665
@@ -42,6 +45,9 @@ imdb:
 tmdb:
   id: 2146
   kind: tv-series
+natively:
+  level: 30??
+  url: https://learnnatively.com/tv/8c14b5b860/
 providers:
   netflix:
     id: 81922646
@@ -91,6 +97,18 @@ PopulateIMDb.ps1 -DatabasePath <films.yaml> -ImdbDataPath <path> [-UpdateImdbDat
 
 ### Behavior
 Downloads `title.ratings.tsv.gz` from IMDb daily data dumps and extracts it to the folder specified by `-ImdbDataPath`. Uses existing data files at that path unless `-UpdateImdbData` is specified. For each entry in films.yaml that has `imdb.id`, looks up the IMDb rating and vote count and updates the `imdb.rating` and `imdb.votes` fields.
+
+## PopulateNatively.ps1
+### Usage
+```powershell
+PopulateNatively.ps1 -DatabasePath <films.yaml>
+```
+
+### Parameters
+- `-DatabasePath` - Path to the films.yaml database file.
+
+### Behavior
+For each entry in films.yaml with `originalLanguage` of `ja` that has `title-ja` and `tmdb.id` but is missing `natively`, searches [Natively](https://learnnatively.com) for the Japanese title and matches results by TMDB ID. If a match is found, populates `natively.level` (difficulty level, with `??` suffix for temporary ratings) and `natively.url`. Warns if no matching result is found. Sleeps 1-2 seconds between requests to avoid overwhelming the site.
 
 ## ExportFilms.ps1
 ### Usage
