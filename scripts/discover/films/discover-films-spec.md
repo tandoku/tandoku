@@ -7,6 +7,19 @@ YAML file containing a stream of documets representing films (movie or TV series
 
 ```yaml
 wikidata: Q130305455
+title: The Fragrant Flower Blooms with Dignity
+title-ja: 薫る花は凛と咲く
+type: anime-television-series
+originCountry: Japan
+originalLanguage: ja
+year: 2025 # derived from wikidata 'start time'
+imdb:
+  id: tt36592690
+myAnimeList:
+  id: 59845
+tmdb:
+  id: 271607
+  kind: tv-series
 providers:
   netflix:
     id: 82024665
@@ -14,6 +27,17 @@ providers:
     watchlist: true
 ---
 wikidata: Q626942
+title: Good Luck!!
+title-ja: GOOD LUCK!!
+type: japanese-television-drama
+originCountry: Japan
+originalLanguage: ja
+year: 2003
+imdb:
+  id: tt0399971
+tmdb:
+  id: 2146
+  kind: tv-series
 providers:
   netflix:
     id: 81922646
@@ -45,4 +69,7 @@ PopulateWikidata.ps1 -DatabasePath <films.yaml>
 - `-DatabasePath` - Path to the films.yaml database file.
 
 ### Behavior
-Iterates over each entry in films.yaml that is missing the `wikidata` field. For entries that have `providers.netflix.id`, looks up the wikidata entity ID associated with the Netflix ID (using Wikidata property P1874) and updates the `wikidata` field.
+Iterates over each entry in films.yaml and populates data from Wikidata in two phases:
+
+1. **QID lookup** - For entries missing the `wikidata` field that have `providers.netflix.id`, looks up the Wikidata entity ID associated with the Netflix ID (using Wikidata property P1874).
+2. **Details enrichment** - For entries that have a `wikidata` QID but are missing a `title`, queries Wikidata to populate additional fields: `title` (English label), `title-ja` (Japanese label), `type` (instance of / P31, kebab-cased), `originCountry` (country of origin / P495), `originalLanguage` (original language code / P364 + P424), `year` (start time / P580, or publication date / P577), `imdb.id` (P345), `myAnimeList.id` (P4086), `tmdb.id` (TMDb movie P4947 or TV series P4983), and `tmdb.kind` (`movie` or `tv-series` to disambiguate the TMDb ID).
