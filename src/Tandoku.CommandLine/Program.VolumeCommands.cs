@@ -19,7 +19,7 @@ public sealed partial class Program
 
     private Command CreateVolumeInitCommand()
     {
-        var pathArgument = new Argument<DirectoryInfo?>("path") { Description = "Directory for new tandoku volume" };
+        var pathArgument = new Argument<DirectoryInfo?>("path") { Description = "Directory for new tandoku volume" }.LegalFilePathsOnly();
         var forceOption = new Option<bool>("--force", "-f") { Description = "Allow initialization in non-empty directory" };
 
         var command = new Command("init", "Initializes a new tandoku volume in the current or specified directory")
@@ -53,7 +53,7 @@ public sealed partial class Program
     private Command CreateVolumeNewCommand()
     {
         var titleArgument = new Argument<string>("title") { Description = "Title of new tandoku volume" };
-        var pathOption = new Option<DirectoryInfo?>("--path", "-p") { Description = "Containing directory for new tandoku volume" };
+        var pathOption = new Option<DirectoryInfo?>("--path", "-p") { Description = "Containing directory for new tandoku volume" }.LegalFilePathsOnly();
         var monikerOption = new Option<string?>("--moniker", "-m") { Description = "Optional moniker to identify volume, prepended to volume directory" };
         var tagsOption = new Option<string>("--tags", "-t") { Description = "Optional comma-separated tags for volume" };
         var forceOption = new Option<bool>("--force", "-f") { Description = "Allow new volume in non-empty directory" };
@@ -194,7 +194,7 @@ public sealed partial class Program
         {
             Description = "Directory to search for tandoku volumes",
             Arity = ArgumentArity.ZeroOrOne,
-        };
+        }.LegalFilePathsOnly();
 
         var allOption = new Option<bool>("--all", "-a") { Description = "Return all volumes in the current or specified library" };
 
@@ -230,10 +230,10 @@ public sealed partial class Program
     // (VolumeManager APIs should all accept this instead)
     private sealed class VolumeBinder(IFileSystem fileSystem, Func<VolumeManager> createVolumeManager) : ICommandBinder
     {
-        private readonly Option<DirectoryInfo?> volumeOption = new("--volume", "-v")
+        private readonly Option<DirectoryInfo?> volumeOption = new Option<DirectoryInfo?>("--volume", "-v")
         {
             Description = "Volume directory path",
-        };
+        }.LegalFilePathsOnly();
 
         public void AddToCommand(Command command) => command.Options.Add(this.volumeOption);
 

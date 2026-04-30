@@ -20,7 +20,7 @@ public sealed partial class Program
         {
             Description = "Directory for new tandoku library",
             Arity = ArgumentArity.ZeroOrOne,
-        };
+        }.LegalFilePathsOnly();
         var forceOption = new Option<bool>("--force", "-f") { Description = "Allow new library in non-empty directory" };
 
         var command = new Command("init", "Initializes a new tandoku library in the current or specified directory")
@@ -85,7 +85,7 @@ public sealed partial class Program
             this.LibraryOption = new Option<DirectoryInfo?>("--library", "-l")
             {
                 Description = "Library directory path",
-            };
+            }.LegalFilePathsOnly();
         }
 
         internal Option<DirectoryInfo?> LibraryOption { get; }

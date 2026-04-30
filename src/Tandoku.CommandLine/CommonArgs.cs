@@ -6,17 +6,17 @@ internal sealed record InputOutputPathArgs(DirectoryInfo InputPath, DirectoryInf
 
 internal sealed class InputOutputPathArgsBinder : ICommandBinder
 {
-    internal readonly Argument<DirectoryInfo> InputPathArgument = new("input-path")
+    internal readonly Argument<DirectoryInfo> InputPathArgument = new Argument<DirectoryInfo>("input-path")
     {
         Description = "Path of input content directory",
         Arity = ArgumentArity.ExactlyOne,
-    };
+    }.LegalFilePathsOnly();
 
-    internal readonly Argument<DirectoryInfo> OutputPathArgument = new("output-path")
+    internal readonly Argument<DirectoryInfo> OutputPathArgument = new Argument<DirectoryInfo>("output-path")
     {
         Description = "Path of output content directory",
         Arity = ArgumentArity.ExactlyOne,
-    };
+    }.LegalFilePathsOnly();
 
     public void AddToCommand(Command command)
     {

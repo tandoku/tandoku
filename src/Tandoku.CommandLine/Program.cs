@@ -123,9 +123,9 @@ public sealed partial class Program
 
     private static Command CreateGenerateCommand()
     {
-        var inputArg = new Argument<FileSystemInfo[]>("in") { Description = "Input files or paths", Arity = ArgumentArity.OneOrMore };
+        var inputArg = new Argument<FileSystemInfo[]>("in") { Description = "Input files or paths", Arity = ArgumentArity.OneOrMore }.LegalFilePathsOnly();
         var inputTypeOpt = new Option<ContentGeneratorInputType?>("--input-type", "-t") { Description = "Type of input (derived from extension if not specified)" };
-        var outputOpt = new Option<FileInfo>("--out", "-o") { Description = "Output file path" };
+        var outputOpt = new Option<FileInfo>("--out", "-o") { Description = "Output file path" }.LegalFilePathsOnly();
         var appendOpt = new Option<bool>("--append", "-a") { Description = "Append to existing content" };
         var forceOpt = new Option<bool>("--force", "-f") { Description = "Overwrite existing content" };
         forceOpt.Aliases.Add("--overwrite");
@@ -157,8 +157,8 @@ public sealed partial class Program
 
     private static Command CreateExportCommand()
     {
-        var inputArg = new Argument<FileSystemInfo>("in") { Description = "Input file or path" };
-        var outputArg = new Argument<FileInfo>("out") { Description = "Output file path", Arity = ArgumentArity.ZeroOrOne };
+        var inputArg = new Argument<FileSystemInfo>("in") { Description = "Input file or path" }.ExistingOnly();
+        var outputArg = new Argument<FileInfo>("out") { Description = "Output file path", Arity = ArgumentArity.ZeroOrOne }.LegalFilePathsOnly();
         var formatOpt = new Option<ExportFormat>("--format") { Description = "Target file format" };
         var command = new Command("export", "Export content from tandoku library")
         {
@@ -181,7 +181,7 @@ public sealed partial class Program
 
     private static Command CreateTokenizeCommand()
     {
-        var inputArg = new Argument<FileInfo>("in") { Description = "Input file or path" };
+        var inputArg = new Argument<FileInfo>("in") { Description = "Input file or path" }.ExistingOnly();
         var command = new Command("tokenize", "Tokenize text content")
         {
             inputArg,
@@ -199,7 +199,7 @@ public sealed partial class Program
     private static Command CreateTransformCommand()
     {
         var transformListArg = new Argument<string>("transform-list") { Description = "Comma-separated list of transforms to apply" };
-        var inputArg = new Argument<FileInfo>("in") { Description = "Input file or path" };
+        var inputArg = new Argument<FileInfo>("in") { Description = "Input file or path" }.ExistingOnly();
         var command = new Command("transform", "Apply transforms to text content")
         {
             transformListArg,
@@ -230,8 +230,8 @@ public sealed partial class Program
 
     private static Command CreateComputeContentCommand()
     {
-        var inputArg = new Argument<FileSystemInfo[]>("in") { Description = "Input files or paths", Arity = ArgumentArity.OneOrMore };
-        var outputOpt = new Option<FileInfo>("--out", "-o") { Description = "Output file path", Required = true };
+        var inputArg = new Argument<FileSystemInfo[]>("in") { Description = "Input files or paths", Arity = ArgumentArity.OneOrMore }.LegalFilePathsOnly();
+        var outputOpt = new Option<FileInfo>("--out", "-o") { Description = "Output file path", Required = true }.LegalFilePathsOnly();
         var command = new Command("content", "Compute statistics for content")
         {
             inputArg,
@@ -250,8 +250,8 @@ public sealed partial class Program
 
     private static Command CreateComputeAggregatesCommand()
     {
-        var inputArg = new Argument<FileSystemInfo[]>("in") { Description = "Input files or paths", Arity = ArgumentArity.OneOrMore };
-        var outputOpt = new Option<FileInfo>("--out", "-o") { Description = "Output file path", Required = true };
+        var inputArg = new Argument<FileSystemInfo[]>("in") { Description = "Input files or paths", Arity = ArgumentArity.OneOrMore }.LegalFilePathsOnly();
+        var outputOpt = new Option<FileInfo>("--out", "-o") { Description = "Output file path", Required = true }.LegalFilePathsOnly();
         var command = new Command("aggregates", "Compute aggregate statistics")
         {
             inputArg,
@@ -270,8 +270,8 @@ public sealed partial class Program
 
     private static Command CreateComputeAnalyticsCommand()
     {
-        var inputArg = new Argument<FileSystemInfo[]>("in") { Description = "Input files or paths", Arity = ArgumentArity.OneOrMore };
-        var corpusOpt = new Option<FileInfo>("--corpus", "-c") { Description = "Corpus aggregates path", Required = true };
+        var inputArg = new Argument<FileSystemInfo[]>("in") { Description = "Input files or paths", Arity = ArgumentArity.OneOrMore }.LegalFilePathsOnly();
+        var corpusOpt = new Option<FileInfo>("--corpus", "-c") { Description = "Corpus aggregates path", Required = true }.LegalFilePathsOnly();
         var command = new Command("analytics", "Compute analytics for a volume in context of corpus aggregates")
         {
             inputArg,
