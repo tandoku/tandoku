@@ -17,15 +17,15 @@ internal static class Demos
     private static Command CreateDemoCommand(string name, Action handler, params string[] aliases)
     {
         var command = CreateDemoCommandCore(name, aliases);
-        command.SetHandler(handler);
+        command.SetAction(_ => handler());
         return command;
     }
 
     private static Command CreateDemoCommand(string name, Option<bool> option, Action<bool> handler, params string[] aliases)
     {
         var command = CreateDemoCommandCore(name, aliases);
-        command.AddOption(option);
-        command.SetHandler(handler, option);
+        command.Options.Add(option);
+        command.SetAction(parseResult => handler(parseResult.GetValue(option)));
         return command;
     }
 
@@ -33,7 +33,7 @@ internal static class Demos
     {
         var command = new Command(name);
         foreach (var alias in aliases)
-            command.AddAlias(alias);
+            command.Aliases.Add(alias);
         return command;
     }
 

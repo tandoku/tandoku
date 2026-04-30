@@ -1,7 +1,6 @@
 ﻿namespace Tandoku.CommandLine;
 
 using System.CommandLine;
-using System.CommandLine.Binding;
 using System.IO.Abstractions;
 using Tandoku.CommandLine.Abstractions;
 using Tandoku.Library;
@@ -17,11 +16,12 @@ public sealed partial class Program
 
     private Command CreateLibraryInitCommand()
     {
-        var pathArgument = new Argument<DirectoryInfo?>("path", "Directory for new tandoku library")
+        var pathArgument = new Argument<DirectoryInfo?>("path")
         {
+            Description = "Directory for new tandoku library",
             Arity = ArgumentArity.ZeroOrOne,
-        }.LegalFilePathsOnly();
-        var forceOption = new Option<bool>(new[] { "--force", "-f" }, "Allow new library in non-empty directory");
+        };
+        var forceOption = new Option<bool>("--force", "-f") { Description = "Allow new library in non-empty directory" };
 
         var command = new Command("init", "Initializes a new tandoku library in the current or specified directory")
         {
@@ -29,13 +29,16 @@ public sealed partial class Program
             forceOption,
         };
 
-        command.SetHandler(async (directory, force) =>
+        command.SetAction(async (parseResult, ct) =>
         {
+            var directory = parseResult.GetValue(pathArgument);
+            var force = parseResult.GetValue(forceOption);
+
             var libraryManager = this.CreateLibraryManager();
             var path = directory?.FullName ?? this.fileSystem.Directory.GetCurrentDirectory();
             var info = await libraryManager.InitializeAsync(path, force);
-            this.console.WriteLine($"Initialized new tandoku library at {info.Path}");
-        }, pathArgument, forceOption);
+            this.output.WriteLine($"Initialized new tandoku library at {info.Path}");
+        });
 
         return command;
     }
@@ -49,23 +52,25 @@ public sealed partial class Program
             libraryBinder.LibraryOption,
         };
 
-        command.SetHandler(async (libraryDirectory) =>
+        command.SetAction(async (parseResult, ct) =>
         {
+            var libraryDirectory = libraryBinder.Resolve(parseResult);
+
             var libraryManager = this.CreateLibraryManager();
             var info = await libraryManager.GetInfoAsync(libraryDirectory.FullName);
-            this.console.WriteLine($"Path: {info.Path}");
-            this.console.WriteLine($"Version: {info.Version}");
-            this.console.WriteLine($"Definition path: {info.DefinitionPath}");
-            this.console.WriteLine($"Language: {info.Definition.Language}");
-            //this.console.WriteLine($"Reference language: {info.Definition.ReferenceLanguage.ToOutputString()}");
-        }, libraryBinder);
+            this.output.WriteLine($"Path: {info.Path}");
+            this.output.WriteLine($"Version: {info.Version}");
+            this.output.WriteLine($"Definition path: {info.DefinitionPath}");
+            this.output.WriteLine($"Language: {info.Definition.Language}");
+            //this.output.WriteLine($"Reference language: {info.Definition.ReferenceLanguage.ToOutputString()}");
+        });
 
         return command;
     }
 
     private LibraryManager CreateLibraryManager() => new(this.fileSystem);
 
-    private sealed class LibraryBinder : BinderBase<IDirectoryInfo>
+    private sealed class LibraryBinder
     {
         private readonly IFileSystem fileSystem;
         private readonly IEnvironment environment;
@@ -77,17 +82,17 @@ public sealed partial class Program
             this.environment = environment;
             this.createLibraryManager = createLibraryManager;
 
-            this.LibraryOption = new Option<DirectoryInfo?>(
-                new[] { "--library", "-l" },
-                "Library directory path")
-                .LegalFilePathsOnly();
+            this.LibraryOption = new Option<DirectoryInfo?>("--library", "-l")
+            {
+                Description = "Library directory path",
+            };
         }
 
         internal Option<DirectoryInfo?> LibraryOption { get; }
 
-        protected override IDirectoryInfo GetBoundValue(BindingContext bindingContext)
+        internal IDirectoryInfo Resolve(ParseResult parseResult)
         {
-            var directoryInfo = bindingContext.ParseResult.GetValueForOption(this.LibraryOption);
+            var directoryInfo = parseResult.GetValue(this.LibraryOption);
 
             var libraryManager = this.createLibraryManager();
 

@@ -1,31 +1,33 @@
 ﻿namespace Tandoku.CommandLine;
 
 using System.CommandLine;
-using System.CommandLine.Binding;
 
 internal sealed record InputOutputPathArgs(DirectoryInfo InputPath, DirectoryInfo OutputPath);
 
-internal sealed class InputOutputPathArgsBinder : BinderBase<InputOutputPathArgs>, ICommandBinder
+internal sealed class InputOutputPathArgsBinder : ICommandBinder
 {
-    private readonly Argument<DirectoryInfo> inputPathArgument = new Argument<DirectoryInfo>(
-        "input-path",
-        "Path of input content directory") { Arity = ArgumentArity.ExactlyOne }
-        .LegalFilePathsOnly();
-    private readonly Argument<DirectoryInfo> outputPathArgument = new Argument<DirectoryInfo>(
-        "output-path",
-        "Path of output content directory") { Arity = ArgumentArity.ExactlyOne }
-        .LegalFilePathsOnly();
+    internal readonly Argument<DirectoryInfo> InputPathArgument = new("input-path")
+    {
+        Description = "Path of input content directory",
+        Arity = ArgumentArity.ExactlyOne,
+    };
+
+    internal readonly Argument<DirectoryInfo> OutputPathArgument = new("output-path")
+    {
+        Description = "Path of output content directory",
+        Arity = ArgumentArity.ExactlyOne,
+    };
 
     public void AddToCommand(Command command)
     {
-        command.Add(this.inputPathArgument);
-        command.Add(this.outputPathArgument);
+        command.Arguments.Add(this.InputPathArgument);
+        command.Arguments.Add(this.OutputPathArgument);
     }
 
-    protected override InputOutputPathArgs GetBoundValue(BindingContext bindingContext)
+    internal InputOutputPathArgs Resolve(ParseResult parseResult)
     {
-        var inputPath = bindingContext.ParseResult.GetValueForArgument(this.inputPathArgument);
-        var outputPath = bindingContext.ParseResult.GetValueForArgument(this.outputPathArgument);
+        var inputPath = parseResult.GetValue(this.InputPathArgument)!;
+        var outputPath = parseResult.GetValue(this.OutputPathArgument)!;
         return new(inputPath, outputPath);
     }
 }

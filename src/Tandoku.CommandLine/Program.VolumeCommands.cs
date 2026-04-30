@@ -1,7 +1,6 @@
 ﻿namespace Tandoku.CommandLine;
 
 using System.CommandLine;
-using System.CommandLine.Binding;
 using System.IO.Abstractions;
 using Tandoku.Volume;
 
@@ -20,9 +19,8 @@ public sealed partial class Program
 
     private Command CreateVolumeInitCommand()
     {
-        var pathArgument = new Argument<DirectoryInfo?>("path", "Directory for new tandoku volume")
-            .LegalFilePathsOnly();
-        var forceOption = new Option<bool>(["--force", "-f"], "Allow initialization in non-empty directory");
+        var pathArgument = new Argument<DirectoryInfo?>("path") { Description = "Directory for new tandoku volume" };
+        var forceOption = new Option<bool>("--force", "-f") { Description = "Allow initialization in non-empty directory" };
 
         var command = new Command("init", "Initializes a new tandoku volume in the current or specified directory")
         {
@@ -30,34 +28,35 @@ public sealed partial class Program
             forceOption,
         };
 
-        command.SetHandler(async (directory, force, jsonOutput) =>
+        command.SetAction(async (parseResult, ct) =>
         {
+            var directory = parseResult.GetValue(pathArgument);
+            var force = parseResult.GetValue(forceOption);
+            var jsonOutput = parseResult.GetValue(this.jsonOutputOption);
+
             var volumeManager = this.CreateVolumeManager();
             var path = directory?.FullName ?? this.fileSystem.Directory.GetCurrentDirectory();
             var info = await volumeManager.InitializeAsync(path, force);
             if (jsonOutput)
             {
-                // TODO: use VolumeInfo directly, or copy to a JSON serializable object?
-                //       Promote Version property or add JsonConverter for VolumeVersion (probably can't inherit from interface?)
-                this.console.WriteJsonOutput(info);
+                this.output.WriteJsonOutput(info);
             }
             else
             {
-                this.console.WriteLine(@$"Initialized tandoku volume at {info.Path}");
+                this.output.WriteLine(@$"Initialized tandoku volume at {info.Path}");
             }
-        }, pathArgument, forceOption, this.jsonOutputOption);
+        });
 
         return command;
     }
 
     private Command CreateVolumeNewCommand()
     {
-        var titleArgument = new Argument<string>("title", "Title of new tandoku volume");
-        var pathOption = new Option<DirectoryInfo?>(["--path", "-p"], "Containing directory for new tandoku volume")
-            .LegalFilePathsOnly();
-        var monikerOption = new Option<string?>(["--moniker", "-m"], "Optional moniker to identify volume, prepended to volume directory");
-        var tagsOption = new Option<string>(["--tags", "-t"], "Optional comma-separated tags for volume");
-        var forceOption = new Option<bool>(["--force", "-f"], "Allow new volume in non-empty directory");
+        var titleArgument = new Argument<string>("title") { Description = "Title of new tandoku volume" };
+        var pathOption = new Option<DirectoryInfo?>("--path", "-p") { Description = "Containing directory for new tandoku volume" };
+        var monikerOption = new Option<string?>("--moniker", "-m") { Description = "Optional moniker to identify volume, prepended to volume directory" };
+        var tagsOption = new Option<string>("--tags", "-t") { Description = "Optional comma-separated tags for volume" };
+        var forceOption = new Option<bool>("--force", "-f") { Description = "Allow new volume in non-empty directory" };
 
         var command = new Command("new", "Creates a new tandoku volume under the current or specified directory")
         {
@@ -68,14 +67,20 @@ public sealed partial class Program
             forceOption,
         };
 
-        command.SetHandler(async (title, directory, moniker, tags, force) =>
+        command.SetAction(async (parseResult, ct) =>
         {
+            var title = parseResult.GetValue(titleArgument)!;
+            var directory = parseResult.GetValue(pathOption);
+            var moniker = parseResult.GetValue(monikerOption);
+            var tags = parseResult.GetValue(tagsOption);
+            var force = parseResult.GetValue(forceOption);
+
             var volumeManager = this.CreateVolumeManager();
             var path = directory?.FullName ?? this.fileSystem.Directory.GetCurrentDirectory();
             var tagsArray = tags?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             var info = await volumeManager.CreateNewAsync(path, title, moniker, tagsArray, force);
-            this.console.WriteLine(@$"Created new tandoku volume ""{title}"" at {info.Path}");
-        }, titleArgument, pathOption, monikerOption, tagsOption, forceOption);
+            this.output.WriteLine(@$"Created new tandoku volume ""{title}"" at {info.Path}");
+        });
 
         return command;
     }
@@ -84,46 +89,47 @@ public sealed partial class Program
     {
         var volumeBinder = this.CreateVolumeBinder();
 
-        var command = new Command("info", "Displays information about the current or specified volume")
-        {
-            volumeBinder,
-        };
+        var command = new Command("info", "Displays information about the current or specified volume");
+        volumeBinder.AddToCommand(command);
 
-        command.SetHandler(async (volumeDirectory, jsonOutput) =>
+        command.SetAction(async (parseResult, ct) =>
         {
+            var volumeDirectory = volumeBinder.Resolve(parseResult);
+            var jsonOutput = parseResult.GetValue(this.jsonOutputOption);
+
             var volumeManager = this.CreateVolumeManager();
             var info = await volumeManager.GetInfoAsync(volumeDirectory.FullName);
             if (jsonOutput)
             {
-                // TODO: use VolumeInfo directly, or copy to a JSON serializable object?
-                //       Promote Version property or add JsonConverter for VolumeVersion (probably can't inherit from interface?)
-                this.console.WriteJsonOutput(info);
+                this.output.WriteJsonOutput(info);
             }
             else
             {
-                this.console.WriteLine($"Path: {info.Path}");
-                this.console.WriteLine($"Version: {info.Version}");
-                this.console.WriteLine($"Definition path: {info.DefinitionPath}");
-                this.console.WriteLine($"Title: {info.Definition.Title}");
-                this.console.WriteLine($"Moniker: {info.Definition.Moniker.ToOutputString()}");
-                this.console.WriteLine($"Language: {info.Definition.Language}");
-                //this.console.WriteLine($"Reference language: {info.Definition.ReferenceLanguage.ToOutputString()}");
-                this.console.WriteLine($"Tags: {info.Definition.Tags.ToOutputString()}");
-                this.console.WriteLine($"Workflow: {info.Definition.Workflow}");
+                this.output.WriteLine($"Path: {info.Path}");
+                this.output.WriteLine($"Version: {info.Version}");
+                this.output.WriteLine($"Definition path: {info.DefinitionPath}");
+                this.output.WriteLine($"Title: {info.Definition.Title}");
+                this.output.WriteLine($"Moniker: {info.Definition.Moniker.ToOutputString()}");
+                this.output.WriteLine($"Language: {info.Definition.Language}");
+                //this.output.WriteLine($"Reference language: {info.Definition.ReferenceLanguage.ToOutputString()}");
+                this.output.WriteLine($"Tags: {info.Definition.Tags.ToOutputString()}");
+                this.output.WriteLine($"Workflow: {info.Definition.Workflow}");
             }
-        }, volumeBinder, this.jsonOutputOption);
+        });
 
         return command;
     }
 
     private Command CreateVolumeSetCommand()
     {
-        var propertyArgument = new Argument<string>("property", "Name of definition property to set")
+        var propertyArgument = new Argument<string>("property")
         {
+            Description = "Name of definition property to set",
             Arity = ArgumentArity.ExactlyOne,
         };
-        var valueArgument = new Argument<string>("value", "Value of definition property to set")
+        var valueArgument = new Argument<string>("value")
         {
+            Description = "Value of definition property to set",
             Arity = ArgumentArity.ExactlyOne,
         };
         var volumeBinder = this.CreateVolumeBinder();
@@ -132,11 +138,15 @@ public sealed partial class Program
         {
             propertyArgument,
             valueArgument,
-            volumeBinder,
         };
+        volumeBinder.AddToCommand(command);
 
-        command.SetHandler(async (property, value, volumeDirectory) =>
+        command.SetAction(async (parseResult, ct) =>
         {
+            var property = parseResult.GetValue(propertyArgument)!;
+            var value = parseResult.GetValue(valueArgument)!;
+            var volumeDirectory = volumeBinder.Resolve(parseResult);
+
             var volumeManager = this.CreateVolumeManager();
             var info = await volumeManager.GetInfoAsync(volumeDirectory.FullName);
             var modifiedDefinition = property switch
@@ -146,7 +156,7 @@ public sealed partial class Program
                 _ => throw new ArgumentOutOfRangeException(nameof(property), property, "Unexpected property name."),
             };
             await volumeManager.SetDefinitionAsync(volumeDirectory.FullName, modifiedDefinition);
-        }, propertyArgument, valueArgument, volumeBinder);
+        });
 
         return command;
     }
@@ -155,37 +165,38 @@ public sealed partial class Program
     {
         var volumeBinder = this.CreateVolumeBinder();
 
-        var command = new Command("rename", "Renames the current or specified volume to match definition metadata")
-        {
-            volumeBinder,
-        };
+        var command = new Command("rename", "Renames the current or specified volume to match definition metadata");
+        volumeBinder.AddToCommand(command);
 
-        command.SetHandler(async (volumeDirectory, jsonOutput) =>
+        command.SetAction(async (parseResult, ct) =>
         {
+            var volumeDirectory = volumeBinder.Resolve(parseResult);
+            var jsonOutput = parseResult.GetValue(this.jsonOutputOption);
+
             var volumeManager = this.CreateVolumeManager();
             var result = await volumeManager.RenameVolumeDirectory(volumeDirectory.FullName);
             if (jsonOutput)
             {
-                // TODO: use result directly, or copy to a JSON serializable object?
-                this.console.WriteJsonOutput(result);
+                this.output.WriteJsonOutput(result);
             }
             else
             {
-                this.console.WriteLine($"Renamed {result.OriginalPath} to {result.RenamedPath}");
+                this.output.WriteLine($"Renamed {result.OriginalPath} to {result.RenamedPath}");
             }
-        }, volumeBinder, this.jsonOutputOption);
+        });
 
         return command;
     }
 
     private Command CreateVolumeListCommand()
     {
-        var pathArgument = new Argument<DirectoryInfo?>("path", "Directory to search for tandoku volumes")
+        var pathArgument = new Argument<DirectoryInfo?>("path")
         {
+            Description = "Directory to search for tandoku volumes",
             Arity = ArgumentArity.ZeroOrOne,
-        }.LegalFilePathsOnly();
+        };
 
-        var allOption = new Option<bool>(["--all", "-a"], "Return all volumes in the current or specified library");
+        var allOption = new Option<bool>("--all", "-a") { Description = "Return all volumes in the current or specified library" };
 
         var command = new Command("list", "Lists volumes in the current or specified directory")
         {
@@ -193,17 +204,20 @@ public sealed partial class Program
             allOption,
         };
 
-        command.SetHandler(async (directory, all) =>
+        command.SetAction(async (parseResult, ct) =>
         {
+            var directory = parseResult.GetValue(pathArgument);
+            var all = parseResult.GetValue(allOption);
+
             var volumeManager = this.CreateVolumeManager();
             var path = directory?.FullName ?? this.fileSystem.Directory.GetCurrentDirectory();
             var expandScope = all ? ExpandedScope.ParentLibrary : ExpandedScope.ParentVolume;
             foreach (var volumePath in volumeManager.GetVolumeDirectories(path, expandScope))
             {
                 var volumeInfo = await volumeManager.GetInfoAsync(volumePath);
-                this.console.WriteLine($"{volumeInfo.Definition.Title}\t{volumeInfo.Path}");
+                this.output.WriteLine($"{volumeInfo.Definition.Title}\t{volumeInfo.Path}");
             }
-        }, pathArgument, allOption);
+        });
 
         return command;
     }
@@ -214,19 +228,18 @@ public sealed partial class Program
 
     // TODO: change this to return a VolumeContext (or maybe VolumeLocation) wrapper object rather than IDirectoryInfo
     // (VolumeManager APIs should all accept this instead)
-    private sealed class VolumeBinder(IFileSystem fileSystem, Func<VolumeManager> createVolumeManager) :
-        BinderBase<IDirectoryInfo>, ICommandBinder
+    private sealed class VolumeBinder(IFileSystem fileSystem, Func<VolumeManager> createVolumeManager) : ICommandBinder
     {
-        private readonly Option<DirectoryInfo?> volumeOption = new Option<DirectoryInfo?>(
-            ["--volume", "-v"],
-            "Volume directory path")
-            .LegalFilePathsOnly();
-
-        public void AddToCommand(Command command) => command.Add(this.volumeOption);
-
-        protected override IDirectoryInfo GetBoundValue(BindingContext bindingContext)
+        private readonly Option<DirectoryInfo?> volumeOption = new("--volume", "-v")
         {
-            var directoryInfo = bindingContext.ParseResult.GetValueForOption(this.volumeOption);
+            Description = "Volume directory path",
+        };
+
+        public void AddToCommand(Command command) => command.Options.Add(this.volumeOption);
+
+        internal IDirectoryInfo Resolve(ParseResult parseResult)
+        {
+            var directoryInfo = parseResult.GetValue(this.volumeOption);
 
             var volumeManager = createVolumeManager();
 

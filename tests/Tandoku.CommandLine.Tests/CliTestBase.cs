@@ -1,6 +1,5 @@
 ﻿namespace Tandoku.CommandLine.Tests;
 
-using System.CommandLine.IO;
 using System.IO.Abstractions;
 using System.IO.Abstractions.TestingHelpers;
 using YamlDotNet.Core;
@@ -8,7 +7,8 @@ using YamlDotNet.Serialization;
 
 public abstract class CliTestBase
 {
-    protected readonly TestConsole console;
+    protected readonly StringWriter outputWriter;
+    protected readonly StringWriter errorWriter;
     protected readonly MockFileSystem fileSystem;
     protected readonly IDirectoryInfo baseDirectory;
     protected readonly MockEnvironment environment;
@@ -16,10 +16,11 @@ public abstract class CliTestBase
 
     protected CliTestBase()
     {
-        this.console = new TestConsole();
+        this.outputWriter = new StringWriter();
+        this.errorWriter = new StringWriter();
         this.fileSystem = new MockFileSystem();
         this.environment = new MockEnvironment();
-        this.program = new Program(this.console, this.fileSystem, this.environment);
+        this.program = new Program(this.outputWriter, this.errorWriter, this.fileSystem, this.environment);
 
         // Note: currently using the current directory on the physical file system
         // as the base dir for the mock file system so that FileSystemInfo arguments
@@ -38,8 +39,8 @@ public abstract class CliTestBase
         var result = await this.program.RunAsync(commandLine);
 
         // Note: check Error first (and result code last) as this is most useful if test unexpectedly fails
-        (this.console.Error.ToString()?.TrimEnd()).Should().Be(expectedError ?? string.Empty);
-        (this.console.Out.ToString()?.TrimEnd()).Should().Be(expectedOutput ?? string.Empty);
+        (this.errorWriter.ToString()?.TrimEnd()).Should().Be(expectedError ?? string.Empty);
+        (this.outputWriter.ToString()?.TrimEnd()).Should().Be(expectedOutput ?? string.Empty);
         result.Should().Be(expectedResult ?? (string.IsNullOrEmpty(expectedError) ? 0 : 1));
     }
 
@@ -49,8 +50,8 @@ public abstract class CliTestBase
 
         return new ConsoleTestOutput(
             result,
-            this.console.Error.ToString(),
-            this.console.Out.ToString());
+            this.errorWriter.ToString(),
+            this.outputWriter.ToString());
     }
 
     protected async Task RunAndVerifyAsync(string commandLine, bool jsonOutput = false)

@@ -1,7 +1,6 @@
 ﻿namespace Tandoku.CommandLine;
 
 using System.CommandLine;
-using System.CommandLine.IO;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 
@@ -16,11 +15,8 @@ internal static class CommandLineExtensions
 
     internal static void Add(this Command command, ICommandBinder binder) => binder.AddToCommand(command);
 
-    internal static void Write(this IConsole console, string value) => console.Out.Write(value);
-    internal static void WriteLine(this IConsole console) => console.Out.WriteLine();
-    internal static void WriteLine(this IConsole console, string value) => console.Out.WriteLine(value);
-
-    internal static void WriteJsonOutput(this IConsole console, object obj)
+    internal static void Write(this TextWriter writer, string value) => writer.Write(value);
+    internal static void WriteJsonOutput(this TextWriter writer, object obj)
     {
         var options = new JsonSerializerOptions
         {
@@ -28,7 +24,7 @@ internal static class CommandLineExtensions
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             WriteIndented = true,
         };
-        console.WriteLine(JsonSerializer.Serialize(obj, options));
+        writer.WriteLine(JsonSerializer.Serialize(obj, options));
     }
 
     internal static string ToOutputString(this string? s)

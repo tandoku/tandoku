@@ -5,38 +5,48 @@ using System.CommandLine.Parsing;
 
 internal static class EnumOption
 {
-    internal static Option<T> Create<T>(string name, string? description = null) where T : struct, Enum =>
-        new Option<T>(name, EnumParseArgument<T>.Instance, description: description);
+    internal static Option<T> Create<T>(string name, params string[] aliases) where T : struct, Enum =>
+        CreateCore<T>(name, aliases);
 
-    internal static Option<T> Create<T>(string[] aliases, string? description = null) where T : struct, Enum =>
-        new Option<T>(aliases, EnumParseArgument<T>.Instance, description: description);
-
-    internal static Option<T?> CreateNullable<T>(string name, string? description = null) where T : struct, Enum =>
-        new Option<T?>(name, NullableEnumParseArgument<T>.Instance, description: description);
-
-    internal static Option<T?> CreateNullable<T>(string[] aliases, string? description = null) where T : struct, Enum =>
-        new Option<T?>(aliases, NullableEnumParseArgument<T>.Instance, description: description);
-
-    private static class EnumParseArgument<T>
-        where T : struct, Enum
+    internal static Option<T> Create<T>(string name, string? description, params string[] aliases) where T : struct, Enum
     {
-        // TODO - use EnumMemberAttribute.Value instead of removing "-" chars
-        public static ParseArgument<T> Instance = (ArgumentResult result) =>
-            (result.Tokens.Count == 1 &&
-             Enum.TryParse<T>(result.Tokens[0].Value.Replace("-", ""), ignoreCase: true, out var value)) ?
-            value :
-            throw new ArgumentOutOfRangeException();
+        var option = CreateCore<T>(name, aliases);
+        option.Description = description;
+        return option;
     }
 
-    private static class NullableEnumParseArgument<T>
-        where T : struct, Enum
+    internal static Option<T?> CreateNullable<T>(string name, string? description, params string[] aliases) where T : struct, Enum
     {
-        // TODO - use EnumMemberAttribute.Value instead of removing "-" chars
-        // and share logic with above ??
-        public static ParseArgument<T?> Instance = (ArgumentResult result) =>
-            (result.Tokens.Count == 1 &&
-             Enum.TryParse<T>(result.Tokens[0].Value.Replace("-", ""), ignoreCase: true, out var value)) ?
-            value :
-            throw new ArgumentOutOfRangeException();
+        var option = new Option<T?>(name, aliases)
+        {
+            Description = description,
+            CustomParser = result =>
+            {
+                // TODO - use EnumMemberAttribute.Value instead of removing "-" chars
+                if (result.Tokens.Count == 1 &&
+                    Enum.TryParse<T>(result.Tokens[0].Value.Replace("-", ""), ignoreCase: true, out var value))
+                    return value;
+                result.AddError($"Invalid value for {name}.");
+                return null;
+            },
+        };
+        return option;
+    }
+
+    private static Option<T> CreateCore<T>(string name, string[] aliases) where T : struct, Enum
+    {
+        var option = new Option<T>(name, aliases)
+        {
+            CustomParser = result =>
+            {
+                // TODO - use EnumMemberAttribute.Value instead of removing "-" chars
+                if (result.Tokens.Count == 1 &&
+                    Enum.TryParse<T>(result.Tokens[0].Value.Replace("-", ""), ignoreCase: true, out var value))
+                    return value;
+                result.AddError($"Invalid value for {name}.");
+                return default;
+            },
+        };
+        return option;
     }
 }

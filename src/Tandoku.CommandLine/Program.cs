@@ -1,29 +1,31 @@
 ﻿namespace Tandoku.CommandLine;
 
 using System.CommandLine;
-using System.CommandLine.Builder;
-using System.CommandLine.Invocation;
-using System.CommandLine.IO;
 using System.CommandLine.Parsing;
-using System.CommandLine.Rendering;
 using System.IO.Abstractions;
 using System.Text;
 using Tandoku.CommandLine.Abstractions;
 
 public sealed partial class Program
 {
-    private readonly IConsole console;
+    private readonly TextWriter output;
+    private readonly TextWriter error;
     private readonly IFileSystem fileSystem;
     private readonly IEnvironment environment;
 
-    private readonly Option<bool> jsonOutputOption = new(["--json-output"], "Output results as JSON");
+    private readonly Option<bool> jsonOutputOption = new("--json-output") { Description = "Output results as JSON", Recursive = true };
+#if DEBUG
+    private readonly Directive debugDirective = new("debug");
+#endif
 
     public Program(
-        IConsole? console = null,
+        TextWriter? output = null,
+        TextWriter? error = null,
         IFileSystem? fileSystem = null,
         IEnvironment? environment = null)
     {
-        this.console = console ?? new SystemConsole();
+        this.output = output ?? Console.Out;
+        this.error = error ?? Console.Error;
         this.fileSystem = fileSystem ?? new FileSystem();
         this.environment = environment ?? new SystemEnvironment();
     }
@@ -37,73 +39,58 @@ public sealed partial class Program
         return new Program().RunAsync(args);
     }
 
-    public Task<int> RunAsync(string[] args)
+    public async Task<int> RunAsync(string[] args)
     {
-        var parser = this.BuildCommandLineParser();
-        return parser.InvokeAsync(args, this.console);
-    }
-    public Task<int> RunAsync(string commandLine)
-    {
-        var parser = this.BuildCommandLineParser();
-        return parser.InvokeAsync(commandLine, this.console);
+        var rootCommand = this.CreateRootCommand();
+        var parseResult = rootCommand.Parse(args);
+        return await this.InvokeAsync(parseResult);
     }
 
-    private Parser BuildCommandLineParser()
+    public async Task<int> RunAsync(string commandLine)
     {
-        var parser = new CommandLineBuilder(this.CreateRootCommand())
+        var rootCommand = this.CreateRootCommand();
+        var parseResult = rootCommand.Parse(commandLine);
+        return await this.InvokeAsync(parseResult);
+    }
+
+    private async Task<int> InvokeAsync(ParseResult parseResult)
+    {
 #if DEBUG
-            .AddMiddleware(context =>
-            {
-                if (context.ParseResult.Directives.Contains("debug"))
-                {
-                    System.Diagnostics.Debugger.Launch();
-                }
-            }, MiddlewareOrder.Default)
-#endif
-//#if !DEBUG // TODO: consider catching only known app-specific exceptions instead (is ArgumentException thrown by System.CommandLine parsing?)
-            .AddMiddleware(async (context, next) =>
-            {
-                try
-                {
-                    await next(context);
-                }
-                catch (ArgumentException exception)
-                {
-                    HandleKnownException(exception, context);
-                }
-                catch (InvalidOperationException exception)
-                {
-                    HandleKnownException(exception, context);
-                }
-            }, MiddlewareOrder.ExceptionHandler)
-//#endif
-            .UseDefaults()
-            .Build();
-
-//#if !DEBUG
-        static void HandleKnownException(Exception exception, InvocationContext context)
+        if (parseResult.GetResult(this.debugDirective) is not null)
         {
-            // TODO - switch to Spectre.Console rendering and remove System.CommandLine.Rendering package ref
-            var terminal = context.Console.GetTerminal(preferVirtualTerminal: false);
-            if (terminal != null)
-            {
-                terminal.ResetColor();
-                terminal.ForegroundColor = ConsoleColor.Red;
-
-                terminal.Error.WriteLine(exception.Message);
-
-                terminal.ResetColor();
-            }
-            else
-            {
-                context.Console.Error.WriteLine(exception.Message);
-            }
-
-            context.ExitCode = 1;
+            System.Diagnostics.Debugger.Launch();
         }
-//#endif
+#endif
 
-        return parser;
+        var config = new InvocationConfiguration
+        {
+            Output = this.output,
+            Error = this.error,
+            EnableDefaultExceptionHandler = false,
+        };
+
+        try
+        {
+            return await parseResult.InvokeAsync(config);
+        }
+        catch (ArgumentException exception)
+        {
+            return HandleKnownException(exception);
+        }
+        catch (InvalidOperationException exception)
+        {
+            return HandleKnownException(exception);
+        }
+
+        int HandleKnownException(Exception exception)
+        {
+            // TODO - switch to Spectre.Console rendering
+            var originalColor = Console.ForegroundColor;
+            Console.ForegroundColor = ConsoleColor.Red;
+            this.error.WriteLine(exception.Message);
+            Console.ForegroundColor = originalColor;
+            return 1;
+        }
     }
 
     private RootCommand CreateRootCommand()
@@ -125,7 +112,10 @@ public sealed partial class Program
 
             Demos.CreateCommand(),
         };
-        rootCommand.AddGlobalOption(this.jsonOutputOption);
+        rootCommand.Options.Add(this.jsonOutputOption);
+#if DEBUG
+        rootCommand.Directives.Add(this.debugDirective);
+#endif
         return rootCommand;
     }
 
@@ -133,11 +123,12 @@ public sealed partial class Program
 
     private static Command CreateGenerateCommand()
     {
-        var inputArg = new Argument<FileSystemInfo[]>("in", "Input files or paths") { Arity = ArgumentArity.OneOrMore }.LegalFilePathsOnly();
-        var inputTypeOpt = new Option<ContentGeneratorInputType?>(new[] { "-t", "--input-type" }, "Type of input (derived from extension if not specified)");
-        var outputOpt = new Option<FileInfo>(new[] { "-o", "--out" }, "Output file path").LegalFilePathsOnly();
-        var appendOpt = new Option<bool>(new[] { "-a", "--append" }, "Append to existing content");
-        var forceOpt = new Option<bool>(new[] { "-f", "--force", "--overwrite" }, "Overwrite existing content");
+        var inputArg = new Argument<FileSystemInfo[]>("in") { Description = "Input files or paths", Arity = ArgumentArity.OneOrMore };
+        var inputTypeOpt = new Option<ContentGeneratorInputType?>("--input-type", "-t") { Description = "Type of input (derived from extension if not specified)" };
+        var outputOpt = new Option<FileInfo>("--out", "-o") { Description = "Output file path" };
+        var appendOpt = new Option<bool>("--append", "-a") { Description = "Append to existing content" };
+        var forceOpt = new Option<bool>("--force", "-f") { Description = "Overwrite existing content" };
+        forceOpt.Aliases.Add("--overwrite");
         var command = new Command("generate", "Generate tandoku content from various input formats")
         {
             inputArg,
@@ -146,76 +137,86 @@ public sealed partial class Program
             appendOpt,
             forceOpt,
         };
-        command.SetHandler(
-            (FileSystemInfo[] @in, ContentGeneratorInputType? inputType, FileInfo? @out, bool append, bool force) =>
-            {
-                var generator = new ContentGenerator();
-                var outputBehavior = append ? ContentOutputBehavior.Append :
-                    force ? ContentOutputBehavior.Overwrite :
-                    ContentOutputBehavior.None;
-                var outPath = generator.Generate(@in.Select(i => i.FullName), inputType, @out?.FullName, outputBehavior);
-                Console.WriteLine($"Generated {outPath}");
-            }, inputArg, inputTypeOpt, outputOpt, appendOpt, forceOpt);
+        command.SetAction(parseResult =>
+        {
+            var @in = parseResult.GetValue(inputArg);
+            var inputType = parseResult.GetValue(inputTypeOpt);
+            var @out = parseResult.GetValue(outputOpt);
+            var append = parseResult.GetValue(appendOpt);
+            var force = parseResult.GetValue(forceOpt);
+
+            var generator = new ContentGenerator();
+            var outputBehavior = append ? ContentOutputBehavior.Append :
+                force ? ContentOutputBehavior.Overwrite :
+                ContentOutputBehavior.None;
+            var outPath = generator.Generate(@in!.Select(i => i.FullName), inputType, @out?.FullName, outputBehavior);
+            Console.WriteLine($"Generated {outPath}");
+        });
         return command;
     }
 
     private static Command CreateExportCommand()
     {
-        var inputArg = new Argument<FileSystemInfo>("in", "Input file or path").ExistingOnly();
-        var outputArg = new Argument<FileInfo>("out", "Output file path") { Arity = ArgumentArity.ZeroOrOne }.LegalFilePathsOnly();
-        var formatOpt = new Option<ExportFormat>("--format", "Target file format");
+        var inputArg = new Argument<FileSystemInfo>("in") { Description = "Input file or path" };
+        var outputArg = new Argument<FileInfo>("out") { Description = "Output file path", Arity = ArgumentArity.ZeroOrOne };
+        var formatOpt = new Option<ExportFormat>("--format") { Description = "Target file format" };
         var command = new Command("export", "Export content from tandoku library")
         {
             inputArg,
             outputArg,
             formatOpt,
         };
-        command.SetHandler(
-            (FileSystemInfo @in, FileInfo? @out, ExportFormat format) =>
-            {
-                var exporter = new Exporter();
-                var outPath = exporter.Export(@in.FullName, @out?.FullName, format);
-                Console.WriteLine($"Exported {outPath}");
-            }, inputArg, outputArg, formatOpt);
+        command.SetAction(parseResult =>
+        {
+            var @in = parseResult.GetValue(inputArg);
+            var @out = parseResult.GetValue(outputArg);
+            var format = parseResult.GetValue(formatOpt);
+
+            var exporter = new Exporter();
+            var outPath = exporter.Export(@in!.FullName, @out?.FullName, format);
+            Console.WriteLine($"Exported {outPath}");
+        });
         return command;
     }
 
     private static Command CreateTokenizeCommand()
     {
-        var inputArg = new Argument<FileInfo>("in", "Input file or path").ExistingOnly();
+        var inputArg = new Argument<FileInfo>("in") { Description = "Input file or path" };
         var command = new Command("tokenize", "Tokenize text content")
         {
             inputArg,
         };
-        command.SetHandler(
-            (FileInfo @in) =>
-            {
-                var processor = new TextProcessor();
-                processor.Tokenize(@in.FullName);
-                Console.WriteLine($"Processed {processor.ProcessedBlocksCount} text blocks in {@in.FullName}");
-            }, inputArg);
+        command.SetAction(parseResult =>
+        {
+            var @in = parseResult.GetValue(inputArg)!;
+            var processor = new TextProcessor();
+            processor.Tokenize(@in.FullName);
+            Console.WriteLine($"Processed {processor.ProcessedBlocksCount} text blocks in {@in.FullName}");
+        });
         return command;
     }
 
     private static Command CreateTransformCommand()
     {
-        var transformListArg = new Argument<string>("transform-list", "Comma-separated list of transforms to apply");
-        var inputArg = new Argument<FileInfo>("in", "Input file or path").ExistingOnly();
+        var transformListArg = new Argument<string>("transform-list") { Description = "Comma-separated list of transforms to apply" };
+        var inputArg = new Argument<FileInfo>("in") { Description = "Input file or path" };
         var command = new Command("transform", "Apply transforms to text content")
         {
             transformListArg,
             inputArg,
         };
-        command.SetHandler(
-            (string transformList, FileInfo @in) =>
-            {
-                var transforms = transformList.Split(',')
-                    .Select(s => Enum.Parse<ContentTransformKind>(s, ignoreCase: true));
+        command.SetAction(parseResult =>
+        {
+            var transformList = parseResult.GetValue(transformListArg)!;
+            var @in = parseResult.GetValue(inputArg)!;
 
-                var processor = new TextProcessor();
-                processor.Transform(@in.FullName, transforms);
-                Console.WriteLine($"Processed {processor.ProcessedBlocksCount} text blocks in {@in.FullName}");
-            }, transformListArg, inputArg);
+            var transforms = transformList.Split(',')
+                .Select(s => Enum.Parse<ContentTransformKind>(s, ignoreCase: true));
+
+            var processor = new TextProcessor();
+            processor.Transform(@in.FullName, transforms);
+            Console.WriteLine($"Processed {processor.ProcessedBlocksCount} text blocks in {@in.FullName}");
+        });
         return command;
     }
 
@@ -229,58 +230,61 @@ public sealed partial class Program
 
     private static Command CreateComputeContentCommand()
     {
-        var inputArg = new Argument<FileSystemInfo[]>("in", "Input files or paths") { Arity = ArgumentArity.OneOrMore }.LegalFilePathsOnly();
-        var outputOpt = new Option<FileInfo>(new[] { "-o", "--out" }, "Output file path") { IsRequired = true }.LegalFilePathsOnly();
+        var inputArg = new Argument<FileSystemInfo[]>("in") { Description = "Input files or paths", Arity = ArgumentArity.OneOrMore };
+        var outputOpt = new Option<FileInfo>("--out", "-o") { Description = "Output file path", Required = true };
         var command = new Command("content", "Compute statistics for content")
         {
             inputArg,
             outputOpt,
         };
-        command.SetHandler(
-            (FileSystemInfo[] @in, FileInfo @out) =>
-            {
-                var processor = new StatsProcessor();
-                processor.ComputeStats(@in, @out.FullName);
-                Console.WriteLine($"Computed statistics written to {@out.FullName}");
-            }, inputArg, outputOpt);
+        command.SetAction(parseResult =>
+        {
+            var @in = parseResult.GetValue(inputArg)!;
+            var @out = parseResult.GetValue(outputOpt)!;
+            var processor = new StatsProcessor();
+            processor.ComputeStats(@in, @out.FullName);
+            Console.WriteLine($"Computed statistics written to {@out.FullName}");
+        });
         return command;
     }
 
     private static Command CreateComputeAggregatesCommand()
     {
-        var inputArg = new Argument<FileSystemInfo[]>("in", "Input files or paths") { Arity = ArgumentArity.OneOrMore }.LegalFilePathsOnly();
-        var outputOpt = new Option<FileInfo>(new[] { "-o", "--out" }, "Output file path") { IsRequired = true }.LegalFilePathsOnly();
+        var inputArg = new Argument<FileSystemInfo[]>("in") { Description = "Input files or paths", Arity = ArgumentArity.OneOrMore };
+        var outputOpt = new Option<FileInfo>("--out", "-o") { Description = "Output file path", Required = true };
         var command = new Command("aggregates", "Compute aggregate statistics")
         {
             inputArg,
             outputOpt,
         };
-        command.SetHandler(
-            (FileSystemInfo[] @in, FileInfo @out) =>
-            {
-                var processor = new StatsProcessor();
-                processor.ComputeAggregates(@in, @out.FullName);
-                Console.WriteLine($"Computed aggregates written to {@out.FullName}");
-            }, inputArg, outputOpt);
+        command.SetAction(parseResult =>
+        {
+            var @in = parseResult.GetValue(inputArg)!;
+            var @out = parseResult.GetValue(outputOpt)!;
+            var processor = new StatsProcessor();
+            processor.ComputeAggregates(@in, @out.FullName);
+            Console.WriteLine($"Computed aggregates written to {@out.FullName}");
+        });
         return command;
     }
 
     private static Command CreateComputeAnalyticsCommand()
     {
-        var inputArg = new Argument<FileSystemInfo[]>("in", "Input files or paths") { Arity = ArgumentArity.OneOrMore }.LegalFilePathsOnly();
-        var corpusOpt = new Option<FileInfo>(new[] { "-c", "--corpus" }, "Corpus aggregates path") { IsRequired = true }.LegalFilePathsOnly();
+        var inputArg = new Argument<FileSystemInfo[]>("in") { Description = "Input files or paths", Arity = ArgumentArity.OneOrMore };
+        var corpusOpt = new Option<FileInfo>("--corpus", "-c") { Description = "Corpus aggregates path", Required = true };
         var command = new Command("analytics", "Compute analytics for a volume in context of corpus aggregates")
         {
             inputArg,
             corpusOpt,
         };
-        command.SetHandler(
-            (FileSystemInfo[] @in, FileInfo corpus) =>
-            {
-                var processor = new StatsProcessor();
-                processor.ComputeAnalytics(@in, corpus.FullName);
-                Console.WriteLine($"Computed analytics written to input files");
-            }, inputArg, corpusOpt);
+        command.SetAction(parseResult =>
+        {
+            var @in = parseResult.GetValue(inputArg)!;
+            var corpus = parseResult.GetValue(corpusOpt)!;
+            var processor = new StatsProcessor();
+            processor.ComputeAnalytics(@in, corpus.FullName);
+            Console.WriteLine($"Computed analytics written to input files");
+        });
         return command;
     }
 }
