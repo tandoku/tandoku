@@ -39,6 +39,7 @@ public sealed partial class Program
             var info = await volumeManager.InitializeAsync(path, force);
             if (jsonOutput)
             {
+                // TODO: use VolumeInfo directly, or copy to a JSON serializable object?
                 this.output.WriteJsonOutput(info);
             }
             else
@@ -101,6 +102,7 @@ public sealed partial class Program
             var info = await volumeManager.GetInfoAsync(volumeDirectory.FullName);
             if (jsonOutput)
             {
+                // TODO: use VolumeInfo directly, or copy to a JSON serializable object?
                 this.output.WriteJsonOutput(info);
             }
             else
@@ -177,6 +179,7 @@ public sealed partial class Program
             var result = await volumeManager.RenameVolumeDirectory(volumeDirectory.FullName);
             if (jsonOutput)
             {
+                // TODO: use result directly, or copy to a JSON serializable object?
                 this.output.WriteJsonOutput(result);
             }
             else

@@ -21,6 +21,7 @@ internal static partial class EnumOption
         var option = new Option<T?>(name, aliases)
         {
             Description = description,
+            // TODO - use EnumMemberAttribute.Value instead of removing "-" chars
             CustomParser = result =>
             {
                 if (result.Tokens.Count == 1 &&
@@ -38,6 +39,7 @@ internal static partial class EnumOption
     {
         var option = new Option<T>(name, aliases)
         {
+            // TODO - use EnumMemberAttribute.Value instead of removing "-" chars
             CustomParser = result =>
             {
                 if (result.Tokens.Count == 1 &&

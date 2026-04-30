@@ -69,6 +69,7 @@ public sealed partial class Program
             EnableDefaultExceptionHandler = false,
         };
 
+        // TODO: consider catching only known app-specific exceptions instead
         try
         {
             return await parseResult.InvokeAsync(config);
