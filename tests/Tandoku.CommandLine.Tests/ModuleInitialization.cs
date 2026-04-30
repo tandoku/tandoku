@@ -13,5 +13,8 @@ internal static class ModuleInitialization
             directory: Path.Combine(projectDirectory, "Snapshots"),
             typeName: type.Name,
             methodName: method.Name));
+
+        // Normalize directory separators so snapshots are consistent across Windows and macOS/Linux
+        VerifierSettings.AddScrubber(builder => _ = builder.Replace('\\', '/'));
     }
 }

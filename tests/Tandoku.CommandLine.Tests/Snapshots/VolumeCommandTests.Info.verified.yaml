@@ -1,9 +1,9 @@
 ﻿result: 0
 error: ""
-out: |+
+out: |
   Path: {CurrentDirectory}sample volume
   Version: 0.1.0
-  Definition path: {CurrentDirectory}sample volume\volume.yaml
+  Definition path: {CurrentDirectory}sample volume/volume.yaml
   Title: sample volume
   Moniker: <none>
   Language: ja

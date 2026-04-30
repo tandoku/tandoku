@@ -1,11 +1,11 @@
 ﻿result: 0
 error: ""
-out: |+
+out: |
   path: {CurrentDirectory}sample volume
   slug: sample volume
   version:
     version: 0.1.0
-  definitionPath: {CurrentDirectory}sample volume\volume.yaml
+  definitionPath: {CurrentDirectory}sample volume/volume.yaml
   definition:
     title: sample volume
     moniker: 
