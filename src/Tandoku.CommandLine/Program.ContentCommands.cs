@@ -20,8 +20,8 @@ public sealed partial class Program
 
     private Command CreateContentIndexCommand()
     {
-        var pathArgument = new Argument<DirectoryInfo>("path") { Description = "Path of content directory to index", Arity = ArgumentArity.ExactlyOne }.LegalFilePathsOnly();
-        var indexPathOption = new Option<DirectoryInfo>("--index-path") { Description = "Path of the index to build", Required = true }.LegalFilePathsOnly();
+        var pathArgument = new Argument<DirectoryInfo>("path") { Description = "Path of content directory to index", Arity = ArgumentArity.ExactlyOne }.AcceptLegalFilePathsOnly();
+        var indexPathOption = new Option<DirectoryInfo>("--index-path") { Description = "Path of the index to build", Required = true }.AcceptLegalFilePathsOnly();
 
         var command = new Command("index", "Indexes the specified content")
         {
@@ -46,7 +46,7 @@ public sealed partial class Program
     {
         var searchQueryArgument = new Argument<string[]>("search-query") { Description = "Terms or phrase to search for", Arity = ArgumentArity.OneOrMore };
         var maxHitsOption = new Option<int>("--max-hits", "-n") { Description = "Maximum number of results to return" };
-        var indexPathOption = new Option<DirectoryInfo>("--index-path") { Description = "Path of the index to use", Required = true }.LegalFilePathsOnly();
+        var indexPathOption = new Option<DirectoryInfo>("--index-path") { Description = "Path of the index to use", Required = true }.AcceptLegalFilePathsOnly();
 
         var command = new Command("search", "Searches the specified content index")
         {
@@ -76,9 +76,9 @@ public sealed partial class Program
 
     private Command CreateContentLinkCommand()
     {
-        var inputPathArgument = new Argument<DirectoryInfo>("input-path") { Description = "Path of input content directory", Arity = ArgumentArity.ExactlyOne }.LegalFilePathsOnly();
-        var outputPathArgument = new Argument<DirectoryInfo>("output-path") { Description = "Path of output content directory", Arity = ArgumentArity.ExactlyOne }.LegalFilePathsOnly();
-        var indexPathOption = new Option<DirectoryInfo>("--index-path") { Description = "Path of the index to use", Required = true }.LegalFilePathsOnly();
+        var inputPathArgument = new Argument<DirectoryInfo>("input-path") { Description = "Path of input content directory", Arity = ArgumentArity.ExactlyOne }.AcceptLegalFilePathsOnly();
+        var outputPathArgument = new Argument<DirectoryInfo>("output-path") { Description = "Path of output content directory", Arity = ArgumentArity.ExactlyOne }.AcceptLegalFilePathsOnly();
+        var indexPathOption = new Option<DirectoryInfo>("--index-path") { Description = "Path of the index to use", Required = true }.AcceptLegalFilePathsOnly();
         var linkNameOption = new Option<string>("--link-name") { Description = "Name of the link", Required = true };
 
         var command = new Command("link", "Links the specified content to content in linked volumes")
@@ -106,9 +106,9 @@ public sealed partial class Program
 
     private Command CreateContentMergeCommand()
     {
-        var inputPathArgument = new Argument<DirectoryInfo>("input-path") { Description = "Path of input content directory", Arity = ArgumentArity.ExactlyOne }.LegalFilePathsOnly();
-        var refPathArgument = new Argument<DirectoryInfo>("ref-path") { Description = "Path of reference content directory", Arity = ArgumentArity.ExactlyOne }.LegalFilePathsOnly();
-        var outputPathArgument = new Argument<DirectoryInfo>("output-path") { Description = "Path of output content directory", Arity = ArgumentArity.ExactlyOne }.LegalFilePathsOnly();
+        var inputPathArgument = new Argument<DirectoryInfo>("input-path") { Description = "Path of input content directory", Arity = ArgumentArity.ExactlyOne }.AcceptLegalFilePathsOnly();
+        var refPathArgument = new Argument<DirectoryInfo>("ref-path") { Description = "Path of reference content directory", Arity = ArgumentArity.ExactlyOne }.AcceptLegalFilePathsOnly();
+        var outputPathArgument = new Argument<DirectoryInfo>("output-path") { Description = "Path of output content directory", Arity = ArgumentArity.ExactlyOne }.AcceptLegalFilePathsOnly();
         var alignOption = new Option<ContentAlignmentKind>("--align") { Description = "Alignment algorithm", Required = true };
         var refNameOption = new Option<string>("--ref", "--reference-name") { Description = "Name of reference in merged content", Required = true };
 
@@ -216,7 +216,7 @@ public sealed partial class Program
         private Command CreateImportMediaCommand()
         {
             var pathArgsBinder = new InputOutputPathArgsBinder();
-            var mediaPathOption = new Option<DirectoryInfo>("--media-path") { Description = "Path of the media", Required = true }.LegalFilePathsOnly();
+            var mediaPathOption = new Option<DirectoryInfo>("--media-path") { Description = "Path of the media", Required = true }.AcceptLegalFilePathsOnly();
             var imagePrefixOption = new Option<string?>("--image-prefix") { Description = "Prefix to include for image names" };
             var audioPrefixOption = new Option<string?>("--audio-prefix") { Description = "Prefix to include for audio names" };
 

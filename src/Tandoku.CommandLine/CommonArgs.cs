@@ -10,13 +10,13 @@ internal sealed class InputOutputPathArgsBinder : ICommandBinder
     {
         Description = "Path of input content directory",
         Arity = ArgumentArity.ExactlyOne,
-    }.LegalFilePathsOnly();
+    }.AcceptLegalFilePathsOnly();
 
     internal readonly Argument<DirectoryInfo> OutputPathArgument = new Argument<DirectoryInfo>("output-path")
     {
         Description = "Path of output content directory",
         Arity = ArgumentArity.ExactlyOne,
-    }.LegalFilePathsOnly();
+    }.AcceptLegalFilePathsOnly();
 
     public void AddToCommand(Command command)
     {
