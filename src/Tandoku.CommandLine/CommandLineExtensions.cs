@@ -4,8 +4,13 @@ using System.CommandLine;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 
+// TODO - consider renaming this, post-System.CommandLine 2.0 stable refactoring it's really just a helper
+// for collecting multiple common arguments/options rather than a "Binder" anymore
+// Maybe this should really be a "collection" that exposes public properties for the individual arguments/options,
+// and implements IEnumerable on the argument/option union type to enable adding the collection to a command.
 internal interface ICommandBinder<T>
 {
+    // TODO - consider replacing AddToCommand with a method that returns an IEnumerable of Argument/Option union
     void AddToCommand(Command command);
     T Resolve(ParseResult parseResult);
 }
@@ -18,6 +23,7 @@ internal static class CommandLineExtensions
 
     internal static T GetValue<T>(this ParseResult parseResult, ICommandBinder<T> binder) => binder.Resolve(parseResult);
 
+    // TODO - introduce Parameter<T> union type and reduce to 5 overloads for 2-6 parameters
     internal static (T1, T2) GetValues<T1, T2>(
         this ParseResult parseResult,
         ICommandBinder<T1> binder1,

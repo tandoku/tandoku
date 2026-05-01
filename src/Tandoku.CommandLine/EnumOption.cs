@@ -4,6 +4,8 @@ using System.CommandLine;
 using System.CommandLine.Parsing;
 using System.Text.RegularExpressions;
 
+// TODO - Change this from static helper class to EnumOption<T> / NullableEnumOption<T> classes derived from Option<T>
+// This will enable callers to set Description and other properties with object initializer syntax
 internal static partial class EnumOption
 {
     internal static Option<T> Create<T>(string name, params string[] aliases) where T : struct, Enum

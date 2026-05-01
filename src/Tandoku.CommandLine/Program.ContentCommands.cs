@@ -20,6 +20,7 @@ public sealed partial class Program
 
     private Command CreateContentIndexCommand()
     {
+        // TODO - move Description and other property setters to their own lines throughout
         var pathArgument = new Argument<DirectoryInfo>("path") { Description = "Path of content directory to index", Arity = ArgumentArity.ExactlyOne }.AcceptLegalFilePathsOnly();
         var indexPathOption = new Option<DirectoryInfo>("--index-path") { Description = "Path of the index to build", Required = true }.AcceptLegalFilePathsOnly();
 
