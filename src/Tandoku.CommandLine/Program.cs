@@ -39,18 +39,18 @@ public sealed partial class Program
         return new Program().RunAsync(args);
     }
 
-    public async Task<int> RunAsync(string[] args)
+    public Task<int> RunAsync(string[] args)
     {
         var rootCommand = this.CreateRootCommand();
         var parseResult = rootCommand.Parse(args);
-        return await this.InvokeAsync(parseResult);
+        return this.InvokeAsync(parseResult);
     }
 
-    public async Task<int> RunAsync(string commandLine)
+    public Task<int> RunAsync(string commandLine)
     {
         var rootCommand = this.CreateRootCommand();
         var parseResult = rootCommand.Parse(commandLine);
-        return await this.InvokeAsync(parseResult);
+        return this.InvokeAsync(parseResult);
     }
 
     private async Task<int> InvokeAsync(ParseResult parseResult)
@@ -128,8 +128,7 @@ public sealed partial class Program
         var inputTypeOpt = new Option<ContentGeneratorInputType?>("--input-type", "-t") { Description = "Type of input (derived from extension if not specified)" };
         var outputOpt = new Option<FileInfo>("--out", "-o") { Description = "Output file path" }.AcceptLegalFilePathsOnly();
         var appendOpt = new Option<bool>("--append", "-a") { Description = "Append to existing content" };
-        var forceOpt = new Option<bool>("--force", "-f") { Description = "Overwrite existing content" };
-        forceOpt.Aliases.Add("--overwrite");
+        var forceOpt = new Option<bool>("--force", "--overwrite", "-f") { Description = "Overwrite existing content" };
         var command = new Command("generate", "Generate tandoku content from various input formats")
         {
             inputArg,

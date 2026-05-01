@@ -90,12 +90,14 @@ public sealed partial class Program
     {
         var volumeBinder = this.CreateVolumeBinder();
 
-        var command = new Command("info", "Displays information about the current or specified volume");
-        volumeBinder.AddToCommand(command);
+        var command = new Command("info", "Displays information about the current or specified volume")
+        {
+            volumeBinder,
+        };
 
         command.SetAction(async (parseResult, ct) =>
         {
-            var volumeDirectory = volumeBinder.Resolve(parseResult);
+            var volumeDirectory = parseResult.GetValue(volumeBinder);
             var jsonOutput = parseResult.GetValue(this.jsonOutputOption);
 
             var volumeManager = this.CreateVolumeManager();
@@ -140,14 +142,14 @@ public sealed partial class Program
         {
             propertyArgument,
             valueArgument,
+            volumeBinder,
         };
-        volumeBinder.AddToCommand(command);
 
         command.SetAction(async (parseResult, ct) =>
         {
             var property = parseResult.GetValue(propertyArgument)!;
             var value = parseResult.GetValue(valueArgument)!;
-            var volumeDirectory = volumeBinder.Resolve(parseResult);
+            var volumeDirectory = parseResult.GetValue(volumeBinder);
 
             var volumeManager = this.CreateVolumeManager();
             var info = await volumeManager.GetInfoAsync(volumeDirectory.FullName);
@@ -167,12 +169,14 @@ public sealed partial class Program
     {
         var volumeBinder = this.CreateVolumeBinder();
 
-        var command = new Command("rename", "Renames the current or specified volume to match definition metadata");
-        volumeBinder.AddToCommand(command);
+        var command = new Command("rename", "Renames the current or specified volume to match definition metadata")
+        {
+            volumeBinder,
+        };
 
         command.SetAction(async (parseResult, ct) =>
         {
-            var volumeDirectory = volumeBinder.Resolve(parseResult);
+            var volumeDirectory = parseResult.GetValue(volumeBinder);
             var jsonOutput = parseResult.GetValue(this.jsonOutputOption);
 
             var volumeManager = this.CreateVolumeManager();
@@ -231,7 +235,7 @@ public sealed partial class Program
 
     // TODO: change this to return a VolumeContext (or maybe VolumeLocation) wrapper object rather than IDirectoryInfo
     // (VolumeManager APIs should all accept this instead)
-    private sealed class VolumeBinder(IFileSystem fileSystem, Func<VolumeManager> createVolumeManager) : ICommandBinder
+    private sealed class VolumeBinder(IFileSystem fileSystem, Func<VolumeManager> createVolumeManager) : ICommandBinder<IDirectoryInfo>
     {
         private readonly Option<DirectoryInfo?> volumeOption = new Option<DirectoryInfo?>("--volume", "-v")
         {
@@ -240,7 +244,7 @@ public sealed partial class Program
 
         public void AddToCommand(Command command) => command.Options.Add(this.volumeOption);
 
-        internal IDirectoryInfo Resolve(ParseResult parseResult)
+        public IDirectoryInfo Resolve(ParseResult parseResult)
         {
             var directoryInfo = parseResult.GetValue(this.volumeOption);
 

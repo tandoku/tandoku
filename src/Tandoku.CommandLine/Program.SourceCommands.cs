@@ -21,14 +21,14 @@ public sealed partial class Program
         {
             pathsArgument,
             fileNameOption,
+            volumeBinder,
         };
-        volumeBinder.AddToCommand(command);
 
         command.SetAction(async (parseResult, ct) =>
         {
             var paths = parseResult.GetValue(pathsArgument)!;
             var fileName = parseResult.GetValue(fileNameOption);
-            var volumeDirectory = volumeBinder.Resolve(parseResult);
+            var volumeDirectory = parseResult.GetValue(volumeBinder);
             var jsonOutput = parseResult.GetValue(this.jsonOutputOption);
 
             var volumeManager = this.CreateVolumeManager();

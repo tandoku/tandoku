@@ -49,12 +49,12 @@ public sealed partial class Program
 
         var command = new Command("info", "Displays information about the current or specified library")
         {
-            libraryBinder.LibraryOption,
+            libraryBinder,
         };
 
         command.SetAction(async (parseResult, ct) =>
         {
-            var libraryDirectory = libraryBinder.Resolve(parseResult);
+            var libraryDirectory = parseResult.GetValue(libraryBinder);
 
             var libraryManager = this.CreateLibraryManager();
             var info = await libraryManager.GetInfoAsync(libraryDirectory.FullName);
@@ -70,7 +70,7 @@ public sealed partial class Program
 
     private LibraryManager CreateLibraryManager() => new(this.fileSystem);
 
-    private sealed class LibraryBinder
+    private sealed class LibraryBinder : ICommandBinder<IDirectoryInfo>
     {
         private readonly IFileSystem fileSystem;
         private readonly IEnvironment environment;
@@ -88,9 +88,11 @@ public sealed partial class Program
             }.AcceptLegalFilePathsOnly();
         }
 
-        internal Option<DirectoryInfo?> LibraryOption { get; }
+        private Option<DirectoryInfo?> LibraryOption { get; }
 
-        internal IDirectoryInfo Resolve(ParseResult parseResult)
+        public void AddToCommand(Command command) => command.Options.Add(this.LibraryOption);
+
+        public IDirectoryInfo Resolve(ParseResult parseResult)
         {
             var directoryInfo = parseResult.GetValue(this.LibraryOption);
 

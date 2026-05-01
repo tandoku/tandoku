@@ -166,16 +166,18 @@ public sealed partial class Program
         private Command CreateRemoveNonJapaneseTextCommand()
         {
             var pathArgsBinder = new InputOutputPathArgsBinder();
-            var roleOption = EnumOption.CreateNullable<ChunkRole>("--role", "Only remove chunks with the specified role", "-r");
+            var roleOption = EnumOption.CreateNullable<ChunkRole>("--role", "-r");
+            roleOption.Description = "Only remove chunks with the specified role";
 
-            var command = new Command("remove-non-japanese-text", "Removes chunks without any Japanese text");
-            pathArgsBinder.AddToCommand(command);
-            command.Options.Add(roleOption);
+            var command = new Command("remove-non-japanese-text", "Removes chunks without any Japanese text")
+            {
+                pathArgsBinder,
+                roleOption,
+            };
 
             command.SetAction(async (parseResult, ct) =>
             {
-                var pathArgs = pathArgsBinder.Resolve(parseResult);
-                var role = parseResult.GetValue(roleOption);
+                var (pathArgs, role) = parseResult.GetValues(pathArgsBinder, roleOption);
 
                 await this.RunContentTransformAsync(
                     pathArgs,
@@ -196,14 +198,15 @@ public sealed partial class Program
                 DefaultValueFactory = _ => DefaultConfidenceThreshold,
             };
 
-            var command = new Command("remove-low-confidence-text", "Removes text from low confidence image segments");
-            pathArgsBinder.AddToCommand(command);
-            command.Options.Add(confidenceThresholdOption);
+            var command = new Command("remove-low-confidence-text", "Removes text from low confidence image segments")
+            {
+                pathArgsBinder,
+                confidenceThresholdOption,
+            };
 
             command.SetAction(async (parseResult, ct) =>
             {
-                var pathArgs = pathArgsBinder.Resolve(parseResult);
-                var confidenceThreshold = parseResult.GetValue(confidenceThresholdOption);
+                var (pathArgs, confidenceThreshold) = parseResult.GetValues(pathArgsBinder, confidenceThresholdOption);
 
                 await this.RunContentTransformAsync(
                     pathArgs,
@@ -220,23 +223,22 @@ public sealed partial class Program
             var imagePrefixOption = new Option<string?>("--image-prefix") { Description = "Prefix to include for image names" };
             var audioPrefixOption = new Option<string?>("--audio-prefix") { Description = "Prefix to include for audio names" };
 
-            var command = new Command("import-media", "Imports media from the specified path into the content");
-            pathArgsBinder.AddToCommand(command);
-            command.Options.Add(mediaPathOption);
-            command.Options.Add(imagePrefixOption);
-            command.Options.Add(audioPrefixOption);
+            var command = new Command("import-media", "Imports media from the specified path into the content")
+            {
+                pathArgsBinder,
+                mediaPathOption,
+                imagePrefixOption,
+                audioPrefixOption,
+            };
 
             command.SetAction(async (parseResult, ct) =>
             {
-                var pathArgs = pathArgsBinder.Resolve(parseResult);
-                var mediaPath = parseResult.GetValue(mediaPathOption)!;
-                var imagePrefix = parseResult.GetValue(imagePrefixOption);
-                var audioPrefix = parseResult.GetValue(audioPrefixOption);
+                var (pathArgs, mediaPath, imagePrefix, audioPrefix) = parseResult.GetValues(pathArgsBinder, mediaPathOption, imagePrefixOption, audioPrefixOption);
                 var jsonOutput = parseResult.GetValue(program.jsonOutputOption);
 
                 var mediaCollection = new MediaCollection();
                 var transform = new ImportMediaTransform(
-                    mediaPath.FullName,
+                    mediaPath!.FullName,
                     imagePrefix,
                     audioPrefix,
                     mediaCollection,
@@ -263,21 +265,21 @@ public sealed partial class Program
         {
             var pathArgsBinder = new InputOutputPathArgsBinder();
             var providerOption = new Option<ImageAnalysisProvider>("--provider", "-p") { Description = "Image analysis provider", Required = true };
-            var roleOption = EnumOption.CreateNullable<ChunkRole>("--role", "Sets the specified role on recognized text", "-r");
+            var roleOption = EnumOption.CreateNullable<ChunkRole>("--role", "-r");
+            roleOption.Description = "Sets the specified role on recognized text";
             var volumeBinder = program.CreateVolumeBinder();
 
-            var command = new Command("import-image-text", "Imports analyzed image text into the content");
-            pathArgsBinder.AddToCommand(command);
-            command.Options.Add(providerOption);
-            command.Options.Add(roleOption);
-            volumeBinder.AddToCommand(command);
+            var command = new Command("import-image-text", "Imports analyzed image text into the content")
+            {
+                pathArgsBinder,
+                providerOption,
+                roleOption,
+                volumeBinder,
+            };
 
             command.SetAction(async (parseResult, ct) =>
             {
-                var pathArgs = pathArgsBinder.Resolve(parseResult);
-                var provider = parseResult.GetValue(providerOption);
-                var role = parseResult.GetValue(roleOption);
-                var volumeDirectory = volumeBinder.Resolve(parseResult);
+                var (pathArgs, provider, role, volumeDirectory) = parseResult.GetValues(pathArgsBinder, providerOption, roleOption, volumeBinder);
 
                 var volumeManager = program.CreateVolumeManager();
                 var volumeInfo = await volumeManager.GetInfoAsync(volumeDirectory.FullName);
@@ -296,12 +298,14 @@ public sealed partial class Program
         {
             var pathArgsBinder = new InputOutputPathArgsBinder();
 
-            var command = new Command("merge-ref-chunks", "Merges reference chunks into following chunks");
-            pathArgsBinder.AddToCommand(command);
+            var command = new Command("merge-ref-chunks", "Merges reference chunks into following chunks")
+            {
+                pathArgsBinder,
+            };
 
             command.SetAction(async (parseResult, ct) =>
             {
-                var pathArgs = pathArgsBinder.Resolve(parseResult);
+                var pathArgs = parseResult.GetValue(pathArgsBinder);
 
                 await this.RunContentTransformAsync(
                     pathArgs,

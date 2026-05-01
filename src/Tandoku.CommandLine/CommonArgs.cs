@@ -4,15 +4,15 @@ using System.CommandLine;
 
 internal sealed record InputOutputPathArgs(DirectoryInfo InputPath, DirectoryInfo OutputPath);
 
-internal sealed class InputOutputPathArgsBinder : ICommandBinder
+internal sealed class InputOutputPathArgsBinder : ICommandBinder<InputOutputPathArgs>
 {
-    internal readonly Argument<DirectoryInfo> InputPathArgument = new Argument<DirectoryInfo>("input-path")
+    private readonly Argument<DirectoryInfo> InputPathArgument = new Argument<DirectoryInfo>("input-path")
     {
         Description = "Path of input content directory",
         Arity = ArgumentArity.ExactlyOne,
     }.AcceptLegalFilePathsOnly();
 
-    internal readonly Argument<DirectoryInfo> OutputPathArgument = new Argument<DirectoryInfo>("output-path")
+    private readonly Argument<DirectoryInfo> OutputPathArgument = new Argument<DirectoryInfo>("output-path")
     {
         Description = "Path of output content directory",
         Arity = ArgumentArity.ExactlyOne,
@@ -24,7 +24,7 @@ internal sealed class InputOutputPathArgsBinder : ICommandBinder
         command.Arguments.Add(this.OutputPathArgument);
     }
 
-    internal InputOutputPathArgs Resolve(ParseResult parseResult)
+    public InputOutputPathArgs Resolve(ParseResult parseResult)
     {
         var inputPath = parseResult.GetValue(this.InputPathArgument)!;
         var outputPath = parseResult.GetValue(this.OutputPathArgument)!;
