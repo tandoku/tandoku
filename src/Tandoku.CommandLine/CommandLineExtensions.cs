@@ -15,84 +15,87 @@ internal interface ICommandBinder<T>
     T Resolve(ParseResult parseResult);
 }
 
+// TODO: use union type after upgrading to .NET 11
+// Issue - this doesn't work as desired currently because the implicit conversions do not participate in type inference;
+// unfortunately unions in .NET 11 Preview 3 have the same problem.
+// Raised for discussion in https://github.com/dotnet/csharplang/discussions/10164
+internal readonly struct Parameter<T>
+{
+    private readonly object? value;
+
+    public Parameter(Argument<T> argument) => this.value = argument;
+    public Parameter(Option<T> option) => this.value = option;
+    public Parameter(ICommandBinder<T> binder) => this.value = binder;
+
+    public T? GetValue(ParseResult parseResult) => this.value switch
+    {
+        Argument<T> argument => parseResult.GetValue(argument),
+        Option<T> option => parseResult.GetValue(option),
+        ICommandBinder<T> binder => binder.Resolve(parseResult),
+        _ => throw new InvalidOperationException($"Cannot call {nameof(GetValue)} on a default instance of {nameof(Parameter<>)}."),
+    };
+
+    public static implicit operator Parameter<T>(Argument<T> argument) => new(argument);
+    public static implicit operator Parameter<T>(Option<T> option) => new(option);
+}
+
 internal static class CommandLineExtensions
 {
     private const string NullOutputString = "<none>";
+    private static readonly JsonSerializerOptions jsonSerializerOptions = new()
+    {
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = true,
+    };
 
     internal static void Add<T>(this Command command, ICommandBinder<T> binder) => binder.AddToCommand(command);
 
     internal static T GetValue<T>(this ParseResult parseResult, ICommandBinder<T> binder) => binder.Resolve(parseResult);
 
-    // TODO - introduce Parameter<T> union type and reduce to 5 overloads for 2-6 parameters
-    internal static (T1, T2) GetValues<T1, T2>(
+    internal static (T1?, T2?) GetValues<T1, T2>(
         this ParseResult parseResult,
-        ICommandBinder<T1> binder1,
-        Option<T2> option2) =>
-        (binder1.Resolve(parseResult), parseResult.GetValue(option2));
+        Parameter<T1> param1,
+        Parameter<T2> param2) =>
+        (param1.GetValue(parseResult), param2.GetValue(parseResult));
 
-    internal static (T1, T2) GetValues<T1, T2>(
+    internal static (T1?, T2?, T3?) GetValues<T1, T2, T3>(
         this ParseResult parseResult,
-        ICommandBinder<T1> binder1,
-        ICommandBinder<T2> binder2) =>
-        (binder1.Resolve(parseResult), binder2.Resolve(parseResult));
+        Parameter<T1> param1,
+        Parameter<T2> param2,
+        Parameter<T3> param3) =>
+        (param1.GetValue(parseResult), param2.GetValue(parseResult), param3.GetValue(parseResult));
 
-    internal static (T1, T2, T3) GetValues<T1, T2, T3>(
+    internal static (T1?, T2?, T3?, T4?) GetValues<T1, T2, T3, T4>(
         this ParseResult parseResult,
-        ICommandBinder<T1> binder1,
-        Option<T2> option2,
-        Option<T3> option3) =>
-        (binder1.Resolve(parseResult), parseResult.GetValue(option2), parseResult.GetValue(option3));
+        Parameter<T1> param1,
+        Parameter<T2> param2,
+        Parameter<T3> param3,
+        Parameter<T4> param4) =>
+        (param1.GetValue(parseResult), param2.GetValue(parseResult), param3.GetValue(parseResult), param4.GetValue(parseResult));
 
-    internal static (T1, T2, T3) GetValues<T1, T2, T3>(
+    internal static (T1?, T2?, T3?, T4?, T5?) GetValues<T1, T2, T3, T4, T5>(
         this ParseResult parseResult,
-        ICommandBinder<T1> binder1,
-        Option<T2> option2,
-        ICommandBinder<T3> binder3) =>
-        (binder1.Resolve(parseResult), parseResult.GetValue(option2), binder3.Resolve(parseResult));
+        Parameter<T1> param1,
+        Parameter<T2> param2,
+        Parameter<T3> param3,
+        Parameter<T4> param4,
+        Parameter<T5> param5) =>
+        (param1.GetValue(parseResult), param2.GetValue(parseResult), param3.GetValue(parseResult), param4.GetValue(parseResult), param5.GetValue(parseResult));
 
-    internal static (T1, T2, T3, T4) GetValues<T1, T2, T3, T4>(
+    internal static (T1?, T2?, T3?, T4?, T5?, T6?) GetValues<T1, T2, T3, T4, T5, T6>(
         this ParseResult parseResult,
-        ICommandBinder<T1> binder1,
-        Option<T2> option2,
-        Option<T3> option3,
-        Option<T4> option4) =>
-        (binder1.Resolve(parseResult), parseResult.GetValue(option2), parseResult.GetValue(option3), parseResult.GetValue(option4));
-
-    internal static (T1, T2, T3, T4) GetValues<T1, T2, T3, T4>(
-        this ParseResult parseResult,
-        ICommandBinder<T1> binder1,
-        Option<T2> option2,
-        Option<T3> option3,
-        ICommandBinder<T4> binder4) =>
-        (binder1.Resolve(parseResult), parseResult.GetValue(option2), parseResult.GetValue(option3), binder4.Resolve(parseResult));
-
-    internal static (T1, T2, T3, T4, T5) GetValues<T1, T2, T3, T4, T5>(
-        this ParseResult parseResult,
-        ICommandBinder<T1> binder1,
-        Option<T2> option2,
-        Option<T3> option3,
-        Option<T4> option4,
-        Option<T5> option5) =>
-        (binder1.Resolve(parseResult), parseResult.GetValue(option2), parseResult.GetValue(option3), parseResult.GetValue(option4), parseResult.GetValue(option5));
-
-    internal static (T1, T2, T3, T4, T5) GetValues<T1, T2, T3, T4, T5>(
-        this ParseResult parseResult,
-        ICommandBinder<T1> binder1,
-        Option<T2> option2,
-        Option<T3> option3,
-        Option<T4> option4,
-        ICommandBinder<T5> binder5) =>
-        (binder1.Resolve(parseResult), parseResult.GetValue(option2), parseResult.GetValue(option3), parseResult.GetValue(option4), binder5.Resolve(parseResult));
+        Parameter<T1> param1,
+        Parameter<T2> param2,
+        Parameter<T3> param3,
+        Parameter<T4> param4,
+        Parameter<T5> param5,
+        Parameter<T6> param6) =>
+        (param1.GetValue(parseResult), param2.GetValue(parseResult), param3.GetValue(parseResult), param4.GetValue(parseResult), param5.GetValue(parseResult), param6.GetValue(parseResult));
 
     internal static void WriteJsonOutput(this TextWriter writer, object obj)
     {
-        var options = new JsonSerializerOptions
-        {
-            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = true,
-        };
-        writer.WriteLine(JsonSerializer.Serialize(obj, options));
+        writer.WriteLine(JsonSerializer.Serialize(obj, jsonSerializerOptions));
     }
 
     internal static string ToOutputString(this string? s)

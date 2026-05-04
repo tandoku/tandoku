@@ -31,4 +31,6 @@ internal sealed class InputOutputPathArgsBinder : ICommandBinder<InputOutputPath
         var outputPath = parseResult.GetValue(this.outputPathArgument)!;
         return new(inputPath, outputPath);
     }
+
+    public static implicit operator Parameter<InputOutputPathArgs>(InputOutputPathArgsBinder binder) => new(binder);
 }
