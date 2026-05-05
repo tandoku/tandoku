@@ -8,6 +8,17 @@ using System.Text.Json;
 // for collecting multiple common arguments/options rather than a "Binder" anymore
 // Maybe this should really be a "collection" that exposes public properties for the individual arguments/options,
 // and implements IEnumerable on the argument/option union type to enable adding the collection to a command.
+// *** Check out LibraryBinder and VolumeBinder, these are much more involved than the InputOutputPathArgsBinder.
+//     Figure out if their functionality can be implemented using DefaultValueFactory and/or Validators.
+//     Nullability is an interesting question - ParseResult.GetValue always returns a nullable value.
+//     GetRequiredValue/GetRequiredValues methods could ensure that the parameter is Required and return non-nullable value.
+//     But library/volume location involve non-required options (and potentially multiple options in the future) so
+//     how should we model returning non-nullable values from these? Maybe this warrants a wrapper object/concept
+//     (like "binder") to provide this additional semantics?
+//     ==> no, this is too much coupling. The resolve library/volume logic should be separate from the parameters;
+//         parameters should be inputs to that function. We could introduce "parameter bundles" if really needed
+//         but for now let's just have helper methods to create common parameters, GetValues/GetRequiredValues to
+//         reduce boilerplate for collecting parameter values and functions for resolving library/volume.
 internal interface ICommandBinder<T>
 {
     // TODO - consider replacing AddToCommand with a method that returns an IEnumerable of Argument/Option union
@@ -18,12 +29,19 @@ internal interface ICommandBinder<T>
 internal static class CommandLineExtensions
 {
     private const string NullOutputString = "<none>";
+    private static readonly JsonSerializerOptions jsonSerializerOptions = new()
+    {
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = true,
+    };
 
     internal static void Add<T>(this Command command, ICommandBinder<T> binder) => binder.AddToCommand(command);
 
     internal static T GetValue<T>(this ParseResult parseResult, ICommandBinder<T> binder) => binder.Resolve(parseResult);
 
     // TODO - introduce Parameter<T> union type and reduce to 5 overloads for 2-6 parameters
+    // Depends on result of https://github.com/dotnet/csharplang/discussions/10164
     internal static (T1, T2) GetValues<T1, T2>(
         this ParseResult parseResult,
         ICommandBinder<T1> binder1,
@@ -86,13 +104,7 @@ internal static class CommandLineExtensions
 
     internal static void WriteJsonOutput(this TextWriter writer, object obj)
     {
-        var options = new JsonSerializerOptions
-        {
-            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = true,
-        };
-        writer.WriteLine(JsonSerializer.Serialize(obj, options));
+        writer.WriteLine(JsonSerializer.Serialize(obj, jsonSerializerOptions));
     }
 
     internal static string ToOutputString(this string? s)

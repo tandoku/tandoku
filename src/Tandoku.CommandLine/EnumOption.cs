@@ -1,7 +1,6 @@
 ﻿namespace Tandoku.CommandLine;
 
 using System.CommandLine;
-using System.CommandLine.Parsing;
 using System.Text.RegularExpressions;
 
 // TODO - Change this from static helper class to EnumOption<T> / NullableEnumOption<T> classes derived from Option<T>
@@ -45,7 +44,7 @@ internal static partial class EnumOption
     }
 
     private static string[] GetAcceptedValues<T>() where T : struct, Enum =>
-        Enum.GetNames<T>().Select(n => PascalCaseToKebabCase(n)).ToArray();
+        [.. Enum.GetNames<T>().Select(n => PascalCaseToKebabCase(n))];
 
     private static string PascalCaseToKebabCase(string name) =>
         PascalCaseBoundary().Replace(name, "-$1").TrimStart('-').ToLowerInvariant();
