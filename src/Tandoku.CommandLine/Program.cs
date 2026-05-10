@@ -13,7 +13,11 @@ public sealed partial class Program
     private readonly IFileSystem fileSystem;
     private readonly IEnvironment environment;
 
-    private readonly Option<bool> jsonOutputOption = new("--json-output") { Description = "Output results as JSON", Recursive = true };
+    private readonly Option<bool> jsonOutputOption = new("--json-output")
+    {
+        Description = "Output results as JSON",
+        Recursive = true,
+    };
 #if DEBUG
     private readonly Directive debugDirective = new("debug");
 #endif
@@ -124,11 +128,28 @@ public sealed partial class Program
 
     private static Command CreateGenerateCommand()
     {
-        var inputArg = new Argument<FileSystemInfo[]>("in") { Description = "Input files or paths", Arity = ArgumentArity.OneOrMore }.AcceptLegalFilePathsOnly();
-        var inputTypeOpt = new Option<ContentGeneratorInputType?>("--input-type", "-t") { Description = "Type of input (derived from extension if not specified)" };
-        var outputOpt = new Option<FileInfo>("--out", "-o") { Description = "Output file path" }.AcceptLegalFilePathsOnly();
-        var appendOpt = new Option<bool>("--append", "-a") { Description = "Append to existing content" };
-        var forceOpt = new Option<bool>("--force", "--overwrite", "-f") { Description = "Overwrite existing content" };
+        var inputArg = new Argument<FileSystemInfo[]>("in")
+        {
+            Description = "Input files or paths",
+            Arity = ArgumentArity.OneOrMore
+        }.AcceptLegalFilePathsOnly();
+        var inputTypeOpt = new Option<ContentGeneratorInputType?>("--input-type", "-t")
+        {
+            Description = "Type of input (derived from extension if not specified)"
+        };
+        var outputOpt = new Option<FileInfo>("--out", "-o")
+        {
+            Description = "Output file path"
+        }.AcceptLegalFilePathsOnly();
+        var appendOpt = new Option<bool>("--append", "-a")
+        {
+            Description = "Append to existing content"
+        };
+        var forceOpt = new Option<bool>("--force", "--overwrite", "-f")
+        {
+            Description = "Overwrite existing content"
+        };
+
         var command = new Command("generate", "Generate tandoku content from various input formats")
         {
             inputArg,
@@ -157,9 +178,20 @@ public sealed partial class Program
 
     private static Command CreateExportCommand()
     {
-        var inputArg = new Argument<FileSystemInfo>("in") { Description = "Input file or path" }.AcceptExistingOnly();
-        var outputArg = new Argument<FileInfo>("out") { Description = "Output file path", Arity = ArgumentArity.ZeroOrOne }.AcceptLegalFilePathsOnly();
-        var formatOpt = new Option<ExportFormat>("--format") { Description = "Target file format" };
+        var inputArg = new Argument<FileSystemInfo>("in")
+        {
+            Description = "Input file or path"
+        }.AcceptExistingOnly();
+        var outputArg = new Argument<FileInfo>("out")
+        {
+            Description = "Output file path",
+            Arity = ArgumentArity.ZeroOrOne
+        }.AcceptLegalFilePathsOnly();
+        var formatOpt = new Option<ExportFormat>("--format")
+        {
+            Description = "Target file format"
+        };
+
         var command = new Command("export", "Export content from tandoku library")
         {
             inputArg,

@@ -13,8 +13,15 @@ public sealed partial class Program
 
     private Command CreateSourceImportCommand()
     {
-        var pathsArgument = new Argument<FileSystemInfo[]>("paths") { Description = "Paths of files or directories to import as sources", Arity = ArgumentArity.OneOrMore }.AcceptLegalFilePathsOnly();
-        var fileNameOption = new Option<string>("--filename", "-n") { Description = "File name to use in volume sources directory" }.AcceptLegalFileNamesOnly();
+        var pathsArgument = new Argument<FileSystemInfo[]>("paths")
+        {
+            Description = "Paths of files or directories to import as sources",
+            Arity = ArgumentArity.OneOrMore,
+        }.AcceptLegalFilePathsOnly();
+        var fileNameOption = new Option<string>("--filename", "-n")
+        {
+            Description = "File name to use in volume sources directory",
+        }.AcceptLegalFileNamesOnly();
         var volumeBinder = this.CreateVolumeBinder();
 
         var command = new Command("import", "Imports files from the specified paths as sources for the current or specified volume")

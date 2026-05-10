@@ -21,8 +21,16 @@ public sealed partial class Program
     private Command CreateContentIndexCommand()
     {
         // TODO - move Description and other property setters to their own lines throughout
-        var pathArgument = new Argument<DirectoryInfo>("path") { Description = "Path of content directory to index", Arity = ArgumentArity.ExactlyOne }.AcceptLegalFilePathsOnly();
-        var indexPathOption = new Option<DirectoryInfo>("--index-path") { Description = "Path of the index to build", Required = true }.AcceptLegalFilePathsOnly();
+        var pathArgument = new Argument<DirectoryInfo>("path")
+        {
+            Description = "Path of content directory to index",
+            Arity = ArgumentArity.ExactlyOne
+        }.AcceptLegalFilePathsOnly();
+        var indexPathOption = new Option<DirectoryInfo>("--index-path")
+        {
+            Description = "Path of the index to build",
+            Required = true
+        }.AcceptLegalFilePathsOnly();
 
         var command = new Command("index", "Indexes the specified content")
         {
@@ -45,22 +53,33 @@ public sealed partial class Program
 
     private Command CreateContentSearchCommand()
     {
-        var searchQueryArgument = new Argument<string[]>("search-query") { Description = "Terms or phrase to search for", Arity = ArgumentArity.OneOrMore };
-        var maxHitsOption = new Option<int>("--max-hits", "-n") { Description = "Maximum number of results to return" };
-        var indexPathOption = new Option<DirectoryInfo>("--index-path") { Description = "Path of the index to use", Required = true }.AcceptLegalFilePathsOnly();
+        var searchQueryArgument = new Argument<string[]>("search-query")
+        {
+            Description = "Terms or phrase to search for",
+            Arity = ArgumentArity.OneOrMore
+        };
+        var indexPathOption = new Option<DirectoryInfo>("--index-path")
+        {
+            Description = "Path of the index to use",
+            Required = true
+        }.AcceptLegalFilePathsOnly();
+        var maxHitsOption = new Option<int>("--max-hits", "-n")
+        {
+            Description = "Maximum number of results to return"
+        };
 
         var command = new Command("search", "Searches the specified content index")
         {
             searchQueryArgument,
-            maxHitsOption,
             indexPathOption,
+            maxHitsOption,
         };
 
         command.SetAction(async (parseResult, ct) =>
         {
-            var searchQuery = parseResult.GetValue(searchQueryArgument)!;
+            var searchQuery = parseResult.GetRequiredValue(searchQueryArgument)!;
+            var indexPath = parseResult.GetRequiredValue(indexPathOption)!;
             var maxHits = parseResult.GetValue(maxHitsOption);
-            var indexPath = parseResult.GetValue(indexPathOption)!;
 
             var indexSearcher = new ContentIndexSearcher(this.fileSystem);
             var matchedBlockCount = 0;
@@ -77,10 +96,18 @@ public sealed partial class Program
 
     private Command CreateContentLinkCommand()
     {
-        var inputPathArgument = new Argument<DirectoryInfo>("input-path") { Description = "Path of input content directory", Arity = ArgumentArity.ExactlyOne }.AcceptLegalFilePathsOnly();
-        var outputPathArgument = new Argument<DirectoryInfo>("output-path") { Description = "Path of output content directory", Arity = ArgumentArity.ExactlyOne }.AcceptLegalFilePathsOnly();
-        var indexPathOption = new Option<DirectoryInfo>("--index-path") { Description = "Path of the index to use", Required = true }.AcceptLegalFilePathsOnly();
-        var linkNameOption = new Option<string>("--link-name") { Description = "Name of the link", Required = true };
+        var inputPathArgument = ArgumentFactory.InputPath();
+        var outputPathArgument = ArgumentFactory.OutputPath();
+        var indexPathOption = new Option<DirectoryInfo>("--index-path")
+        {
+            Description = "Path of the index to use",
+            Required = true
+        }.AcceptLegalFilePathsOnly();
+        var linkNameOption = new Option<string>("--link-name")
+        {
+            Description = "Name of the link",
+            Required = true
+        };
 
         var command = new Command("link", "Links the specified content to content in linked volumes")
         {
@@ -107,11 +134,23 @@ public sealed partial class Program
 
     private Command CreateContentMergeCommand()
     {
-        var inputPathArgument = new Argument<DirectoryInfo>("input-path") { Description = "Path of input content directory", Arity = ArgumentArity.ExactlyOne }.AcceptLegalFilePathsOnly();
-        var refPathArgument = new Argument<DirectoryInfo>("ref-path") { Description = "Path of reference content directory", Arity = ArgumentArity.ExactlyOne }.AcceptLegalFilePathsOnly();
-        var outputPathArgument = new Argument<DirectoryInfo>("output-path") { Description = "Path of output content directory", Arity = ArgumentArity.ExactlyOne }.AcceptLegalFilePathsOnly();
-        var alignOption = new Option<ContentAlignmentKind>("--align") { Description = "Alignment algorithm", Required = true };
-        var refNameOption = new Option<string>("--ref", "--reference-name") { Description = "Name of reference in merged content", Required = true };
+        var inputPathArgument = ArgumentFactory.InputPath();
+        var refPathArgument = new Argument<DirectoryInfo>("ref-path")
+        {
+            Description = "Path of reference content directory",
+            Arity = ArgumentArity.ExactlyOne
+        }.AcceptLegalFilePathsOnly();
+        var outputPathArgument = ArgumentFactory.OutputPath();
+        var alignOption = new Option<ContentAlignmentKind>("--align")
+        {
+            Description = "Alignment algorithm",
+            Required = true
+        };
+        var refNameOption = new Option<string>("--ref", "--reference-name")
+        {
+            Description = "Name of reference in merged content",
+            Required = true
+        };
 
         var command = new Command("merge", "Merges the specified content with reference content")
         {
