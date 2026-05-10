@@ -1,6 +1,6 @@
 ﻿result: 0
 error: ""
-out: |
+out: |+
   path: {CurrentDirectory}sample volume
   slug: sample volume
   version:

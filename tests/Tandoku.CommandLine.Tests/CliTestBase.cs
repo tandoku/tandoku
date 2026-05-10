@@ -50,8 +50,8 @@ public abstract class CliTestBase
 
         return new ConsoleTestOutput(
             result,
-            this.errorWriter.ToString(),
-            this.outputWriter.ToString());
+            this.errorWriter.ToString()?.TrimEnd(),
+            this.outputWriter.ToString()?.TrimEnd());
     }
 
     protected async Task RunAndVerifyAsync(string commandLine, bool jsonOutput = false)

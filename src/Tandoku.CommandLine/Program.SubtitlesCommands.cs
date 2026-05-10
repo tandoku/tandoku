@@ -15,19 +15,21 @@ public sealed partial class Program
 
     private Command CreateSubtitlesGenerateContentCommand()
     {
-        var pathArgsBinder = new InputOutputPathArgsBinder();
+        var inputPathArgument = ArgumentFactory.InputPath();
+        var outputPathArgument = ArgumentFactory.OutputPath();
 
         var command = new Command("generate-content", "Generates tandoku content from subtitles")
         {
-            pathArgsBinder,
+            inputPathArgument,
+            outputPathArgument,
         };
 
         command.SetAction(async (parseResult, ct) =>
         {
-            var pathArgs = parseResult.GetValue(pathArgsBinder);
+            var (inputPath, outputPath) = parseResult.GetRequiredValues(inputPathArgument, outputPathArgument);
             var generator = new SubtitleContentGenerator(
-                pathArgs.InputPath.FullName,
-                pathArgs.OutputPath.FullName,
+                inputPath.FullName,
+                outputPath.FullName,
                 this.fileSystem);
             await generator.GenerateContentAsync();
         });
@@ -37,14 +39,25 @@ public sealed partial class Program
 
     private Command CreateSubtitlesGenerateCommand()
     {
-        var pathArgsBinder = new InputOutputPathArgsBinder();
-        var purposeOption = new Option<SubtitlePurpose>("--purpose") { Description = "Purpose of generated subtitles" };
-        var includeRefOption = new Option<string?>("--include-ref") { Description = "Include subtitles for blocks with the specified reference" };
-        var extendAudioOption = new Option<int>("--extend-audio") { Description = "Extend audio clips by specified duration (in msecs)" };
+        var inputPathArgument = ArgumentFactory.InputPath();
+        var outputPathArgument = ArgumentFactory.OutputPath();
+        var purposeOption = new Option<SubtitlePurpose>("--purpose")
+        {
+            Description = "Purpose of generated subtitles"
+        };
+        var includeRefOption = new Option<string?>("--include-ref")
+        {
+            Description = "Include subtitles for blocks with the specified reference"
+        };
+        var extendAudioOption = new Option<int>("--extend-audio")
+        {
+            Description = "Extend audio clips by specified duration (in msecs)"
+        };
 
         var command = new Command("generate", "Generates subtitles from tandoku content")
         {
-            pathArgsBinder,
+            inputPathArgument,
+            outputPathArgument,
             purposeOption,
             includeRefOption,
             extendAudioOption,
@@ -52,10 +65,11 @@ public sealed partial class Program
 
         command.SetAction(async (parseResult, ct) =>
         {
-            var (pathArgs, purpose, includeRef, extendAudio) = parseResult.GetValues(pathArgsBinder, purposeOption, includeRefOption, extendAudioOption);
+            var (inputPath, outputPath) = parseResult.GetRequiredValues(inputPathArgument, outputPathArgument);
+            var (purpose, includeRef, extendAudio) = parseResult.GetValues(purposeOption, includeRefOption, extendAudioOption);
 
             var generator = new SubtitleGenerator(purpose, includeRef, extendAudio, this.fileSystem);
-            await generator.GenerateAsync(pathArgs.InputPath.FullName, pathArgs.OutputPath.FullName);
+            await generator.GenerateAsync(inputPath.FullName, outputPath.FullName);
         });
 
         return command;
@@ -63,19 +77,21 @@ public sealed partial class Program
 
     private Command CreateSubtitlesTtmlToWebVttCommand()
     {
-        var pathArgsBinder = new InputOutputPathArgsBinder();
+        var inputPathArgument = ArgumentFactory.InputPath();
+        var outputPathArgument = ArgumentFactory.OutputPath();
 
         var command = new Command("ttml-to-webvtt", "Converts TTML subtitles to WebVTT format")
         {
-            pathArgsBinder,
+            inputPathArgument,
+            outputPathArgument,
         };
 
         command.SetAction(async (parseResult, ct) =>
         {
-            var pathArgs = parseResult.GetValue(pathArgsBinder);
+            var (inputPath, outputPath) = parseResult.GetRequiredValues(inputPathArgument, outputPathArgument);
             var converter = new TtmlToWebVttConverter(
-                pathArgs.InputPath.FullName,
-                pathArgs.OutputPath.FullName,
+                inputPath.FullName,
+                outputPath.FullName,
                 this.fileSystem);
             await converter.ConvertAsync();
         });

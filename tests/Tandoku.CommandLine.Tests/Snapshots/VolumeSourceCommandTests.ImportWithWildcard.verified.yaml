@@ -1,5 +1,5 @@
 ﻿result: 0
 error: ""
-out: |
+out: |-
   Added {CurrentDirectory}sample-volume/source/source1.txt
   Added {CurrentDirectory}sample-volume/source/source2.txt

@@ -3,6 +3,7 @@
 using System.CommandLine;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using Nikse.SubtitleEdit.Core.SubtitleFormats;
 
 // TODO - consider renaming this, post-System.CommandLine 2.0 stable refactoring it's really just a helper
 // for collecting multiple common arguments/options rather than a "Binder" anymore
@@ -26,6 +27,32 @@ internal interface ICommandBinder<T>
     T Resolve(ParseResult parseResult);
 }
 
+// TODO: use union type after upgrading to .NET 11
+internal readonly struct Parameter<T>
+{
+    private readonly object? value;
+
+    public Parameter(Argument<T> argument) => this.value = argument;
+    public Parameter(Option<T> option) => this.value = option;
+
+    public T GetRequiredValue(ParseResult parseResult) => this.value switch
+    {
+        Argument<T> argument => parseResult.GetRequiredValue(argument),
+        Option<T> option => parseResult.GetRequiredValue(option),
+        _ => throw new InvalidOperationException($"Cannot call {nameof(GetValue)} on a default instance of {nameof(Parameter<>)}."),
+    };
+
+    public T? GetValue(ParseResult parseResult) => this.value switch
+    {
+        Argument<T> argument => parseResult.GetValue(argument),
+        Option<T> option => parseResult.GetValue(option),
+        _ => throw new InvalidOperationException($"Cannot call {nameof(GetValue)} on a default instance of {nameof(Parameter<>)}."),
+    };
+
+    public static implicit operator Parameter<T>(Argument<T> argument) => new(argument);
+    public static implicit operator Parameter<T>(Option<T> option) => new(option);
+}
+
 internal static class CommandLineExtensions
 {
     private const string NullOutputString = "<none>";
@@ -37,70 +64,30 @@ internal static class CommandLineExtensions
     };
 
     internal static void Add<T>(this Command command, ICommandBinder<T> binder) => binder.AddToCommand(command);
-
     internal static T GetValue<T>(this ParseResult parseResult, ICommandBinder<T> binder) => binder.Resolve(parseResult);
 
-    // TODO - introduce Parameter<T> union type and reduce to 5 overloads for 2-6 parameters
-    // Depends on result of https://github.com/dotnet/csharplang/discussions/10164
-    internal static (T1, T2) GetValues<T1, T2>(
+    // TODO - consider unifying these Argument/Option overloads with a Parameter<T> union type
+    // Only worth doing this if case-to-union conversions participate in type inference
+    // (as of .NET 11 Preview 3 they do not) - see https://github.com/dotnet/csharplang/discussions/9663#discussioncomment-16811915
+
+    internal static (T1, T2) GetRequiredValues<T1, T2>(
         this ParseResult parseResult,
-        ICommandBinder<T1> binder1,
+        Argument<T1> arg1,
+        Argument<T2> arg2) =>
+        (parseResult.GetRequiredValue(arg1), parseResult.GetRequiredValue(arg2));
+
+    internal static (T1?, T2?) GetValues<T1, T2>(
+        this ParseResult parseResult,
+        Option<T1> option1,
         Option<T2> option2) =>
-        (binder1.Resolve(parseResult), parseResult.GetValue(option2));
+        (parseResult.GetValue(option1), parseResult.GetValue(option2));
 
-    internal static (T1, T2) GetValues<T1, T2>(
+    internal static (T1?, T2?, T3?) GetValues<T1, T2, T3>(
         this ParseResult parseResult,
-        ICommandBinder<T1> binder1,
-        ICommandBinder<T2> binder2) =>
-        (binder1.Resolve(parseResult), binder2.Resolve(parseResult));
-
-    internal static (T1, T2, T3) GetValues<T1, T2, T3>(
-        this ParseResult parseResult,
-        ICommandBinder<T1> binder1,
+        Option<T1> option1,
         Option<T2> option2,
         Option<T3> option3) =>
-        (binder1.Resolve(parseResult), parseResult.GetValue(option2), parseResult.GetValue(option3));
-
-    internal static (T1, T2, T3) GetValues<T1, T2, T3>(
-        this ParseResult parseResult,
-        ICommandBinder<T1> binder1,
-        Option<T2> option2,
-        ICommandBinder<T3> binder3) =>
-        (binder1.Resolve(parseResult), parseResult.GetValue(option2), binder3.Resolve(parseResult));
-
-    internal static (T1, T2, T3, T4) GetValues<T1, T2, T3, T4>(
-        this ParseResult parseResult,
-        ICommandBinder<T1> binder1,
-        Option<T2> option2,
-        Option<T3> option3,
-        Option<T4> option4) =>
-        (binder1.Resolve(parseResult), parseResult.GetValue(option2), parseResult.GetValue(option3), parseResult.GetValue(option4));
-
-    internal static (T1, T2, T3, T4) GetValues<T1, T2, T3, T4>(
-        this ParseResult parseResult,
-        ICommandBinder<T1> binder1,
-        Option<T2> option2,
-        Option<T3> option3,
-        ICommandBinder<T4> binder4) =>
-        (binder1.Resolve(parseResult), parseResult.GetValue(option2), parseResult.GetValue(option3), binder4.Resolve(parseResult));
-
-    internal static (T1, T2, T3, T4, T5) GetValues<T1, T2, T3, T4, T5>(
-        this ParseResult parseResult,
-        ICommandBinder<T1> binder1,
-        Option<T2> option2,
-        Option<T3> option3,
-        Option<T4> option4,
-        Option<T5> option5) =>
-        (binder1.Resolve(parseResult), parseResult.GetValue(option2), parseResult.GetValue(option3), parseResult.GetValue(option4), parseResult.GetValue(option5));
-
-    internal static (T1, T2, T3, T4, T5) GetValues<T1, T2, T3, T4, T5>(
-        this ParseResult parseResult,
-        ICommandBinder<T1> binder1,
-        Option<T2> option2,
-        Option<T3> option3,
-        Option<T4> option4,
-        ICommandBinder<T5> binder5) =>
-        (binder1.Resolve(parseResult), parseResult.GetValue(option2), parseResult.GetValue(option3), parseResult.GetValue(option4), binder5.Resolve(parseResult));
+        (parseResult.GetValue(option1), parseResult.GetValue(option2), parseResult.GetValue(option3));
 
     internal static void WriteJsonOutput(this TextWriter writer, object obj)
     {

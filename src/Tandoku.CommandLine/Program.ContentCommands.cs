@@ -166,22 +166,26 @@ public sealed partial class Program
 
         private Command CreateRemoveNonJapaneseTextCommand()
         {
-            var pathArgsBinder = new InputOutputPathArgsBinder();
+            var inputPathArgument = ArgumentFactory.InputPath();
+            var outputPathArgument = ArgumentFactory.OutputPath();
             var roleOption = EnumOption.CreateNullable<ChunkRole>("--role", "-r");
             roleOption.Description = "Only remove chunks with the specified role";
 
             var command = new Command("remove-non-japanese-text", "Removes chunks without any Japanese text")
             {
-                pathArgsBinder,
+                inputPathArgument,
+                outputPathArgument,
                 roleOption,
             };
 
             command.SetAction(async (parseResult, ct) =>
             {
-                var (pathArgs, role) = parseResult.GetValues(pathArgsBinder, roleOption);
+                var (inputPath, outputPath) = parseResult.GetRequiredValues(inputPathArgument, outputPathArgument);
+                var role = parseResult.GetValue(roleOption);
 
                 await this.RunContentTransformAsync(
-                    pathArgs,
+                    inputPath,
+                    outputPath,
                     t => t.TransformAsync(new RemoveNonJapaneseTextTransform(role)));
             });
 
@@ -192,7 +196,8 @@ public sealed partial class Program
         {
             const double DefaultConfidenceThreshold = 0.8;
 
-            var pathArgsBinder = new InputOutputPathArgsBinder();
+            var inputPathArgument = ArgumentFactory.InputPath();
+            var outputPathArgument = ArgumentFactory.OutputPath();
             var confidenceThresholdOption = new Option<double>("--confidence-threshold", "--confidence", "-c")
             {
                 Description = "Confidence threshold for text to retain from image segments",
@@ -201,16 +206,19 @@ public sealed partial class Program
 
             var command = new Command("remove-low-confidence-text", "Removes text from low confidence image segments")
             {
-                pathArgsBinder,
+                inputPathArgument,
+                outputPathArgument,
                 confidenceThresholdOption,
             };
 
             command.SetAction(async (parseResult, ct) =>
             {
-                var (pathArgs, confidenceThreshold) = parseResult.GetValues(pathArgsBinder, confidenceThresholdOption);
+                var (inputPath, outputPath) = parseResult.GetRequiredValues(inputPathArgument, outputPathArgument);
+                var confidenceThreshold = parseResult.GetValue(confidenceThresholdOption);
 
                 await this.RunContentTransformAsync(
-                    pathArgs,
+                    inputPath,
+                    outputPath,
                     t => t.TransformAsync(new RemoveLowConfidenceTextTransform(confidenceThreshold)));
             });
 
@@ -219,14 +227,26 @@ public sealed partial class Program
 
         private Command CreateImportMediaCommand()
         {
-            var pathArgsBinder = new InputOutputPathArgsBinder();
-            var mediaPathOption = new Option<DirectoryInfo>("--media-path") { Description = "Path of the media", Required = true }.AcceptLegalFilePathsOnly();
-            var imagePrefixOption = new Option<string?>("--image-prefix") { Description = "Prefix to include for image names" };
-            var audioPrefixOption = new Option<string?>("--audio-prefix") { Description = "Prefix to include for audio names" };
+            var inputPathArgument = ArgumentFactory.InputPath();
+            var outputPathArgument = ArgumentFactory.OutputPath();
+            var mediaPathOption = new Option<DirectoryInfo>("--media-path")
+            {
+                Description = "Path of the media",
+                Required = true
+            }.AcceptLegalFilePathsOnly();
+            var imagePrefixOption = new Option<string?>("--image-prefix")
+            {
+                Description = "Prefix to include for image names"
+            };
+            var audioPrefixOption = new Option<string?>("--audio-prefix")
+            {
+                Description = "Prefix to include for audio names"
+            };
 
             var command = new Command("import-media", "Imports media from the specified path into the content")
             {
-                pathArgsBinder,
+                inputPathArgument,
+                outputPathArgument,
                 mediaPathOption,
                 imagePrefixOption,
                 audioPrefixOption,
@@ -234,7 +254,9 @@ public sealed partial class Program
 
             command.SetAction(async (parseResult, ct) =>
             {
-                var (pathArgs, mediaPath, imagePrefix, audioPrefix) = parseResult.GetValues(pathArgsBinder, mediaPathOption, imagePrefixOption, audioPrefixOption);
+                var (inputPath, outputPath) = parseResult.GetRequiredValues(inputPathArgument, outputPathArgument);
+                var mediaPath = parseResult.GetRequiredValue(mediaPathOption);
+                var (imagePrefix, audioPrefix) = parseResult.GetValues(imagePrefixOption, audioPrefixOption);
                 var jsonOutput = parseResult.GetValue(program.jsonOutputOption);
 
                 var mediaCollection = new MediaCollection();
@@ -246,7 +268,8 @@ public sealed partial class Program
                     program.fileSystem);
 
                 await this.RunContentTransformAsync(
-                    pathArgs,
+                    inputPath,
+                    outputPath,
                     t => t.TransformAsync(transform));
 
                 if (jsonOutput)
@@ -264,15 +287,21 @@ public sealed partial class Program
 
         private Command CreateImportImageTextCommand()
         {
-            var pathArgsBinder = new InputOutputPathArgsBinder();
-            var providerOption = new Option<ImageAnalysisProvider>("--provider", "-p") { Description = "Image analysis provider", Required = true };
+            var inputPathArgument = ArgumentFactory.InputPath();
+            var outputPathArgument = ArgumentFactory.OutputPath();
+            var providerOption = new Option<ImageAnalysisProvider>("--provider", "-p")
+            {
+                Description = "Image analysis provider",
+                Required = true
+            };
             var roleOption = EnumOption.CreateNullable<ChunkRole>("--role", "-r");
             roleOption.Description = "Sets the specified role on recognized text";
             var volumeBinder = program.CreateVolumeBinder();
 
             var command = new Command("import-image-text", "Imports analyzed image text into the content")
             {
-                pathArgsBinder,
+                inputPathArgument,
+                outputPathArgument,
                 providerOption,
                 roleOption,
                 volumeBinder,
@@ -280,7 +309,9 @@ public sealed partial class Program
 
             command.SetAction(async (parseResult, ct) =>
             {
-                var (pathArgs, provider, role, volumeDirectory) = parseResult.GetValues(pathArgsBinder, providerOption, roleOption, volumeBinder);
+                var (inputPath, outputPath) = parseResult.GetRequiredValues(inputPathArgument, outputPathArgument);
+                var (provider, role) = parseResult.GetValues(providerOption, roleOption);
+                var volumeDirectory = volumeBinder.Resolve(parseResult);
 
                 var volumeManager = program.CreateVolumeManager();
                 var volumeInfo = await volumeManager.GetInfoAsync(volumeDirectory.FullName);
@@ -288,7 +319,8 @@ public sealed partial class Program
                 var transform = new ImportImageTextTransform(analyisProvider, volumeInfo, role, program.fileSystem);
 
                 await this.RunContentTransformAsync(
-                    pathArgs,
+                    inputPath,
+                    outputPath,
                     t => t.TransformAsync(transform));
             });
 
@@ -297,27 +329,30 @@ public sealed partial class Program
 
         private Command CreateMergeRefChunksCommand()
         {
-            var pathArgsBinder = new InputOutputPathArgsBinder();
+            var inputPathArgument = ArgumentFactory.InputPath();
+            var outputPathArgument = ArgumentFactory.OutputPath();
 
             var command = new Command("merge-ref-chunks", "Merges reference chunks into following chunks")
             {
-                pathArgsBinder,
+                inputPathArgument,
+                outputPathArgument,
             };
 
             command.SetAction(async (parseResult, ct) =>
             {
-                var pathArgs = parseResult.GetValue(pathArgsBinder);
+                var (inputPath, outputPath) = parseResult.GetRequiredValues(inputPathArgument, outputPathArgument);
 
                 await this.RunContentTransformAsync(
-                    pathArgs,
+                    inputPath,
+                    outputPath,
                     t => t.TransformAsync(new MergeRefChunksTransform()));
             });
 
             return command;
         }
 
-        private Task RunContentTransformAsync(InputOutputPathArgs args, Func<ContentTransformer, Task> transform) =>
-            transform(new ContentTransformer(args.InputPath.FullName, args.OutputPath.FullName, program.fileSystem));
+        private Task RunContentTransformAsync(DirectoryInfo inputPath, DirectoryInfo outputPath, Func<ContentTransformer, Task> transform) =>
+            transform(new ContentTransformer(inputPath.FullName, outputPath.FullName, program.fileSystem));
 
         private static IImageAnalysisProvider CreateImageAnalysisProvider(ImageAnalysisProvider provider) =>
             provider switch

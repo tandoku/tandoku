@@ -1,6 +1,6 @@
 ﻿result: 0
 error: ""
-out: |
+out: |-
   Path: {CurrentDirectory}sample volume
   Version: 0.1.0
   Definition path: {CurrentDirectory}sample volume/volume.yaml
@@ -8,4 +8,4 @@ out: |
   Moniker: <none>
   Language: ja
   Tags: <none>
-  Workflow: 
+  Workflow:

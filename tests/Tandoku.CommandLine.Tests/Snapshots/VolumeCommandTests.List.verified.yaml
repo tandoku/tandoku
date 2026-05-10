@@ -1,6 +1,6 @@
 ﻿result: 0
 error: ""
-out: |
+out: |-
   volume1	{CurrentDirectory}volume1
   volume2	{CurrentDirectory}volume2
   nested-volume	{CurrentDirectory}nested/nested-volume
