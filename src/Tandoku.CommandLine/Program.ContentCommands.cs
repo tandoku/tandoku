@@ -168,8 +168,10 @@ public sealed partial class Program
         {
             var inputPathArgument = ArgumentFactory.InputPath();
             var outputPathArgument = ArgumentFactory.OutputPath();
-            var roleOption = EnumOption.CreateNullable<ChunkRole>("--role", "-r");
-            roleOption.Description = "Only remove chunks with the specified role";
+            var roleOption = new NullableEnumOption<ChunkRole>("--role", "-r")
+            {
+                Description = "Only remove chunks with the specified role",
+            };
 
             var command = new Command("remove-non-japanese-text", "Removes chunks without any Japanese text")
             {
@@ -294,8 +296,10 @@ public sealed partial class Program
                 Description = "Image analysis provider",
                 Required = true
             };
-            var roleOption = EnumOption.CreateNullable<ChunkRole>("--role", "-r");
-            roleOption.Description = "Sets the specified role on recognized text";
+            var roleOption = new NullableEnumOption<ChunkRole>("--role", "-r")
+            {
+                Description = "Sets the specified role on recognized text",
+            };
             var volumeBinder = program.CreateVolumeBinder();
 
             var command = new Command("import-image-text", "Imports analyzed image text into the content")
@@ -311,7 +315,7 @@ public sealed partial class Program
             {
                 var (inputPath, outputPath) = parseResult.GetRequiredValues(inputPathArgument, outputPathArgument);
                 var (provider, role) = parseResult.GetValues(providerOption, roleOption);
-                var volumeDirectory = volumeBinder.Resolve(parseResult);
+                var volumeDirectory = parseResult.GetValue(volumeBinder);
 
                 var volumeManager = program.CreateVolumeManager();
                 var volumeInfo = await volumeManager.GetInfoAsync(volumeDirectory.FullName);
