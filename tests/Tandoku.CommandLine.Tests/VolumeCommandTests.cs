@@ -138,6 +138,29 @@ tags: [tag1, tag2]");
         await this.RunAndVerifyAsync("volume set invalid-property some-value");
     }
 
+    [Test]
+    public async Task Rename_RenamesVolumeDirectory()
+    {
+        var info = await this.SetupVolume(title: "old-title", changeCurrentDirectory: true);
+        await this.CreateVolumeManager().SetDefinitionAsync(info.Path, info.Definition with { Title = "new-title" });
+
+        await this.RunAndAssertAsync(
+            "volume rename",
+            $"Renamed {info.Path} to {this.ToFullPath("new-title")}");
+
+        this.fileSystem.Directory.Exists(this.ToFullPath("new-title")).Should().BeTrue();
+    }
+
+    [Test]
+    public async Task Rename_NoChange_ReportsSameName()
+    {
+        await this.SetupVolume(title: "stable-title", changeCurrentDirectory: true);
+
+        await this.RunAndAssertAsync(
+            "volume rename",
+            "Renamed stable-title to stable-title");
+    }
+
     // TODO: add tests for tandoku volume rename
 
     [Test]
