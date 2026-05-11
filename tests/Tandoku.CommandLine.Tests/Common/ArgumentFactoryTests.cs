@@ -13,7 +13,7 @@ public class ArgumentFactoryTests
 
         var result = cmd.Parse("some/path");
         result.Errors.Should().BeEmpty();
-        result.GetValue(arg)!.Name.Should().Be("path");
+        result.GetRequiredValue(arg).Name.Should().Be("path");
     }
 
     [Test]
@@ -24,7 +24,7 @@ public class ArgumentFactoryTests
 
         var result = cmd.Parse("out");
         result.Errors.Should().BeEmpty();
-        result.GetValue(arg)!.Name.Should().Be("out");
+        result.GetRequiredValue(arg).Name.Should().Be("out");
     }
 
     [Test]
