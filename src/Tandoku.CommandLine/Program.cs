@@ -160,7 +160,7 @@ public sealed partial class Program
         };
         command.SetAction(parseResult =>
         {
-            var @in = parseResult.GetValue(inputArg);
+            var @in = parseResult.GetRequiredValue(inputArg);
             var inputType = parseResult.GetValue(inputTypeOpt);
             var @out = parseResult.GetValue(outputOpt);
             var append = parseResult.GetValue(appendOpt);
@@ -170,7 +170,7 @@ public sealed partial class Program
             var outputBehavior = append ? ContentOutputBehavior.Append :
                 force ? ContentOutputBehavior.Overwrite :
                 ContentOutputBehavior.None;
-            var outPath = generator.Generate(@in!.Select(i => i.FullName), inputType, @out?.FullName, outputBehavior);
+            var outPath = generator.Generate(@in.Select(i => i.FullName), inputType, @out?.FullName, outputBehavior);
             Console.WriteLine($"Generated {outPath}");
         });
         return command;
@@ -200,12 +200,12 @@ public sealed partial class Program
         };
         command.SetAction(parseResult =>
         {
-            var @in = parseResult.GetValue(inputArg);
+            var @in = parseResult.GetRequiredValue(inputArg);
             var @out = parseResult.GetValue(outputArg);
             var format = parseResult.GetValue(formatOpt);
 
             var exporter = new Exporter();
-            var outPath = exporter.Export(@in!.FullName, @out?.FullName, format);
+            var outPath = exporter.Export(@in.FullName, @out?.FullName, format);
             Console.WriteLine($"Exported {outPath}");
         });
         return command;

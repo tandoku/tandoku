@@ -119,8 +119,7 @@ public sealed partial class Program
         command.SetAction(async (parseResult, ct) =>
         {
             var (inputPath, outputPath) = parseResult.GetRequiredValues(inputPathArgument, outputPathArgument);
-            var indexPath = parseResult.GetRequiredValue(indexPathOption);
-            var linkName = parseResult.GetRequiredValue(linkNameOption);
+            var (indexPath, linkName) = parseResult.GetRequiredValues(indexPathOption, linkNameOption);
 
             var linker = new ContentLinker(this.fileSystem);
             var stats = await linker.LinkAsync(inputPath.FullName, outputPath.FullName, indexPath.FullName, linkName);
@@ -300,7 +299,7 @@ public sealed partial class Program
 
                 var mediaCollection = new MediaCollection();
                 var transform = new ImportMediaTransform(
-                    mediaPath!.FullName,
+                    mediaPath.FullName,
                     imagePrefix,
                     audioPrefix,
                     mediaCollection,
