@@ -161,8 +161,6 @@ tags: [tag1, tag2]");
             "Renamed stable-title to stable-title");
     }
 
-    // TODO: add tests for tandoku volume rename
-
     [Test]
     [Arguments(null)]
     [Arguments(".")]
