@@ -7,8 +7,21 @@ using Lucene.Net.Index;
 using Lucene.Net.Search;
 using Lucene.Net.Store;
 
-public sealed class ContentIndexSearcher(IFileSystem? fileSystem = null)
+public sealed class ContentIndexSearcher
 {
+    private readonly ILuceneDirectoryFactory directoryFactory;
+
+    public ContentIndexSearcher(IFileSystem? fileSystem = null)
+        : this(fileSystem, directoryFactory: null)
+    {
+    }
+
+    internal ContentIndexSearcher(IFileSystem? fileSystem, ILuceneDirectoryFactory? directoryFactory)
+    {
+        _ = fileSystem; // currently unused; reserved for future use
+        this.directoryFactory = directoryFactory ?? FSDirectoryFactory.Instance;
+    }
+
     public async IAsyncEnumerable<ContentBlock> FindBlocksAsync(
         string searchQuery,
         string indexPath,
@@ -18,8 +31,7 @@ public sealed class ContentIndexSearcher(IFileSystem? fileSystem = null)
 
         // TODO: refactor to share this with ContentLinker
 
-        // TODO: add LuceneIndexFactory abstraction that wraps Directory implementation for unit testing
-        using var indexDir = FSDirectory.Open(indexPath);
+        using var indexDir = this.directoryFactory.Open(indexPath);
         using var indexReader = DirectoryReader.Open(indexDir);
         var searcher = new IndexSearcher(indexReader);
         var analyzer = LuceneFactory.CreateAnalyzer();

@@ -7,16 +7,29 @@ using Lucene.Net.Index;
 using Lucene.Net.Search;
 using Lucene.Net.Store;
 
-public sealed class ContentLinker(IFileSystem? fileSystem = null)
+public sealed class ContentLinker
 {
+    private readonly IFileSystem fileSystem;
+    private readonly ILuceneDirectoryFactory directoryFactory;
+
+    public ContentLinker(IFileSystem? fileSystem = null)
+        : this(fileSystem, directoryFactory: null)
+    {
+    }
+
+    internal ContentLinker(IFileSystem? fileSystem, ILuceneDirectoryFactory? directoryFactory)
+    {
+        this.fileSystem = fileSystem ?? new FileSystem();
+        this.directoryFactory = directoryFactory ?? FSDirectoryFactory.Instance;
+    }
+
     public async Task<(int LinkedBlocks, int TotalBlocks)> LinkAsync(
         string inputPath,
         string outputPath,
         string indexPath,
         string linkName)
     {
-        // TODO: add LuceneIndexFactory abstraction that wraps Directory implementation for unit testing
-        using var indexDir = FSDirectory.Open(indexPath);
+        using var indexDir = this.directoryFactory.Open(indexPath);
         using var indexReader = DirectoryReader.Open(indexDir);
         var searcher = new IndexSearcher(indexReader);
         var analyzer = LuceneFactory.CreateAnalyzer();
@@ -25,7 +38,7 @@ public sealed class ContentLinker(IFileSystem? fileSystem = null)
         int matchedBlocks = 0;
         int unmatchedBlocks = 0;
 
-        var transformer = new ContentTransformer(inputPath, outputPath, fileSystem);
+        var transformer = new ContentTransformer(inputPath, outputPath, this.fileSystem);
         await transformer.TransformAsync(LinkChunk);
 
         return (matchedBlocks, matchedBlocks + unmatchedBlocks);

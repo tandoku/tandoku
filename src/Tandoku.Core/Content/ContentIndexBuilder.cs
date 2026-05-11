@@ -9,16 +9,22 @@ using Tandoku.Serialization;
 public sealed class ContentIndexBuilder
 {
     private readonly IFileSystem fileSystem;
+    private readonly ILuceneDirectoryFactory directoryFactory;
 
     public ContentIndexBuilder(IFileSystem? fileSystem = null)
+        : this(fileSystem, directoryFactory: null)
+    {
+    }
+
+    internal ContentIndexBuilder(IFileSystem? fileSystem, ILuceneDirectoryFactory? directoryFactory)
     {
         this.fileSystem = fileSystem ?? new FileSystem();
-        // TODO: add LuceneIndexFactory abstraction that wraps Directory implementation for unit testing
+        this.directoryFactory = directoryFactory ?? FSDirectoryFactory.Instance;
     }
 
     public async Task BuildAsync(string contentPath, string indexPath)
     {
-        using var indexDir = FSDirectory.Open(indexPath);
+        using var indexDir = this.directoryFactory.Open(indexPath);
         var analyzer = LuceneFactory.CreateAnalyzer();
         var indexConfig = LuceneFactory.CreateIndexWriterConfig(analyzer);
         using var writer = new IndexWriter(indexDir, indexConfig);
