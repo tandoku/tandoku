@@ -3,10 +3,8 @@
     <File Path=".editorconfig" />
     <File Path="tandoku.ruleset" />
   </Folder>
-  <Project Path="src/cli-fx/TandokuCliFx.csproj" Id="1de8f66f-742a-4f97-a6a2-f7edb94c0e12" />
   <Project Path="src/Tandoku.CommandLine/Tandoku.CommandLine.csproj" />
   <Project Path="src/Tandoku.Core/Tandoku.Core.csproj" />
-  <Project Path="src/Tandoku.Reader/Tandoku.Reader.csproj" />
   <Project Path="tests/Tandoku.CommandLine.Tests/Tandoku.CommandLine.Tests.csproj" />
   <Project Path="tests/Tandoku.Core.Tests/Tandoku.Core.Tests.csproj" />
 </Solution>

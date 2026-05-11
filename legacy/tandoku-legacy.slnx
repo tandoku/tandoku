@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="../.editorconfig" />
+    <File Path="../tandoku.ruleset" />
+  </Folder>
+  <Project Path="src/cli-fx/TandokuCliFx.csproj" Id="1de8f66f-742a-4f97-a6a2-f7edb94c0e12" />
+  <Project Path="src/Tandoku.CommandLine.Legacy/Tandoku.CommandLine.Legacy.csproj" />
+  <Project Path="src/Tandoku.Core.Legacy/Tandoku.Core.Legacy.csproj" />
+  <Project Path="src/Tandoku.Reader/Tandoku.Reader.csproj" />
+</Solution>
