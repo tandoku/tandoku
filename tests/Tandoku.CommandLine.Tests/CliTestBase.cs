@@ -63,7 +63,11 @@ public abstract class CliTestBase
             {
                 // TODO: consider adding scrubbers to handle JSON encoded strings instead of converting JSON to YAML
                 var deserializer = new Deserializer();
-                var serializer = new Serializer();
+                // Override the default YAML line break (Environment.NewLine) to ensure
+                // consistent snapshot output across platforms (otherwise CRLF on Windows
+                // causes the outer YAML literal block to use the |+ chomping indicator
+                // instead of | as on Linux/macOS).
+                var serializer = new SerializerBuilder().WithNewLine("\n").Build();
                 var o = deserializer.Deserialize(new StringReader(output.Out));
                 output = output with { Out = serializer.Serialize(o) };
             }
