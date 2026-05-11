@@ -12,8 +12,10 @@ public sealed class ContentIndexSearcher(IFileSystem? fileSystem = null)
     public async IAsyncEnumerable<ContentBlock> FindBlocksAsync(
         string searchQuery,
         string indexPath,
-        int maxHits = 100)
+        int? maxHits = null)
     {
+        var maxHitsValue = maxHits ?? 100;
+
         // TODO: refactor to share this with ContentLinker
 
         // TODO: add LuceneIndexFactory abstraction that wraps Directory implementation for unit testing
@@ -25,7 +27,7 @@ public sealed class ContentIndexSearcher(IFileSystem? fileSystem = null)
 
         // Try exact phrase match first...
         var query = queryParser.Parse(@$"""{searchQuery}""");
-        var hits = searcher.Search(query, maxHits);
+        var hits = searcher.Search(query, maxHitsValue);
         if (hits.TotalHits == 0)
         {
             // ... but fall back to token match if no hits
@@ -39,7 +41,7 @@ public sealed class ContentIndexSearcher(IFileSystem? fileSystem = null)
                     booleanQuery.Add(new TermQuery(new Term(ContentIndex.FieldNames.Text, token)), Occur.SHOULD);
                 }
             }
-            hits = searcher.Search(booleanQuery, maxHits);
+            hits = searcher.Search(booleanQuery, maxHitsValue);
         }
 
         foreach (var scoreDoc in hits.ScoreDocs)

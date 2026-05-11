@@ -20,7 +20,6 @@ public sealed partial class Program
 
     private Command CreateContentIndexCommand()
     {
-        // TODO - move Description and other property setters to their own lines throughout
         var pathArgument = new Argument<DirectoryInfo>("path")
         {
             Description = "Path of content directory to index",
@@ -40,8 +39,8 @@ public sealed partial class Program
 
         command.SetAction(async (parseResult, ct) =>
         {
-            var path = parseResult.GetValue(pathArgument)!;
-            var indexPath = parseResult.GetValue(indexPathOption)!;
+            var path = parseResult.GetRequiredValue(pathArgument);
+            var indexPath = parseResult.GetRequiredValue(indexPathOption);
 
             var indexBuilder = new ContentIndexBuilder(this.fileSystem);
             await indexBuilder.BuildAsync(path.FullName, indexPath.FullName);
@@ -63,7 +62,7 @@ public sealed partial class Program
             Description = "Path of the index to use",
             Required = true
         }.AcceptLegalFilePathsOnly();
-        var maxHitsOption = new Option<int>("--max-hits", "-n")
+        var maxHitsOption = new Option<int?>("--max-hits", "-n")
         {
             Description = "Maximum number of results to return"
         };
@@ -77,8 +76,8 @@ public sealed partial class Program
 
         command.SetAction(async (parseResult, ct) =>
         {
-            var searchQuery = parseResult.GetRequiredValue(searchQueryArgument)!;
-            var indexPath = parseResult.GetRequiredValue(indexPathOption)!;
+            var searchQuery = parseResult.GetRequiredValue(searchQueryArgument);
+            var indexPath = parseResult.GetRequiredValue(indexPathOption);
             var maxHits = parseResult.GetValue(maxHitsOption);
 
             var indexSearcher = new ContentIndexSearcher(this.fileSystem);
@@ -119,10 +118,9 @@ public sealed partial class Program
 
         command.SetAction(async (parseResult, ct) =>
         {
-            var inputPath = parseResult.GetValue(inputPathArgument)!;
-            var outputPath = parseResult.GetValue(outputPathArgument)!;
-            var indexPath = parseResult.GetValue(indexPathOption)!;
-            var linkName = parseResult.GetValue(linkNameOption)!;
+            var (inputPath, outputPath) = parseResult.GetRequiredValues(inputPathArgument, outputPathArgument);
+            var indexPath = parseResult.GetRequiredValue(indexPathOption);
+            var linkName = parseResult.GetRequiredValue(linkNameOption);
 
             var linker = new ContentLinker(this.fileSystem);
             var stats = await linker.LinkAsync(inputPath.FullName, outputPath.FullName, indexPath.FullName, linkName);
@@ -163,11 +161,11 @@ public sealed partial class Program
 
         command.SetAction(async (parseResult, ct) =>
         {
-            var inputPath = parseResult.GetValue(inputPathArgument)!;
-            var refPath = parseResult.GetValue(refPathArgument)!;
-            var outputPath = parseResult.GetValue(outputPathArgument)!;
-            var alignmentKind = parseResult.GetValue(alignOption);
-            var refName = parseResult.GetValue(refNameOption)!;
+            var (inputPath, refPath, outputPath) = parseResult.GetRequiredValues(
+                inputPathArgument,
+                refPathArgument,
+                outputPathArgument);
+            var (alignmentKind, refName) = parseResult.GetRequiredValues(alignOption, refNameOption);
 
             var merger = new ContentMerger(this.fileSystem);
             var aligner = CreateContentAligner(alignmentKind, refName);

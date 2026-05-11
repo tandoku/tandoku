@@ -4,6 +4,8 @@ using System.CommandLine;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 
+// TODO - consider recasting this as a "parameter bundle" or "command parameter provider"
+// (where library/volume classes are LibraryContextResolver or LibraryLocationResolver or something)
 internal interface ICommandBinder<T>
 {
     // TODO - consider replacing AddToCommand with a method that returns an IEnumerable of Argument/Option union
@@ -34,6 +36,19 @@ internal static class CommandLineExtensions
         Argument<T2> arg2) =>
         (parseResult.GetRequiredValue(arg1), parseResult.GetRequiredValue(arg2));
 
+    internal static (T1, T2, T3) GetRequiredValues<T1, T2, T3>(
+        this ParseResult parseResult,
+        Argument<T1> arg1,
+        Argument<T2> arg2,
+        Argument<T3> arg3) =>
+        (parseResult.GetRequiredValue(arg1), parseResult.GetRequiredValue(arg2), parseResult.GetRequiredValue(arg3));
+
+    internal static (T1, T2) GetRequiredValues<T1, T2>(
+        this ParseResult parseResult,
+        Option<T1> option1,
+        Option<T2> option2) =>
+        (parseResult.GetRequiredValue(option1), parseResult.GetRequiredValue(option2));
+
     internal static (T1?, T2?) GetValues<T1, T2>(
         this ParseResult parseResult,
         Option<T1> option1,
@@ -46,6 +61,14 @@ internal static class CommandLineExtensions
         Option<T2> option2,
         Option<T3> option3) =>
         (parseResult.GetValue(option1), parseResult.GetValue(option2), parseResult.GetValue(option3));
+
+    internal static (T1?, T2?, T3?, T4?) GetValues<T1, T2, T3, T4>(
+        this ParseResult parseResult,
+        Option<T1> option1,
+        Option<T2> option2,
+        Option<T3> option3,
+        Option<T4> option4) =>
+        (parseResult.GetValue(option1), parseResult.GetValue(option2), parseResult.GetValue(option3), parseResult.GetValue(option4));
 
     internal static void WriteJsonOutput(this TextWriter writer, object obj)
     {

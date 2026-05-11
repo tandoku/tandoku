@@ -3,6 +3,10 @@
 using System.CommandLine;
 using System.Text.RegularExpressions;
 
+// NOTE: These classes are used to map PascalCase enum members to kebab-case.
+// The base System.CommandLine classes support both enums and nullable enums just fine but do not provide
+// any customization of the enum member names in parsing or completion.
+
 internal static partial class EnumOption
 {
     internal static string[] GetAcceptedValues<T>() where T : struct, Enum =>

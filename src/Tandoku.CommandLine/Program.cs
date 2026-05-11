@@ -220,7 +220,7 @@ public sealed partial class Program
         };
         command.SetAction(parseResult =>
         {
-            var @in = parseResult.GetValue(inputArg)!;
+            var @in = parseResult.GetRequiredValue(inputArg);
             var processor = new TextProcessor();
             processor.Tokenize(@in.FullName);
             Console.WriteLine($"Processed {processor.ProcessedBlocksCount} text blocks in {@in.FullName}");
@@ -239,8 +239,7 @@ public sealed partial class Program
         };
         command.SetAction(parseResult =>
         {
-            var transformList = parseResult.GetValue(transformListArg)!;
-            var @in = parseResult.GetValue(inputArg)!;
+            var (transformList, @in) = parseResult.GetRequiredValues(transformListArg, inputArg);
 
             var transforms = transformList.Split(',')
                 .Select(s => Enum.Parse<ContentTransformKind>(s, ignoreCase: true));
@@ -271,8 +270,8 @@ public sealed partial class Program
         };
         command.SetAction(parseResult =>
         {
-            var @in = parseResult.GetValue(inputArg)!;
-            var @out = parseResult.GetValue(outputOpt)!;
+            var @in = parseResult.GetRequiredValue(inputArg);
+            var @out = parseResult.GetRequiredValue(outputOpt);
             var processor = new StatsProcessor();
             processor.ComputeStats(@in, @out.FullName);
             Console.WriteLine($"Computed statistics written to {@out.FullName}");
@@ -291,8 +290,8 @@ public sealed partial class Program
         };
         command.SetAction(parseResult =>
         {
-            var @in = parseResult.GetValue(inputArg)!;
-            var @out = parseResult.GetValue(outputOpt)!;
+            var @in = parseResult.GetRequiredValue(inputArg);
+            var @out = parseResult.GetRequiredValue(outputOpt);
             var processor = new StatsProcessor();
             processor.ComputeAggregates(@in, @out.FullName);
             Console.WriteLine($"Computed aggregates written to {@out.FullName}");
@@ -311,8 +310,8 @@ public sealed partial class Program
         };
         command.SetAction(parseResult =>
         {
-            var @in = parseResult.GetValue(inputArg)!;
-            var corpus = parseResult.GetValue(corpusOpt)!;
+            var @in = parseResult.GetRequiredValue(inputArg);
+            var corpus = parseResult.GetRequiredValue(corpusOpt);
             var processor = new StatsProcessor();
             processor.ComputeAnalytics(@in, corpus.FullName);
             Console.WriteLine($"Computed analytics written to input files");

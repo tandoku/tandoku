@@ -61,23 +61,24 @@ public sealed partial class Program
     {
         var titleArgument = new Argument<string>("title")
         {
-            Description = "Title of new tandoku volume"
+            Description = "Title of new tandoku volume",
+            Arity = ArgumentArity.ExactlyOne,
         };
         var pathOption = new Option<DirectoryInfo?>("--path", "-p")
         {
-            Description = "Containing directory for new tandoku volume"
+            Description = "Containing directory for new tandoku volume",
         }.AcceptLegalFilePathsOnly();
         var monikerOption = new Option<string?>("--moniker", "-m")
         {
-            Description = "Optional moniker to identify volume, prepended to volume directory"
+            Description = "Optional moniker to identify volume, prepended to volume directory",
         };
         var tagsOption = new Option<string>("--tags", "-t")
         {
-            Description = "Optional comma-separated tags for volume"
+            Description = "Optional comma-separated tags for volume",
         };
         var forceOption = new Option<bool>("--force", "-f")
         {
-            Description = "Allow new volume in non-empty directory"
+            Description = "Allow new volume in non-empty directory",
         };
 
         var command = new Command("new", "Creates a new tandoku volume under the current or specified directory")
@@ -91,11 +92,12 @@ public sealed partial class Program
 
         command.SetAction(async (parseResult, ct) =>
         {
-            var title = parseResult.GetValue(titleArgument)!;
-            var directory = parseResult.GetValue(pathOption);
-            var moniker = parseResult.GetValue(monikerOption);
-            var tags = parseResult.GetValue(tagsOption);
-            var force = parseResult.GetValue(forceOption);
+            var title = parseResult.GetRequiredValue(titleArgument);
+            var (directory, moniker, tags, force) = parseResult.GetValues(
+                pathOption,
+                monikerOption,
+                tagsOption,
+                forceOption);
 
             var volumeManager = this.CreateVolumeManager();
             var path = directory?.FullName ?? this.fileSystem.Directory.GetCurrentDirectory();
@@ -168,8 +170,8 @@ public sealed partial class Program
 
         command.SetAction(async (parseResult, ct) =>
         {
-            var property = parseResult.GetValue(propertyArgument)!;
-            var value = parseResult.GetValue(valueArgument)!;
+            var property = parseResult.GetRequiredValue(propertyArgument);
+            var value = parseResult.GetRequiredValue(valueArgument);
             var volumeDirectory = parseResult.GetValue(volumeBinder);
 
             var volumeManager = this.CreateVolumeManager();

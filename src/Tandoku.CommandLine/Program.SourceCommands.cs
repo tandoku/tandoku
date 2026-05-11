@@ -33,7 +33,7 @@ public sealed partial class Program
 
         command.SetAction(async (parseResult, ct) =>
         {
-            var paths = parseResult.GetValue(pathsArgument)!;
+            var paths = parseResult.GetRequiredValue(pathsArgument);
             var fileName = parseResult.GetValue(fileNameOption);
             var volumeDirectory = parseResult.GetValue(volumeBinder);
             var jsonOutput = parseResult.GetValue(this.jsonOutputOption);
