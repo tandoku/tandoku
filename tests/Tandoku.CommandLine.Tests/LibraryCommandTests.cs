@@ -4,22 +4,22 @@ using Tandoku.Library;
 
 public class LibraryCommandTests : CliTestBase
 {
-    [Fact]
+    [Test]
     public Task Init() => this.RunAndAssertAsync(
         "library init",
         $"Initialized new tandoku library at {this.baseDirectory.FullName}");
 
-    [Fact]
+    [Test]
     public Task InitWithPath() => this.RunAndAssertAsync(
         "library init tandoku-library",
         $"Initialized new tandoku library at {this.ToFullPath("tandoku-library")}");
 
-    [Fact]
+    [Test]
     public Task InitWithFullPath() => this.RunAndAssertAsync(
         $"library init {this.ToFullPath("tandoku-library")}",
         $"Initialized new tandoku library at {this.ToFullPath("tandoku-library")}");
 
-    [Fact]
+    [Test]
     public async Task InitWithNonEmptyDirectory()
     {
         this.fileSystem.AddEmptyFile(this.ToFullPath("tandoku-library", "existing.txt"));
@@ -29,7 +29,7 @@ public class LibraryCommandTests : CliTestBase
             expectedError: "The specified directory is not empty and force is not specified.");
     }
 
-    [Fact]
+    [Test]
     public async Task InitWithNonEmptyDirectoryForce()
     {
         this.fileSystem.AddEmptyFile(this.ToFullPath("tandoku-library", "existing.txt"));
@@ -38,7 +38,7 @@ public class LibraryCommandTests : CliTestBase
             $"Initialized new tandoku library at {this.ToFullPath("tandoku-library")}");
     }
 
-    [Fact]
+    [Test]
     public async Task Info()
     {
         var info = await this.SetupLibrary();
@@ -49,7 +49,7 @@ public class LibraryCommandTests : CliTestBase
             GetExpectedInfoOutput(info));
     }
 
-    [Fact]
+    [Test]
     public async Task InfoInNestedPath()
     {
         var info = await this.SetupLibrary();
@@ -62,7 +62,7 @@ public class LibraryCommandTests : CliTestBase
             GetExpectedInfoOutput(info));
     }
 
-    [Fact]
+    [Test]
     public async Task InfoInOtherPath()
     {
         await this.SetupLibrary();
@@ -74,7 +74,7 @@ public class LibraryCommandTests : CliTestBase
             expectedError: "The specified path does not contain a tandoku library.");
     }
 
-    [Fact]
+    [Test]
     public async Task InfoInOtherPathWithEnvironment()
     {
         var info = await this.SetupLibrary();
@@ -87,7 +87,7 @@ public class LibraryCommandTests : CliTestBase
             GetExpectedInfoOutput(info));
     }
 
-    [Fact]
+    [Test]
     public async Task InfoWithLibraryPath()
     {
         var info = await this.SetupLibrary();
@@ -97,7 +97,7 @@ public class LibraryCommandTests : CliTestBase
             GetExpectedInfoOutput(info));
     }
 
-    [Fact]
+    [Test]
     public async Task InfoWithDefinitionPath()
     {
         var info = await this.SetupLibrary();
@@ -107,7 +107,7 @@ public class LibraryCommandTests : CliTestBase
             expectedError: "The specified path refers to a file where a directory is expected. (Parameter 'directory')");
     }
 
-    [Fact]
+    [Test]
     public async Task InfoInvalidPath()
     {
         await this.SetupLibrary();

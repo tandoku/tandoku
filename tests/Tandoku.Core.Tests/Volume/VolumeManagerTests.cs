@@ -15,7 +15,7 @@ public class VolumeManagerTests
         this.volumeManager = new VolumeManager(this.fileSystem);
     }
 
-    [Fact]
+    [Test]
     public async Task Initialize()
     {
         var containerPath = this.fileSystem.Directory.GetCurrentDirectory();
@@ -36,7 +36,7 @@ public class VolumeManagerTests
 @"language: ja");
     }
 
-    [Fact]
+    [Test]
     public async Task InitializeWithNonEmptyDirectory()
     {
         var containerPath = this.fileSystem.Directory.GetCurrentDirectory();
@@ -50,7 +50,7 @@ public class VolumeManagerTests
             .Should().ThrowAsync<ArgumentException>();
     }
 
-    [Fact]
+    [Test]
     public async Task CreateNew()
     {
         var title = "sample volume/1";
@@ -72,7 +72,7 @@ language: ja");
 //referenceLanguage: en");
     }
 
-    [Fact]
+    [Test]
     public async Task CreateNew2()
     {
         var title = "sample volume/2";
@@ -93,7 +93,7 @@ language: ja
 tags: [tag-1, tag-2]");
     }
 
-    [Fact]
+    [Test]
     public async Task GetInfo()
     {
         var originalInfo = await this.SetupVolume();
@@ -103,7 +103,7 @@ tags: [tag-1, tag-2]");
         info.Should().BeEquivalentTo(originalInfo);
     }
 
-    [Fact]
+    [Test]
     public async Task GetInfo2()
     {
         var originalInfo = await this.SetupVolume(moniker: "v1", tags: new[] { "tag1", "tag2" });
@@ -113,7 +113,7 @@ tags: [tag-1, tag-2]");
         info.Should().BeEquivalentTo(originalInfo);
     }
 
-    [Fact]
+    [Test]
     public async Task SetDefinition()
     {
         var originalInfo = await this.SetupVolume();
@@ -127,7 +127,7 @@ tags: [tag-1, tag-2]");
 
     // TODO: add tests for RenameVolumeDirectory
 
-    [Fact]
+    [Test]
     public async Task GetVolumeDirectories()
     {
         var rootPath = this.fileSystem.Directory.GetCurrentDirectory();
@@ -145,7 +145,7 @@ tags: [tag-1, tag-2]");
         });
     }
 
-    [Fact]
+    [Test]
     public void GetVolumeDirectories_NotExists()
     {
         var rootPath = this.fileSystem.Directory.GetCurrentDirectory();
@@ -156,7 +156,7 @@ tags: [tag-1, tag-2]");
         result.Should().BeEmpty();
     }
 
-    [Fact]
+    [Test]
     public async Task GetVolumeDirectories_WithinVolumeDirectory()
     {
         var info = await this.SetupVolume("sample-volume");
@@ -168,7 +168,7 @@ tags: [tag-1, tag-2]");
         result.Should().BeEmpty();
     }
 
-    [Fact]
+    [Test]
     public async Task GetVolumeDirectories_WithinVolumeDirectory_ExpandScopeVolume()
     {
         var info = await this.SetupVolume("sample-volume");
@@ -183,7 +183,7 @@ tags: [tag-1, tag-2]");
         });
     }
 
-    [Fact]
+    [Test]
     public async Task GetVolumeDirectories_ExpandScopeLibrary()
     {
         var libraryPath = (await this.SetupLibrary()).Path;
@@ -202,7 +202,7 @@ tags: [tag-1, tag-2]");
         });
     }
 
-    [Fact]
+    [Test]
     public async Task GetVolumeDirectories_ExpandScopeLibrary_NoLibrary()
     {
         var rootPath = this.fileSystem.Directory.GetCurrentDirectory();

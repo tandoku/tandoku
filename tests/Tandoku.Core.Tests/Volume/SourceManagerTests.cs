@@ -14,7 +14,7 @@ public class SourceManagerTests
         this.volumeManager = new VolumeManager(this.fileSystem);
     }
 
-    [Fact]
+    [Test]
     public async Task ImportFiles()
     {
         var externalFilePath = this.fileSystem.Path.Join(
@@ -31,7 +31,7 @@ public class SourceManagerTests
         this.fileSystem.GetFile(importedPaths[0]).TextContents.Should().Be("source file content");
     }
 
-    [Fact]
+    [Test]
     public async Task ImportFiles_Multiple()
     {
         var externalDirectory = this.fileSystem.GetCurrentDirectory().GetSubdirectory("external");
@@ -51,12 +51,12 @@ public class SourceManagerTests
     }
 
     // TODO:
-    //[Fact]
+    //[Test]
     //public async Task ImportFiles_TargetFileName()
     //{
     //}
 
-    //[Fact]
+    //[Test]
     //public async Task ImportFiles_MultipleWithTargetFileName()
     //{
     //}
