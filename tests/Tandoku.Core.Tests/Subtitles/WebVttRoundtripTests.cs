@@ -7,23 +7,23 @@ public class WebVttRoundtripTests
     // TODO - check that output actually matches the original
     // separately from Verify() or can be integrated into it?
 
-    [Fact]
+    [Test]
     public Task SampleCaption() => this.TestRoundtripWebVttAsync("SampleCaption.vtt");
 
-    [Fact]
+    [Test]
     public Task SampleChapters() => this.TestRoundtripWebVttAsync("SampleChapters.vtt");
 
 
-    [Fact]
+    [Test]
     public Task SampleMetadata() => this.TestRoundtripWebVttAsync("SampleMetadata.vtt");
 
-    [Fact]
+    [Test]
     public Task SampleRegions() => this.TestRoundtripWebVttAsync("SampleRegions.vtt");
 
-    [Fact]
+    [Test]
     public Task SampleRuby() => this.TestRoundtripWebVttAsync("SampleRuby.vtt");
 
-    [Fact]
+    [Test]
     public Task Netflix2() => this.TestRoundtripWebVttAsync("Netflix2.vtt");
 
     private async Task TestRoundtripWebVttAsync(string resourceName)

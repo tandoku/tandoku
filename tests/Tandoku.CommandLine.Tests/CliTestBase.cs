@@ -75,7 +75,7 @@ public abstract class CliTestBase
         }
         else
         {
-            await VerifyYaml(output);
+            await VerifyYaml(output).IgnoreParameters();
         }
     }
 

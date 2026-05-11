@@ -5,9 +5,9 @@ using Tandoku.Volume;
 
 public class VolumeSourceCommandTests : CliTestBase
 {
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
     public async Task Import(bool jsonOutput)
     {
         var externalFilePath = this.fileSystem.Path.Join(
@@ -25,7 +25,7 @@ public class VolumeSourceCommandTests : CliTestBase
             .Should().Be("source file content");
     }
 
-    [Fact]
+    [Test]
     public async Task ImportWithWildcard()
     {
         var externalDir = this.fileSystem.GetCurrentDirectory().CreateSubdirectory("external");
@@ -45,9 +45,9 @@ public class VolumeSourceCommandTests : CliTestBase
             .Should().Be("content2");
     }
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
     public async Task ImportWithFileName(bool jsonOutput)
     {
         var externalFilePath = this.fileSystem.Path.Join(

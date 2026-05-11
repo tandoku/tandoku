@@ -5,7 +5,7 @@ using Tandoku.Volume;
 
 public class VolumeCommandTests : CliTestBase
 {
-    [Fact]
+    [Test]
     public async Task Init()
     {
         await this.RunAndAssertAsync(
@@ -16,7 +16,7 @@ public class VolumeCommandTests : CliTestBase
 @"language: ja");
     }
 
-    [Fact]
+    [Test]
     public async Task New()
     {
         await this.RunAndAssertAsync(
@@ -30,17 +30,17 @@ language: ja
 tags: [tag1, tag2]");
     }
 
-    [Fact]
+    [Test]
     public Task NewWithPath() => this.RunAndAssertAsync(
         "volume new sample-volume/1 --path container",
         @$"Created new tandoku volume ""sample-volume/1"" at {this.ToFullPath("container", "sample-volume_1")}");
 
-    [Fact]
+    [Test]
     public Task NewWithFullPath() => this.RunAndAssertAsync(
         $"volume new sample-volume/1 --path {this.ToFullPath("container")}",
         @$"Created new tandoku volume ""sample-volume/1"" at {this.ToFullPath("container", "sample-volume_1")}");
 
-    [Fact]
+    [Test]
     public async Task NewWithNonEmptyDirectory()
     {
         this.fileSystem.AddEmptyFile(this.ToFullPath("sample-volume", "existing.txt"));
@@ -49,7 +49,7 @@ tags: [tag1, tag2]");
             expectedError: "The specified directory is not empty and force is not specified.");
     }
 
-    [Fact]
+    [Test]
     public async Task NewWithNonEmptyDirectoryForce()
     {
         this.fileSystem.AddEmptyFile(this.ToFullPath("sample-volume", "existing.txt"));
@@ -59,9 +59,9 @@ tags: [tag1, tag2]");
     }
 
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
     public async Task Info(bool jsonOutput)
     {
         await this.SetupVolume(changeCurrentDirectory: true);
@@ -69,8 +69,8 @@ tags: [tag1, tag2]");
         await this.RunAndVerifyAsync("volume info", jsonOutput);
     }
 
-    [Theory]
-    [InlineData(nameof(InfoInNestedPath))]
+    [Test]
+    [Arguments(nameof(InfoInNestedPath))]
     public async Task InfoInNestedPath(string variant)
     {
         var info = await this.SetupVolume();
@@ -84,7 +84,7 @@ tags: [tag1, tag2]");
             variant);
     }
 
-    [Fact]
+    [Test]
     public async Task InfoInOtherPath()
     {
         await this.SetupVolume();
@@ -96,8 +96,8 @@ tags: [tag1, tag2]");
             expectedError: "The specified path does not contain a tandoku volume.");
     }
 
-    [Theory]
-    [InlineData(nameof(InfoWithVolumePath))]
+    [Test]
+    [Arguments(nameof(InfoWithVolumePath))]
     public async Task InfoWithVolumePath(string variant)
     {
         var info = await this.SetupVolume();
@@ -108,7 +108,7 @@ tags: [tag1, tag2]");
             variant);
     }
 
-    [Fact]
+    [Test]
     public async Task SetTitle()
     {
         var originalInfo = await this.SetupVolume(changeCurrentDirectory: true);
@@ -119,7 +119,7 @@ tags: [tag1, tag2]");
         info.Definition.Title.Should().Be("newer-title");
     }
 
-    [Fact]
+    [Test]
     public async Task SetWorkflow()
     {
         var originalInfo = await this.SetupVolume(changeCurrentDirectory: true);
@@ -130,7 +130,7 @@ tags: [tag1, tag2]");
         info.Definition.Workflow.Should().Be("generic-film");
     }
 
-    [Fact]
+    [Test]
     public async Task Set_InvalidProperty()
     {
         await this.SetupVolume(changeCurrentDirectory: true);
@@ -140,9 +140,9 @@ tags: [tag1, tag2]");
 
     // TODO: add tests for tandoku volume rename
 
-    [Theory]
-    [InlineData(null)]
-    [InlineData(".")]
+    [Test]
+    [Arguments(null)]
+    [Arguments(".")]
     public async Task List(string? pathArgument)
     {
         var rootPath = this.fileSystem.Directory.GetCurrentDirectory();
@@ -156,9 +156,9 @@ tags: [tag1, tag2]");
             .IgnoreParametersForVerified(pathArgument);
     }
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
     public async Task List_Nested(bool changeCurrentDirectory)
     {
         var rootPath = this.fileSystem.Directory.GetCurrentDirectory();
@@ -176,9 +176,9 @@ tags: [tag1, tag2]");
             .IgnoreParametersForVerified(changeCurrentDirectory);
     }
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
     public async Task List_WithinVolumeDirectory(bool changeCurrentDirectory)
     {
         var info = await this.SetupVolume("sample-volume");
@@ -194,7 +194,7 @@ tags: [tag1, tag2]");
             .IgnoreParametersForVerified(changeCurrentDirectory);
     }
 
-    [Fact]
+    [Test]
     public async Task ListAll()
     {
         var libraryPath = (await this.SetupLibrary()).Path;
@@ -206,7 +206,7 @@ tags: [tag1, tag2]");
         await this.RunAndVerifyAsync("volume list -a");
     }
 
-    [Fact]
+    [Test]
     public async Task ListAll_NoLibrary()
     {
         await this.SetupVolume();

@@ -8,7 +8,7 @@ public class LibraryManagerTests
     // TODO: consider rewriting path manipulation to use IDirectoryInfo/IFileInfo instead
     // (e.g. change libraryRootPath to (default?) libraryDirectory and use .GetFile() etc.
 
-    [Fact]
+    [Test]
     public async Task Initialize()
     {
         var (libraryManager, fileSystem, libraryRootPath) = Setup();
@@ -27,7 +27,7 @@ public class LibraryManagerTests
 //referenceLanguage: en");
     }
 
-    [Fact]
+    [Test]
     public async Task InitializeWithConflictingFile()
     {
         var (libraryManager, fileSystem, libraryRootPath) = Setup();
@@ -37,7 +37,7 @@ public class LibraryManagerTests
             .Should().ThrowAsync<IOException>();
     }
 
-    [Fact]
+    [Test]
     public async Task InitializeWithNonEmptyDirectory()
     {
         var (libraryManager, fileSystem, libraryRootPath) = Setup();
@@ -47,7 +47,7 @@ public class LibraryManagerTests
             .Should().ThrowAsync<ArgumentException>();
     }
 
-    [Fact]
+    [Test]
     public async Task InitializeWithNonEmptyDirectoryForce()
     {
         var (libraryManager, fileSystem, libraryRootPath) = Setup();
@@ -60,7 +60,7 @@ public class LibraryManagerTests
         fileSystem.GetFile(info.DefinitionPath).TextContents.Should().NotBeNullOrEmpty();
     }
 
-    [Fact]
+    [Test]
     public async Task InitializeInExistingLibrary()
     {
         var (libraryManager, fileSystem, libraryRootPath) = Setup();
@@ -70,7 +70,7 @@ public class LibraryManagerTests
             .Should().ThrowAsync<InvalidOperationException>();
     }
 
-    [Fact]
+    [Test]
     public async Task GetInfo()
     {
         var (libraryManager, _, libraryRootPath) = Setup();

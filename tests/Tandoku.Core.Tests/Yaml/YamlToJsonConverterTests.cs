@@ -7,7 +7,7 @@ using Tandoku.Yaml;
 
 public class YamlToJsonConverterTests
 {
-    [Fact]
+    [Test]
     public void DeserializeViaJson()
     {
         var yaml = """
@@ -26,7 +26,7 @@ public class YamlToJsonConverterTests
             new TestObject("value1", 42, [1, 2, 3]));
     }
 
-    [Fact]
+    [Test]
     public void DeserializeViaJsonInstance()
     {
         var yaml1 = """
@@ -53,7 +53,7 @@ public class YamlToJsonConverterTests
 
     private record TestObject(string Key1, long Key2, IReadOnlyList<long> Key3);
 
-    [Fact]
+    [Test]
     public void ConvertToJsonDocument()
     {
         var yaml = """
@@ -70,7 +70,7 @@ public class YamlToJsonConverterTests
         jsonDoc.RootElement.ToString().Should().Be(json);
     }
 
-    [Fact]
+    [Test]
     public void WriteToJson()
     {
         var yaml = """

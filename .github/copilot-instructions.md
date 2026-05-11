@@ -8,7 +8,7 @@ help import, process, and study native Japanese content (books, video, subtitles
 | Path       | Contents                                                                 |
 |------------|--------------------------------------------------------------------------|
 | `src/`     | Production .NET projects (`Tandoku.Core` library, `Tandoku.CommandLine` exe → assembly name `tandoku`) |
-| `tests/`   | xUnit test projects mirroring `src/`                                     |
+| `tests/`   | TUnit test projects mirroring `src/`                                     |
 | `scripts/` | PowerShell prototypes of tandoku commands (e.g. `TandokuVolumeNew.ps1`); `scripts/common` holds shared modules dot-sourced or imported via `using` |
 | `docs/`    | Workflow definitions and JSON schemas                                    |
 | `legacy/`  | Older .NET + PowerShell code, **not** in the active solution (`tandoku.slnx`) — avoid editing unless explicitly asked |
@@ -16,20 +16,23 @@ help import, process, and study native Japanese content (books, video, subtitles
 
 ## Build / test / lint
 
-Target framework is **`net10.0`** for all active projects.
+Target framework is **`net10.0`** for all active projects. Tests use **TUnit**
+on Microsoft.Testing.Platform; the repo's `global.json` opts `dotnet test` into
+the .NET 10 SDK MTP runner, which means projects/solutions must be passed via
+`--solution` / `--project` (no positional argument).
 
 ```bash
 # Build everything in the active solution
 dotnet build tandoku.slnx
 
 # Run all tests
-dotnet test tandoku.slnx
+dotnet test --solution tandoku.slnx
 
 # Run a single test project
-dotnet test tests/Tandoku.CommandLine.Tests
+dotnet test --project tests/Tandoku.CommandLine.Tests
 
-# Run a single test by name (xUnit filter)
-dotnet test tests/Tandoku.CommandLine.Tests --filter "FullyQualifiedName~VolumeCommandTests.Init_Default"
+# Run a single test by name (TUnit / MTP filter)
+dotnet test --project tests/Tandoku.CommandLine.Tests -- --treenode-filter "/*/*/VolumeCommandTests/Init"
 ```
 
 There is no separate lint step; style is enforced via `.editorconfig` and
@@ -61,15 +64,24 @@ as part of "the build".
 
 ## Test conventions
 
-- xUnit + **FluentAssertions** + **Verify.Xunit** (with `Verify.DiffPlex`).
-  `global using FluentAssertions; global using Xunit;` lives in each test
-  project's `Usings.cs`.
+- **TUnit** + **FluentAssertions** + **Verify.TUnit** (with `Verify.DiffPlex`
+  for the CommandLine tests). `global using FluentAssertions; global using
+  TUnit.Core;` lives in each test project's `Usings.cs`.
+- Use `[Test]` for facts and `[Test]` + `[Arguments(...)]` for parameterized
+  tests — never `[Fact]` / `[Theory]` / `[InlineData]` (those are xUnit and the
+  packages aren't referenced).
+- Don't `using static TUnit.Assertions.Assert` — the tests use FluentAssertions
+  (`.Should()`); pulling in TUnit's `Assert` creates name conflicts.
 - CLI tests derive from `CliTestBase`, which constructs `Program` against a
   `MockFileSystem` (`System.IO.Abstractions.TestingHelpers`) and string writers.
   Prefer the helpers there:
   - `RunAndAssertAsync(commandLine, expectedOutput?, expectedError?, expectedResult?)` for simple assertions.
   - `RunAndVerifyAsync(commandLine, jsonOutput?)` for snapshot tests. Snapshots
     live under `tests/<project>/Snapshots/` (configured in `ModuleInitialization.cs`).
+    The non-JSON branch calls `.IgnoreParameters()` so the snapshot filename has
+    no parameter suffix; the JSON branch calls `.UseParameters(jsonOutput)`.
+    Verify.TUnit auto-derives parameter suffixes from the test method's
+    `[Arguments]`, so omit those calls only when you actually want the suffix.
   - JSON output is round-tripped through YAML before snapshotting so diffs stay readable.
 - `ModuleInitialization` adds a scrubber replacing `\` with `/` so snapshots
   are cross-platform; keep new tests platform-neutral (no hard-coded separators).

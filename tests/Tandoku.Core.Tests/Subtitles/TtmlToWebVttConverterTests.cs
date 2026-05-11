@@ -5,10 +5,10 @@ using Tandoku.Subtitles.WebVtt;
 
 public class TtmlToWebVttConverterTests
 {
-    [Fact]
+    [Test]
     public Task ConvertAmazonSubtitle() => this.TestConversionAsync("Amazon1.ttml");
 
-    [Fact]
+    [Test]
     public Task ConvertNetflixSubtitle() => this.TestConversionAsync("Netflix1.ttml");
 
     private async Task TestConversionAsync(string resourceName)
