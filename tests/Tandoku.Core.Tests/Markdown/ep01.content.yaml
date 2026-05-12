@@ -1,0 +1,33 @@
+source:
+  note: Opening
+  timecodes:
+    start: 00:00:01.5
+    end: 00:00:03.0
+chunks:
+- text: |-
+    むかし[むかし]、ある所にお爺さんとお婆さんが住んでいました。
+  references:
+    en:
+      text: Once upon a time, an old man and old woman lived in a certain place.
+---
+source:
+  timecodes:
+    start: 00:00:05.0
+    end: 00:00:07.0
+image:
+  name: page-001.png
+chunks:
+- text: 桃[もも]太郎[たろう]
+  references:
+    en:
+      text: Momotaro
+---
+source:
+  timecodes:
+    start: 00:00:09.0
+    end: 00:00:11.0
+audio:
+  name: clip01.mp3
+chunks:
+- text: |-
+    これは音[おと]のテストです。

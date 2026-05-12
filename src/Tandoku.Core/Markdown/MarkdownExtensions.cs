@@ -19,7 +19,7 @@ public enum MarkdownSeparator
 internal static class MarkdownExtensions
 {
     public static string? ToPlainText(this IMarkdownText markdownText) =>
-        markdownText.Text is not null ? Markdown.ToPlainText(markdownText.Text) : null;
+        markdownText.Text is not null ? Markdig.Markdown.ToPlainText(markdownText.Text) : null;
 
     public static IMarkdownText CombineText(this IEnumerable<IMarkdownText?> markdownTexts, MarkdownSeparator separator) =>
         new MarkdownText(string.Join(

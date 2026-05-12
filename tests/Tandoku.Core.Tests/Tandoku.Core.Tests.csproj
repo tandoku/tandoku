@@ -8,6 +8,9 @@
     <OutputType>Exe</OutputType>
   </PropertyGroup>
   <ItemGroup>
+    <EmbeddedResource Include="Markdown\*.yaml" Exclude="Markdown\*.verified.*">
+      <WithCulture>false</WithCulture>
+    </EmbeddedResource>
     <EmbeddedResource Include="Subtitles\*.ttml" Exclude="Subtitles\*.verified.*">
       <WithCulture>false</WithCulture>
     </EmbeddedResource>
