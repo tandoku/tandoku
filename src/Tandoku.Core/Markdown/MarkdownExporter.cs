@@ -23,11 +23,11 @@ public sealed class MarkdownExporter
     private static readonly Lazy<Template> BlockTemplate = new(LoadBlockTemplate);
 
     private readonly IFileSystem fileSystem;
-    private readonly MarkdownExportOptions options;
+    private readonly MarkdownExportSettings options;
 
-    public MarkdownExporter(MarkdownExportOptions? options = null, IFileSystem? fileSystem = null)
+    public MarkdownExporter(MarkdownExportSettings? options = null, IFileSystem? fileSystem = null)
     {
-        this.options = options ?? new MarkdownExportOptions();
+        this.options = options ?? new MarkdownExportSettings();
         this.fileSystem = fileSystem ?? new FileSystem();
     }
 

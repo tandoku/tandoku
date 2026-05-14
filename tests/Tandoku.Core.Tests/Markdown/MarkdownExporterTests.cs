@@ -11,15 +11,15 @@ public class MarkdownExporterTests
     [Arguments(MarkdownRubyBehavior.Html)]
     [Arguments(MarkdownRubyBehavior.Remove)]
     public Task Export_RubyVariants(MarkdownRubyBehavior ruby) =>
-        this.RunAndVerifyAsync(new MarkdownExportOptions { RubyBehavior = ruby });
+        this.RunAndVerifyAsync(new MarkdownExportSettings { RubyBehavior = ruby });
 
     [Test]
     public Task Export_KeepTogether() =>
-        this.RunAndVerifyAsync(new MarkdownExportOptions { KeepTogether = true });
+        this.RunAndVerifyAsync(new MarkdownExportSettings { KeepTogether = true });
 
     [Test]
     public Task Export_NoHeadings() =>
-        this.RunAndVerifyAsync(new MarkdownExportOptions
+        this.RunAndVerifyAsync(new MarkdownExportSettings
         {
             NoHeadings = true,
             RubyBehavior = MarkdownRubyBehavior.Remove,
@@ -27,7 +27,7 @@ public class MarkdownExporterTests
 
     [Test]
     public Task Export_Footnotes() =>
-        this.RunAndVerifyAsync(new MarkdownExportOptions
+        this.RunAndVerifyAsync(new MarkdownExportSettings
         {
             RubyBehavior = MarkdownRubyBehavior.Html,
             ReferenceBehavior = MarkdownReferenceBehavior.Footnotes,
@@ -35,7 +35,7 @@ public class MarkdownExporterTests
 
     [Test]
     public Task Export_KyBook3() =>
-        this.RunAndVerifyAsync(new MarkdownExportOptions
+        this.RunAndVerifyAsync(new MarkdownExportSettings
         {
             Quirks = MarkdownQuirks.KyBook3,
             RubyBehavior = MarkdownRubyBehavior.Html,
@@ -44,7 +44,7 @@ public class MarkdownExporterTests
 
     [Test]
     public Task Export_BlurHtmlReferences() =>
-        this.RunAndVerifyAsync(new MarkdownExportOptions
+        this.RunAndVerifyAsync(new MarkdownExportSettings
         {
             RubyBehavior = MarkdownRubyBehavior.BlurHtml,
             ReferenceBehavior = MarkdownReferenceBehavior.BlurHtml,
@@ -59,7 +59,7 @@ public class MarkdownExporterTests
         WriteSampleResource(fs, inputDir.GetFile("ep02.content.yaml"), "ep01.content.yaml");
 
         var outDir = fs.GetCurrentDirectory().CreateSubdirectory("out");
-        var exporter = new MarkdownExporter(new MarkdownExportOptions
+        var exporter = new MarkdownExporter(new MarkdownExportSettings
         {
             Combine = true,
             NoHeadings = true,
@@ -72,7 +72,7 @@ public class MarkdownExporterTests
         combined.Should().Contain("# ep02");
     }
 
-    private async Task RunAndVerifyAsync(MarkdownExportOptions options)
+    private async Task RunAndVerifyAsync(MarkdownExportSettings options)
     {
         var fs = new MockFileSystem();
         var inputDir = fs.GetCurrentDirectory().CreateSubdirectory("in");

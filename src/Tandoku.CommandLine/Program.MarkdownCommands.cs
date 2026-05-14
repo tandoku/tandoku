@@ -69,7 +69,7 @@ public sealed partial class Program
         {
             var inputPath = parseResult.GetRequiredValue(inputPathArgument);
             var outputPath = parseResult.GetRequiredValue(outputPathArgument);
-            var options = new MarkdownExportOptions
+            var options = new MarkdownExportSettings
             {
                 Combine = parseResult.GetValue(combineOption),
                 NoHeadings = parseResult.GetValue(noHeadingsOption),

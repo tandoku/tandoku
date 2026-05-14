@@ -28,7 +28,7 @@ public enum MarkdownQuirks
     KyBook3,
 }
 
-public sealed record MarkdownExportOptions
+public sealed record MarkdownExportSettings
 {
     public bool Combine { get; init; }
     public bool NoHeadings { get; init; }
