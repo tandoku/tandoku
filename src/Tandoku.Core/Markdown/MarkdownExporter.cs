@@ -23,11 +23,11 @@ public sealed class MarkdownExporter
     private static readonly Lazy<Template> BlockTemplate = new(LoadBlockTemplate);
 
     private readonly IFileSystem fileSystem;
-    private readonly MarkdownExportSettings options;
+    private readonly MarkdownExportSettings settings;
 
-    public MarkdownExporter(MarkdownExportSettings? options = null, IFileSystem? fileSystem = null)
+    public MarkdownExporter(MarkdownExportSettings? settings = null, IFileSystem? fileSystem = null)
     {
-        this.options = options ?? new MarkdownExportSettings();
+        this.settings = settings ?? new MarkdownExportSettings();
         this.fileSystem = fileSystem ?? new FileSystem();
     }
 
@@ -43,7 +43,7 @@ public sealed class MarkdownExporter
 
         var written = new List<string>();
 
-        if (this.options.Combine)
+        if (this.settings.Combine)
         {
             string combinedPath;
             string targetDirectory;
@@ -115,7 +115,7 @@ public sealed class MarkdownExporter
             // Default id prefix - blockId may be used in HTML id attributes which must start with a letter
             idPrefix = "block";
         }
-        else if (this.options.NoHeadings)
+        else if (this.settings.NoHeadings)
         {
             fileHeading = idPrefix;
         }
@@ -125,7 +125,7 @@ public sealed class MarkdownExporter
 
     private void AppendBlocks(StringBuilder sb, IReadOnlyList<ContentBlock> blocks, string idPrefix, string? fileHeading)
     {
-        if (this.options.NoHeadings && !string.IsNullOrEmpty(fileHeading))
+        if (this.settings.NoHeadings && !string.IsNullOrEmpty(fileHeading))
         {
             sb.Append("# ").Append(fileHeading).Append('\n').Append('\n');
         }
@@ -153,7 +153,7 @@ public sealed class MarkdownExporter
     private BlockModel BuildBlockModel(ContentBlock block, int blockIndex, string blockId)
     {
         var heading = GetHeading(block);
-        var showHeading = !string.IsNullOrEmpty(heading) && !this.options.NoHeadings;
+        var showHeading = !string.IsNullOrEmpty(heading) && !this.settings.NoHeadings;
         string? sectionHeading = null;
         if (!showHeading && blockIndex % 50 == 0)
         {
@@ -195,11 +195,11 @@ public sealed class MarkdownExporter
 
         return new BlockModel
         {
-            KeepTogether = this.options.KeepTogether,
+            KeepTogether = this.settings.KeepTogether,
             Heading = showHeading ? heading : null,
             SectionHeading = sectionHeading,
             MediaBlocks = media,
-            SuppressBlankAfterMedia = this.options.Quirks == MarkdownQuirks.KyBook3,
+            SuppressBlankAfterMedia = this.settings.Quirks == MarkdownQuirks.KyBook3,
             Chunks = chunks,
         };
     }
@@ -231,13 +231,13 @@ public sealed class MarkdownExporter
 
         var encoded = Uri.EscapeDataString(media).Replace("%2F", "/", StringComparison.Ordinal);
         var url = $"{container}/{encoded}";
-        var suffix = this.options.Quirks == MarkdownQuirks.KyBook3 ? "  " : string.Empty;
+        var suffix = this.settings.Quirks == MarkdownQuirks.KyBook3 ? "  " : string.Empty;
 
         if (container == "audio")
         {
             // Use explicit <audio> tag because the anchor link that pandoc embeds within the <audio> tag
             // if ![]() is used fails EPUB3 validation and causes issues for KyBook 3 on iOS
-            var controls = this.options.Quirks == MarkdownQuirks.KyBook3 ? "controls" : string.Empty;
+            var controls = this.settings.Quirks == MarkdownQuirks.KyBook3 ? "controls" : string.Empty;
             return $"<audio src=\"{url}\" controls=\"{controls}\"></audio>{suffix}";
         }
 
@@ -246,14 +246,14 @@ public sealed class MarkdownExporter
 
     private ChunkModel BuildChunkModel(ContentBlockChunk chunk, string chunkId)
     {
-        var ruby = this.options.EffectiveRubyBehavior;
+        var ruby = this.settings.EffectiveRubyBehavior;
         var chunkText = ProcessRubyText(chunk.Text ?? string.Empty, ruby);
         if (ruby == MarkdownRubyBehavior.BlurHtml)
             chunkText = ConvertTextToBlurHtml(chunkText, chunkId, ruby: true);
 
         var refSb = new StringBuilder();
-        var refLabels = (chunk.References.Count > 1 || this.options.ReferenceLabels == MarkdownReferenceLabels.All) &&
-            this.options.ReferenceLabels != MarkdownReferenceLabels.None;
+        var refLabels = (chunk.References.Count > 1 || this.settings.ReferenceLabels == MarkdownReferenceLabels.All) &&
+            this.settings.ReferenceLabels != MarkdownReferenceLabels.None;
 
         foreach (var (refName, refValue) in chunk.References.OrderBy(kv => kv.Key, StringComparer.Ordinal))
         {
@@ -261,7 +261,7 @@ public sealed class MarkdownExporter
             if (string.IsNullOrEmpty(refText))
                 continue;
 
-            switch (this.options.ReferenceBehavior)
+            switch (this.settings.ReferenceBehavior)
             {
                 case MarkdownReferenceBehavior.Footnotes:
                 {
@@ -310,12 +310,12 @@ public sealed class MarkdownExporter
             refSb.Append('\n');
         }
 
-        if (this.options.ReferenceBehavior == MarkdownReferenceBehavior.Footnotes && refSb.Length > 0)
+        if (this.settings.ReferenceBehavior == MarkdownReferenceBehavior.Footnotes && refSb.Length > 0)
         {
             chunkText = $"{chunkText} [^{chunkId}]";
             refSb.Insert(0, $"[^{chunkId}]: ");
 
-            if (this.options.Quirks == MarkdownQuirks.KyBook3)
+            if (this.settings.Quirks == MarkdownQuirks.KyBook3)
             {
                 // Convert paragraphs to line breaks for KyBook 3 as paragraphs in footnotes are not rendered properly
                 var lines = StringToLines(refSb.ToString().TrimEnd());

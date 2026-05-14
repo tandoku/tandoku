@@ -69,7 +69,7 @@ public sealed partial class Program
         {
             var inputPath = parseResult.GetRequiredValue(inputPathArgument);
             var outputPath = parseResult.GetRequiredValue(outputPathArgument);
-            var options = new MarkdownExportSettings
+            var settings = new MarkdownExportSettings
             {
                 Combine = parseResult.GetValue(combineOption),
                 NoHeadings = parseResult.GetValue(noHeadingsOption),
@@ -80,7 +80,7 @@ public sealed partial class Program
                 Quirks = parseResult.GetValue(quirksOption),
             };
 
-            var exporter = new MarkdownExporter(options, this.fileSystem);
+            var exporter = new MarkdownExporter(settings, this.fileSystem);
             var written = await exporter.ExportAsync(inputPath.FullName, outputPath);
             foreach (var file in written)
                 this.output.WriteLine($"Wrote {file}");

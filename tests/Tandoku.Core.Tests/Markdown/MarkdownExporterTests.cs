@@ -72,14 +72,14 @@ public class MarkdownExporterTests
         combined.Should().Contain("# ep02");
     }
 
-    private async Task RunAndVerifyAsync(MarkdownExportSettings options)
+    private async Task RunAndVerifyAsync(MarkdownExportSettings settings)
     {
         var fs = new MockFileSystem();
         var inputDir = fs.GetCurrentDirectory().CreateSubdirectory("in");
         WriteSampleResource(fs, inputDir.GetFile("ep01.content.yaml"), "ep01.content.yaml");
         var outDir = fs.GetCurrentDirectory().CreateSubdirectory("out");
 
-        var exporter = new MarkdownExporter(options, fs);
+        var exporter = new MarkdownExporter(settings, fs);
         var written = await exporter.ExportAsync(inputDir.FullName, outDir.FullName);
 
         written.Should().HaveCount(1);
