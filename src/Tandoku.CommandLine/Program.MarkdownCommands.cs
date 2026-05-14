@@ -23,6 +23,8 @@ public sealed partial class Program
         {
             Description = "Combine all input content files into a single markdown file",
         };
+        // TODO - revisit naming/semantics; this is really "do not promote images to headings".
+        // Consider making this the default and adding a --heading-per-block (or similar) switch instead.
         var noHeadingsOption = new Option<bool>("--no-headings")
         {
             Description = "Do not promote per-block notes/resources to headings",
@@ -65,6 +67,10 @@ public sealed partial class Program
             quirksOption,
         };
 
+        // TODO - port -OutputPrefix from the PS script, or (preferred) introduce a general-purpose
+        // build task that applies a prefix to a set of files instead of baking it into export.
+        // TODO - integrate with version control: stage modified files in the output path so the user
+        // can run the command and diff against staged files. Add an opt-out switch for skipping VC.
         command.SetAction(async (parseResult, ct) =>
         {
             var inputPath = parseResult.GetRequiredValue(inputPathArgument);

@@ -55,6 +55,8 @@ public sealed class MarkdownExporter
             else
             {
                 targetDirectory = outputPath;
+                // TODO - consider exposing the combined output filename as a property on volume info
+                // (and possibly drop the moniker, just using the cleaned title)
                 combinedPath = this.fileSystem.Path.Combine(outputPath, "content.md");
             }
 
@@ -117,6 +119,7 @@ public sealed class MarkdownExporter
         }
         else if (this.settings.NoHeadings)
         {
+            // TODO - clean up naming; consider including the file heading even when writing block headings
             fileHeading = idPrefix;
         }
 
@@ -157,6 +160,7 @@ public sealed class MarkdownExporter
         string? sectionHeading = null;
         if (!showHeading && blockIndex % 50 == 0)
         {
+            // TODO - clean this up alongside heading styling overall
             sectionHeading = FormatTimecode(block.Source?.Timecodes?.Start);
         }
 
@@ -171,7 +175,9 @@ public sealed class MarkdownExporter
         var chunks = new List<ChunkModel>();
         if (block.Chunks.Count > 0)
         {
-            // Inject formatted timecode as additional reference if there are existing references on the last chunk
+            // Inject formatted timecode as additional reference if there are existing references on the last chunk.
+            // TODO - make this an option or a separate transform (how much 'formatting' should be done in content files?)
+            // Currently only injecting timecode if there are other references (to avoid footnotes that would only have a timecode).
             var processedChunks = block.Chunks;
             var timecode = FormatTimecode(block.Source?.Timecodes?.Start);
             if (timecode is not null && block.Chunks.Any(c => c.References.Count > 0))
@@ -295,6 +301,7 @@ public sealed class MarkdownExporter
                 default:
                     if (refLabels)
                     {
+                        // TODO - indentation as separate style?
                         var lines = StringToLines(refText);
                         if (lines.Count > 0)
                             lines[0] = $"{refName}: {lines[0]}";
