@@ -26,7 +26,7 @@ public class GroupSimilarImagesTransformTests
     {
         this.mockFs.AddFile("/vol/images/a.png", new MockFileData("a"));
         var provider = new FakeProvider { ["a.png"] = 0 };
-        var transform = new GroupSimilarImagesTransform(provider, 0.9, this.VolumeAt("/vol"), this.mockFs);
+        var transform = new GroupSimilarImagesTransform<AverageHashImageSignature>(provider, 0.9, this.VolumeAt("/vol"), this.mockFs);
 
         var result = await transform.TransformAsync(
             AsAsync(BlockWithImage("a.png")),
@@ -46,7 +46,7 @@ public class GroupSimilarImagesTransformTests
             ["a.png"] = 0UL,
             ["b.png"] = 0b1UL, // 1 bit different out of 64 -> similarity = 63/64
         };
-        var transform = new GroupSimilarImagesTransform(provider, 0.9, this.VolumeAt("/vol"), this.mockFs);
+        var transform = new GroupSimilarImagesTransform<AverageHashImageSignature>(provider, 0.9, this.VolumeAt("/vol"), this.mockFs);
 
         var result = await transform.TransformAsync(
             AsAsync(BlockWithImage("a.png"), BlockWithImage("b.png")),
@@ -71,7 +71,7 @@ public class GroupSimilarImagesTransformTests
             ["b.png"] = 0xFFFFFFFFUL, // 32 bits different -> similarity 0.5
             ["c.png"] = 0xFFFFFFFFUL,
         };
-        var transform = new GroupSimilarImagesTransform(provider, 0.9, this.VolumeAt("/vol"), this.mockFs);
+        var transform = new GroupSimilarImagesTransform<AverageHashImageSignature>(provider, 0.9, this.VolumeAt("/vol"), this.mockFs);
 
         var result = await transform.TransformAsync(
             AsAsync(BlockWithImage("a.png"), BlockWithImage("b.png"), BlockWithImage("c.png")),
@@ -102,7 +102,7 @@ public class GroupSimilarImagesTransformTests
             ["b.png"] = 0b11UL, // 2 bits off from a
             ["c.png"] = 0b101UL, // 2 bits off from a, 2 bits off from b
         };
-        var transform = new GroupSimilarImagesTransform(provider, 0.9, this.VolumeAt("/vol"), this.mockFs);
+        var transform = new GroupSimilarImagesTransform<AverageHashImageSignature>(provider, 0.9, this.VolumeAt("/vol"), this.mockFs);
 
         var result = await transform.TransformAsync(
             AsAsync(BlockWithImage("a.png"), BlockWithImage("b.png"), BlockWithImage("c.png")),
@@ -116,7 +116,7 @@ public class GroupSimilarImagesTransformTests
     [Test]
     public async Task BlockWithoutImage_PassedThroughUnchanged()
     {
-        var transform = new GroupSimilarImagesTransform(new FakeProvider(), 0.9, this.VolumeAt("/vol"), this.mockFs);
+        var transform = new GroupSimilarImagesTransform<AverageHashImageSignature>(new FakeProvider(), 0.9, this.VolumeAt("/vol"), this.mockFs);
 
         var result = await transform.TransformAsync(
             AsAsync(new ContentBlock { Chunks = [new ContentBlockChunk { Text = "x" }] }),
@@ -128,7 +128,7 @@ public class GroupSimilarImagesTransformTests
     [Test]
     public async Task MissingImageFile_BlockPassedThrough()
     {
-        var transform = new GroupSimilarImagesTransform(new FakeProvider(), 0.9, this.VolumeAt("/vol"), this.mockFs);
+        var transform = new GroupSimilarImagesTransform<AverageHashImageSignature>(new FakeProvider(), 0.9, this.VolumeAt("/vol"), this.mockFs);
 
         var result = await transform.TransformAsync(
             AsAsync(BlockWithImage("missing.png")),
@@ -150,9 +150,9 @@ public class GroupSimilarImagesTransformTests
         }
     }
 
-    private sealed class FakeProvider : Dictionary<string, ulong>, IImageSimilarityProvider
+    private sealed class FakeProvider : Dictionary<string, ulong>, IImageSimilarityProvider<AverageHashImageSignature>
     {
-        public Task<IImageSignature> ComputeSignatureAsync(IFileInfo imageFile) =>
-            Task.FromResult<IImageSignature>(new AverageHashImageSignature(this[imageFile.Name]));
+        public Task<AverageHashImageSignature> ComputeSignatureAsync(IFileInfo imageFile) =>
+            Task.FromResult(new AverageHashImageSignature(this[imageFile.Name]));
     }
 }

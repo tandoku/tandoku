@@ -8,11 +8,11 @@ using SixLabors.ImageSharp.Processing;
 
 // Computes a 64-bit perceptual "average hash" (aHash) for each image and compares signatures
 // by Hamming distance. Similar images produce hashes with few differing bits.
-public sealed class AverageHashImageSimilarityProvider : IImageSimilarityProvider
+public sealed class AverageHashImageSimilarityProvider : IImageSimilarityProvider<AverageHashImageSignature>
 {
     private const int HashSize = 8;
 
-    public async Task<IImageSignature> ComputeSignatureAsync(IFileInfo imageFile)
+    public async Task<AverageHashImageSignature> ComputeSignatureAsync(IFileInfo imageFile)
     {
         await using var stream = imageFile.OpenRead();
         using var image = await Image.LoadAsync<L8>(stream);
@@ -54,16 +54,13 @@ public sealed class AverageHashImageSimilarityProvider : IImageSimilarityProvide
     }
 }
 
-public readonly record struct AverageHashImageSignature(ulong Hash) : IImageSignature
+public readonly record struct AverageHashImageSignature(ulong Hash) : IImageSignature<AverageHashImageSignature>
 {
     private const int HashBits = 64;
 
-    public double SimilarityTo(IImageSignature other)
+    public double SimilarityTo(AverageHashImageSignature other)
     {
-        if (other is not AverageHashImageSignature aHash)
-            throw new ArgumentException($"Expected {nameof(AverageHashImageSignature)}.", nameof(other));
-
-        var distance = BitOperations.PopCount(this.Hash ^ aHash.Hash);
+        var distance = BitOperations.PopCount(this.Hash ^ other.Hash);
         return 1.0 - (distance / (double)HashBits);
     }
 }

@@ -2,12 +2,14 @@
 
 using System.IO.Abstractions;
 
-public interface IImageSimilarityProvider
+public interface IImageSimilarityProvider<TSignature>
+    where TSignature : IImageSignature<TSignature>
 {
-    Task<IImageSignature> ComputeSignatureAsync(IFileInfo imageFile);
+    Task<TSignature> ComputeSignatureAsync(IFileInfo imageFile);
 }
 
-public interface IImageSignature
+public interface IImageSignature<TSelf>
+    where TSelf : IImageSignature<TSelf>
 {
-    double SimilarityTo(IImageSignature other);
+    double SimilarityTo(TSelf other);
 }

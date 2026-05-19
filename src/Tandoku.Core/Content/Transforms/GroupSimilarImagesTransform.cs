@@ -4,15 +4,16 @@ using System.IO.Abstractions;
 using Tandoku.Images;
 using Tandoku.Volume;
 
-public sealed class GroupSimilarImagesTransform : IContentBlockTransform
+public sealed class GroupSimilarImagesTransform<TSignature> : IContentBlockTransform
+    where TSignature : IImageSignature<TSignature>
 {
-    private readonly IImageSimilarityProvider provider;
+    private readonly IImageSimilarityProvider<TSignature> provider;
     private readonly double similarityThreshold;
     private readonly IFileSystem fileSystem;
     private readonly IDirectoryInfo imagesDir;
 
     public GroupSimilarImagesTransform(
-        IImageSimilarityProvider provider,
+        IImageSimilarityProvider<TSignature> provider,
         double similarityThreshold,
         VolumeInfo volumeInfo,
         IFileSystem? fileSystem = null)
@@ -29,7 +30,7 @@ public sealed class GroupSimilarImagesTransform : IContentBlockTransform
     public async IAsyncEnumerable<ContentBlock> TransformAsync(IAsyncEnumerable<ContentBlock> blocks, IFileInfo file)
     {
         string? groupLeaderName = null;
-        IImageSignature? groupLeaderSignature = null;
+        TSignature groupLeaderSignature = default!;
 
         await foreach (var block in blocks)
         {
@@ -48,7 +49,7 @@ public sealed class GroupSimilarImagesTransform : IContentBlockTransform
 
             var signature = await this.provider.ComputeSignatureAsync(imageFile);
 
-            if (groupLeaderName is not null && groupLeaderSignature is not null)
+            if (groupLeaderName is not null)
             {
                 var similarity = signature.SimilarityTo(groupLeaderSignature);
                 var groupInfo = new BlockImageGroup
