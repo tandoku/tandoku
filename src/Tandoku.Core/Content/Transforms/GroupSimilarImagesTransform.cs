@@ -4,6 +4,17 @@ using System.IO.Abstractions;
 using Tandoku.Images;
 using Tandoku.Volume;
 
+public static class GroupSimilarImagesTransform
+{
+    public static GroupSimilarImagesTransform<TSignature> Create<TSignature>(
+        IImageSimilarityProvider<TSignature> provider,
+        double similarityThreshold,
+        VolumeInfo volumeInfo,
+        IFileSystem? fileSystem = null)
+        where TSignature : IImageSignature<TSignature> =>
+        new(provider, similarityThreshold, volumeInfo, fileSystem);
+}
+
 public sealed class GroupSimilarImagesTransform<TSignature> : IContentBlockTransform
     where TSignature : IImageSignature<TSignature>
 {
