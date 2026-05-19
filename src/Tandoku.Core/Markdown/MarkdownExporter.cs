@@ -123,7 +123,7 @@ public sealed class MarkdownExporter
             fileHeading = idPrefix;
         }
 
-        AppendBlocks(sb, blocks, idPrefix!, fileHeading);
+        AppendBlocks(sb, blocks, idPrefix, fileHeading);
     }
 
     private void AppendBlocks(StringBuilder sb, IReadOnlyList<ContentBlock> blocks, string idPrefix, string? fileHeading)

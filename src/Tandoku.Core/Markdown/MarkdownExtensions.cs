@@ -24,7 +24,7 @@ internal static class MarkdownExtensions
     public static IMarkdownText CombineText(this IEnumerable<IMarkdownText?> markdownTexts, MarkdownSeparator separator) =>
         new MarkdownText(string.Join(
             SepToString(separator),
-            markdownTexts.Where(t => !string.IsNullOrWhiteSpace(t?.Text)).Select(t => t!.Text)));
+            markdownTexts.Select(t => t?.Text).Where(t => !string.IsNullOrWhiteSpace(t))));
 
     internal static string ToMarkdownString(this MarkdownObject md, NormalizeOptions? options = null)
     {
