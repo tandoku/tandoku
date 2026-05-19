@@ -41,6 +41,7 @@ public sealed class GroupSimilarImagesTransform<TSignature> : IContentBlockTrans
     public async IAsyncEnumerable<ContentBlock> TransformAsync(IAsyncEnumerable<ContentBlock> blocks, IFileInfo file)
     {
         string? groupLeaderName = null;
+        // ! not used until initialized (due to groupLeaderName is not null check) but compiler cannot verify this
         TSignature groupLeaderSignature = default!;
 
         await foreach (var block in blocks)

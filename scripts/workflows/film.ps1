@@ -148,16 +148,20 @@ $contentDirectory50 = "$volumePath/content/50-remove-non-japanese-text"
 tandoku content transform remove-non-japanese-text --role on-screen-text $analyzedImageContentPath $contentDirectory50
 
 # content_merge-ref-chunks artifact variables
-$mergeRefChunksContentPath = "$volumePath/content/60-merge-ref-chunks"
+$contentDirectory60 = "$volumePath/content/60-merge-ref-chunks"
 
-tandoku content transform merge-ref-chunks $contentDirectory50 $mergeRefChunksContentPath
+tandoku content transform merge-ref-chunks $contentDirectory50 $contentDirectory60
+
+# content_group-similar-images artifact variables
+$contentDirectory70 = "$volumePath/content/70-group-similar-images"
+
+tandoku content transform group-similar-images $contentDirectory60 $contentDirectory70
 
 # markdown artifact variables
 $markdownPath = "$volumePath/markdown/$Configuration"
 
 # tandoku markdown export
-tandoku markdown export $mergeRefChunksContentPath $markdownPath --no-headings --keep-together --ruby html --ref-behavior footnotes --ref-labels none --quirks $config.markdownQuirks
-#TandokuMarkdownExport $mergeRefChunksContentPath $markdownPath -NoHeadings -KeepTogether -RubyBehavior Html -ReferenceBehavior Footnotes -ReferenceLabels None -Quirks $config.markdownQuirks
+tandoku markdown export $contentDirectory70 $markdownPath --no-headings --keep-together --ruby html --ref-behavior footnotes --ref-labels none --quirks $config.markdownQuirks
 
 if ($Target -like '*epub') {
     # epub artifact variables
