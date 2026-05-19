@@ -37,6 +37,7 @@ public sealed record MarkdownExportSettings
     public MarkdownReferenceBehavior ReferenceBehavior { get; init; }
     public MarkdownReferenceLabels ReferenceLabels { get; init; }
     public MarkdownQuirks Quirks { get; init; }
+    public string? TemplatePath { get; init; }
 
     internal MarkdownRubyBehavior EffectiveRubyBehavior =>
         // KyBook 3 does not support ruby rendering — drop *Html ruby behaviors back to None

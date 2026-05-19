@@ -53,6 +53,10 @@ public sealed partial class Program
             Description = "Reader-specific output quirks to apply",
             DefaultValueFactory = _ => MarkdownQuirks.None,
         };
+        var templateOption = new Option<FileInfo?>("--template")
+        {
+            Description = "Path to a custom Scriban template file to use for rendering blocks",
+        }.AcceptLegalFilePathsOnly();
 
         var command = new Command("export", "Exports tandoku content to markdown")
         {
@@ -65,6 +69,7 @@ public sealed partial class Program
             refBehaviorOption,
             refLabelsOption,
             quirksOption,
+            templateOption,
         };
 
         // TODO - port -OutputPrefix from the PS script, or (preferred) introduce a general-purpose
@@ -84,6 +89,7 @@ public sealed partial class Program
                 ReferenceBehavior = parseResult.GetValue(refBehaviorOption),
                 ReferenceLabels = parseResult.GetValue(refLabelsOption),
                 Quirks = parseResult.GetValue(quirksOption),
+                TemplatePath = parseResult.GetValue(templateOption)?.FullName,
             };
 
             var exporter = new MarkdownExporter(settings, this.fileSystem);

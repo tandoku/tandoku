@@ -13,15 +13,19 @@ public sealed partial class MarkdownExporter
 {
     private const string BlockTemplateResourceName = "Tandoku.Markdown.Templates.Block.scriban-md";
 
-    private static readonly Lazy<Template> BlockTemplate = new(LoadBlockTemplate);
+    private static readonly Lazy<Template> DefaultBlockTemplate = new(LoadDefaultBlockTemplate);
 
     private readonly IFileSystem fileSystem;
     private readonly MarkdownExportSettings settings;
+    private readonly Template blockTemplate;
 
     public MarkdownExporter(MarkdownExportSettings? settings = null, IFileSystem? fileSystem = null)
     {
         this.settings = settings ?? new MarkdownExportSettings();
         this.fileSystem = fileSystem ?? new FileSystem();
+        this.blockTemplate = string.IsNullOrEmpty(this.settings.TemplatePath)
+            ? DefaultBlockTemplate.Value
+            : LoadBlockTemplateFromFile(this.fileSystem, this.settings.TemplatePath);
     }
 
     public async Task<IReadOnlyList<string>> ExportAsync(string inputPath, string outputPath)
@@ -125,17 +129,17 @@ public sealed partial class MarkdownExporter
             var block = blocks[i];
             var blockId = $"{idPrefix}-{blockIndex}";
             var model = this.BuildBlockModel(block, blockIndex, blockId);
-            RenderBlock(sb, model);
+            RenderBlock(sb, model, this.blockTemplate);
         }
     }
 
-    private static void RenderBlock(StringBuilder sb, BlockModel model)
+    private static void RenderBlock(StringBuilder sb, BlockModel model, Template template)
     {
         var scriptObject = new ScriptObject();
         scriptObject.Import(model);
         var context = new TemplateContext { StrictVariables = false, NewLine = "\n" };
         context.PushGlobal(scriptObject);
-        var output = BlockTemplate.Value.Render(context);
+        var output = template.Render(context);
         sb.Append(output);
     }
 
@@ -394,16 +398,29 @@ public sealed partial class MarkdownExporter
         return lines;
     }
 
-    private static Template LoadBlockTemplate()
+    private static Template LoadDefaultBlockTemplate()
     {
         using var stream = typeof(MarkdownExporter).Assembly
             .GetManifestResourceStream(BlockTemplateResourceName)
             ?? throw new InvalidOperationException($"Embedded resource '{BlockTemplateResourceName}' not found.");
         using var reader = new StreamReader(stream);
-        var source = reader.ReadToEnd();
-        var template = Template.Parse(source);
+        return ParseBlockTemplate(reader.ReadToEnd(), BlockTemplateResourceName);
+    }
+
+    private static Template LoadBlockTemplateFromFile(IFileSystem fileSystem, string path)
+    {
+        var file = fileSystem.GetFile(path);
+        if (!file.Exists)
+            throw new FileNotFoundException($"Template file not found: {path}", path);
+        var source = fileSystem.File.ReadAllText(file.FullName);
+        return ParseBlockTemplate(source, path);
+    }
+
+    private static Template ParseBlockTemplate(string source, string sourceDescription)
+    {
+        var template = Template.Parse(source, sourceDescription);
         return template.HasErrors ?
-            throw new InvalidOperationException("Failed to parse block template: " + string.Join("; ", template.Messages)) :
+            throw new InvalidOperationException($"Failed to parse block template '{sourceDescription}': " + string.Join("; ", template.Messages)) :
             template;
     }
 

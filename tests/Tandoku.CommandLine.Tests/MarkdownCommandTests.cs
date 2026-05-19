@@ -44,4 +44,24 @@ public class MarkdownCommandTests : CliTestBase
         output.Result.Should().NotBe(0);
         output.Error.Should().NotBeNullOrEmpty();
     }
+
+    [Test]
+    public async Task Export_UsesCustomTemplate()
+    {
+        var inputDir = this.fileSystem.GetCurrentDirectory().CreateSubdirectory("in");
+        var outDir = this.fileSystem.GetCurrentDirectory().CreateSubdirectory("out");
+        var templateFile = this.fileSystem.GetCurrentDirectory().GetFile("custom.scriban-md");
+
+        this.fileSystem.AddFile(inputDir.GetFile("ep01.content.yaml"), new MockFileData(SampleContent));
+        this.fileSystem.AddFile(templateFile, new MockFileData(
+            "{{- for chunk in chunks -}}\nCUSTOM: {{ chunk.text }}\n{{ end -}}\n"));
+
+        await this.RunAndAssertAsync(
+            $"markdown export {inputDir.FullName} {outDir.FullName} --template {templateFile.FullName}",
+            expectedOutput: $"Wrote {outDir.GetFile("ep01.md").FullName}");
+
+        var md = this.fileSystem.GetFile(outDir.GetFile("ep01.md")).TextContents;
+        md.Should().StartWith("CUSTOM: ");
+        md.Should().NotContain("# Opening");
+    }
 }
