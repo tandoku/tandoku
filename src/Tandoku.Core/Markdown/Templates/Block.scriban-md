@@ -1,0 +1,25 @@
+{{- capture out -}}
+{{ if keep_together }}::: {.keep-together}
+{{ end -}}
+{{ if heading }}# {{ heading }}
+
+{{ end -}}
+{{ if section_heading }}## {{ section_heading }}
+{{ end -}}
+{{ for media in media_blocks -}}
+{{ media }}
+{{ if !suppress_blank_after_media }}
+{{ end -}}
+{{ end -}}
+{{ for chunk in chunks -}}
+{{ chunk.text }}
+
+{{ if chunk.ref_text -}}
+{{ chunk.ref_text }}
+{{ end -}}
+{{ end -}}
+{{ if keep_together }}:::
+
+{{ end -}}
+{{- end -}}
+{{- out -}}

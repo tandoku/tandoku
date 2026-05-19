@@ -5,7 +5,7 @@ using System.IO.Abstractions.TestingHelpers;
 using YamlDotNet.Core;
 using YamlDotNet.Serialization;
 
-public abstract class CliTestBase
+public abstract class CliTestBase : IDisposable
 {
     protected readonly StringWriter outputWriter;
     protected readonly StringWriter errorWriter;
@@ -28,6 +28,13 @@ public abstract class CliTestBase
         // later in order to allow for mock file system to properly support validation.
         this.baseDirectory = this.fileSystem.GetDirectory(Directory.GetCurrentDirectory());
         this.fileSystem.Directory.SetCurrentDirectory(this.baseDirectory.FullName);
+    }
+
+    public void Dispose()
+    {
+        // This isn't really needed but keeping TUnit happy
+        this.outputWriter.Dispose();
+        this.errorWriter.Dispose();
     }
 
     protected async Task RunAndAssertAsync(

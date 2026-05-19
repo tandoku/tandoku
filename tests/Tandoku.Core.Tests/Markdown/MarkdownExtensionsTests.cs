@@ -7,7 +7,7 @@ public class MarkdownExtensionsTests
     [Test]
     public void ToPlainText_StripsMarkdown()
     {
-        new Md("**bold** and *em*").ToPlainText().Should().Be($"bold and em{Environment.NewLine}");
+        new Md("**bold** and *em*").ToPlainText().Should().Be($"bold and em\n");
     }
 
     [Test]
