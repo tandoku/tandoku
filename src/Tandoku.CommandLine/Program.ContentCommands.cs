@@ -198,6 +198,7 @@ public sealed partial class Program
                 this.CreateImportMediaCommand(),
                 this.CreateImportImageTextCommand(),
                 this.CreateMergeRefChunksCommand(),
+                this.CreateGroupSimilarImagesCommand(),
             };
 
         private Command CreateRemoveNonJapaneseTextCommand()
@@ -393,6 +394,51 @@ public sealed partial class Program
 
         private Task RunContentTransformAsync(DirectoryInfo inputPath, DirectoryInfo outputPath, Func<ContentTransformer, Task> transform) =>
             transform(new ContentTransformer(inputPath.FullName, outputPath.FullName, program.fileSystem));
+
+        private Command CreateGroupSimilarImagesCommand()
+        {
+            const double DefaultSimilarityThreshold = 0.9;
+
+            var inputPathArgument = ArgumentFactory.InputPath();
+            var outputPathArgument = ArgumentFactory.OutputPath();
+            var similarityThresholdOption = new Option<double>("--similarity-threshold", "--similarity", "-s")
+            {
+                Description = "Similarity threshold (0.0-1.0) at which images are grouped",
+                DefaultValueFactory = _ => DefaultSimilarityThreshold,
+            };
+            var volumeBinder = program.CreateVolumeBinder();
+
+            var command = new Command("group-similar-images", "Annotates blocks whose image is similar to the prior block's (or group's) image")
+            {
+                inputPathArgument,
+                outputPathArgument,
+                similarityThresholdOption,
+                volumeBinder,
+            };
+
+            command.SetAction(async (parseResult, ct) =>
+            {
+                var (inputPath, outputPath) = parseResult.GetRequiredValues(inputPathArgument, outputPathArgument);
+                var similarityThreshold = parseResult.GetRequiredValue(similarityThresholdOption);
+                var volumeDirectory = parseResult.GetValue(volumeBinder);
+
+                var volumeManager = program.CreateVolumeManager();
+                var volumeInfo = await volumeManager.GetInfoAsync(volumeDirectory.FullName);
+                var provider = new AverageHashImageSimilarityProvider();
+                var transform = GroupSimilarImagesTransform.Create(
+                    provider,
+                    similarityThreshold,
+                    volumeInfo,
+                    program.fileSystem);
+
+                await this.RunContentTransformAsync(
+                    inputPath,
+                    outputPath,
+                    t => t.TransformAsync(transform));
+            });
+
+            return command;
+        }
 
         private static IImageAnalysisProvider CreateImageAnalysisProvider(ImageAnalysisProvider provider) =>
             provider switch

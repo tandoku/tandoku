@@ -60,6 +60,16 @@ public interface IMediaReference
 public sealed record BlockImage : IMediaReference
 {
     public required string Name { get; init; }
+
+    public BlockImageGroup? Group { get; init; }
+
+    public BlockImageGroup? GroupCandidate { get; init; }
+}
+
+public sealed record BlockImageGroup
+{
+    public required string Name { get; init; }
+    public required double Similarity { get; init; }
 }
 
 public sealed record ContentBlockAudio : IMediaReference
