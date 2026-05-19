@@ -1,24 +1,17 @@
 ﻿namespace Tandoku.Markdown;
 
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.IO.Abstractions;
-using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
-using Markdig;
 using Scriban;
 using Scriban.Runtime;
 using Tandoku.Content;
 using Tandoku.Serialization;
 
-public sealed class MarkdownExporter
+public sealed partial class MarkdownExporter
 {
     private const string BlockTemplateResourceName = "Tandoku.Markdown.Templates.Block.scriban-md";
-
-    private static readonly Regex RubyPattern = new(
-        @"[ ]?(\w+)\[(\w+)\]",
-        RegexOptions.Compiled);
 
     private static readonly Lazy<Template> BlockTemplate = new(LoadBlockTemplate);
 
@@ -34,12 +27,12 @@ public sealed class MarkdownExporter
     public async Task<IReadOnlyList<string>> ExportAsync(string inputPath, string outputPath)
     {
         var inputDir = this.fileSystem.GetDirectory(inputPath);
-        var contentFiles = inputDir.EnumerateFilesByExtension(".content.yaml")
+        var contentFiles = inputDir.EnumerateContentFiles()
             .OrderBy(f => f.Name, this.fileSystem.Path.GetComparer())
             .ToList();
 
         if (contentFiles.Count == 0)
-            return Array.Empty<string>();
+            return [];
 
         var written = new List<string>();
 
@@ -67,7 +60,7 @@ public sealed class MarkdownExporter
             foreach (var contentFile in contentFiles)
             {
                 var blocks = await ReadBlocksAsync(contentFile);
-                AppendFile(sb, blocks, contentFile);
+                this.AppendFile(sb, blocks, contentFile);
             }
 
             await this.fileSystem.File.WriteAllTextAsync(combinedPath, sb.ToString());
@@ -83,7 +76,7 @@ public sealed class MarkdownExporter
 
                 var blocks = await ReadBlocksAsync(contentFile);
                 var sb = new StringBuilder();
-                AppendFile(sb, blocks, contentFile);
+                this.AppendFile(sb, blocks, contentFile);
 
                 await this.fileSystem.File.WriteAllTextAsync(target, sb.ToString());
                 written.Add(target);
@@ -96,7 +89,7 @@ public sealed class MarkdownExporter
     public string ExportToString(IReadOnlyList<ContentBlock> blocks, string idPrefix, string? fileHeading = null)
     {
         var sb = new StringBuilder();
-        AppendBlocks(sb, blocks, idPrefix, fileHeading);
+        this.AppendBlocks(sb, blocks, idPrefix, fileHeading);
         return sb.ToString();
     }
 
@@ -123,7 +116,7 @@ public sealed class MarkdownExporter
             fileHeading = idPrefix;
         }
 
-        AppendBlocks(sb, blocks, idPrefix, fileHeading);
+        this.AppendBlocks(sb, blocks, idPrefix, fileHeading);
     }
 
     private void AppendBlocks(StringBuilder sb, IReadOnlyList<ContentBlock> blocks, string idPrefix, string? fileHeading)
@@ -165,10 +158,10 @@ public sealed class MarkdownExporter
         }
 
         var media = new List<string>();
-        var imageMd = RenderMedia(block.Image?.Name, "images", heading);
+        var imageMd = this.RenderMedia(block.Image?.Name, "images", heading);
         if (imageMd is not null)
             media.Add(imageMd);
-        var audioMd = RenderMedia(block.Audio?.Name, "audio", heading);
+        var audioMd = this.RenderMedia(block.Audio?.Name, "audio", heading);
         if (audioMd is not null)
             media.Add(audioMd);
 
@@ -337,8 +330,8 @@ public sealed class MarkdownExporter
                     }
                     else
                     {
-                        char last = refSb.Length > 0 ? refSb[^1] : '\0';
-                        char prev = refSb.Length > 1 ? refSb[^2] : '\0';
+                        var last = refSb.Length > 0 ? refSb[^1] : '\0';
+                        var prev = refSb.Length > 1 ? refSb[^2] : '\0';
                         var sp = last == ' '
                             ? (prev == ' ' ? string.Empty : " ")
                             : "  ";
@@ -368,7 +361,7 @@ public sealed class MarkdownExporter
             _ => "$0",
         };
 
-        return RubyPattern.Replace(text, replacement);
+        return RubyPatternRegex().Replace(text, replacement);
     }
 
     internal static string ConvertTextToBlurHtml(string text, string id, bool ruby, string? label = null)
@@ -387,10 +380,9 @@ public sealed class MarkdownExporter
         var initial = $"<{element} class='{blurClass}'><input type='checkbox' id='{id}'/><label for='{id}'>";
         var final = $"</label></{element}>";
 
-        if (isPara)
-            html = Regex.Replace(html, "^<p>(.*)</p>$", $"{initial}$1{final}", RegexOptions.Singleline);
-        else
-            html = $"{initial}{html}{final}";
+        html = isPara ?
+            HtmlParagraphRegex().Replace(html, $"{initial}$1{final}") :
+            $"{initial}{html}{final}";
 
         if (label is not null)
             html = $"<p><span>{label}:</span> {html}</p>";
@@ -416,9 +408,9 @@ public sealed class MarkdownExporter
         using var reader = new StreamReader(stream);
         var source = reader.ReadToEnd();
         var template = Template.Parse(source);
-        if (template.HasErrors)
-            throw new InvalidOperationException("Failed to parse block template: " + string.Join("; ", template.Messages));
-        return template;
+        return template.HasErrors ?
+            throw new InvalidOperationException("Failed to parse block template: " + string.Join("; ", template.Messages)) :
+            template;
     }
 
     private sealed class BlockModel
@@ -426,9 +418,9 @@ public sealed class MarkdownExporter
         public bool KeepTogether { get; init; }
         public string? Heading { get; init; }
         public string? SectionHeading { get; init; }
-        public IReadOnlyList<string> MediaBlocks { get; init; } = Array.Empty<string>();
+        public IReadOnlyList<string> MediaBlocks { get; init; } = [];
         public bool SuppressBlankAfterMedia { get; init; }
-        public IReadOnlyList<ChunkModel> Chunks { get; init; } = Array.Empty<ChunkModel>();
+        public IReadOnlyList<ChunkModel> Chunks { get; init; } = [];
     }
 
     private sealed class ChunkModel
@@ -436,4 +428,9 @@ public sealed class MarkdownExporter
         public string Text { get; init; } = string.Empty;
         public string? RefText { get; init; }
     }
+
+    [GeneratedRegex(@"[ ]?(\w+)\[(\w+)\]")]
+    private static partial Regex RubyPatternRegex();
+    [GeneratedRegex("^<p>(.*)</p>$", RegexOptions.Singleline)]
+    private static partial Regex HtmlParagraphRegex();
 }
