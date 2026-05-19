@@ -86,13 +86,6 @@ public sealed partial class MarkdownExporter
         return written;
     }
 
-    public string ExportToString(IReadOnlyList<ContentBlock> blocks, string idPrefix, string? fileHeading = null)
-    {
-        var sb = new StringBuilder();
-        this.AppendBlocks(sb, blocks, idPrefix, fileHeading);
-        return sb.ToString();
-    }
-
     private static async Task<IReadOnlyList<ContentBlock>> ReadBlocksAsync(IFileInfo file)
     {
         var blocks = new List<ContentBlock>();
@@ -219,6 +212,7 @@ public sealed partial class MarkdownExporter
     {
         if (start is null)
             return null;
+
         // Match the PowerShell behavior of stripping fractional seconds
         return $"{(int)start.Value.TotalHours:00}:{start.Value.Minutes:00}:{start.Value.Seconds:00}";
     }
