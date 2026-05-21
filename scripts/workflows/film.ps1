@@ -5,7 +5,7 @@ param(
     $Target = 'epub',
 
     [Parameter()]
-    [ValidateSet('default','kybook')]
+    [ValidateSet('default','kybook','image-similarity-checker')]
     [String]
     $Configuration = 'default',
 
@@ -161,7 +161,11 @@ tandoku content transform group-similar-images $contentDirectory60 $contentDirec
 $markdownPath = "$volumePath/markdown/$Configuration"
 
 # tandoku markdown export
-tandoku markdown export $contentDirectory70 $markdownPath --no-headings --keep-together --ruby html --ref-behavior footnotes --ref-labels none --quirks $config.markdownQuirks
+if ($Configuration -eq 'image-similarity-checker') {
+    tandoku markdown export $contentDirectory70 $markdownPath --template $PSScriptRoot/image-similarity-checker/image-similarity-checker.scriban-md
+} else {
+    tandoku markdown export $contentDirectory70 $markdownPath --no-headings --keep-together --ruby html --ref-behavior footnotes --ref-labels none --quirks $config.markdownQuirks
+}
 
 if ($Target -like '*epub') {
     # epub artifact variables

@@ -1,0 +1,14 @@
+{{~ if block.image ~}}
+{{~ if block.image.group ~}}
+<div style="padding-left: 80px;">
+  <p>Grouped, similarity {{ block.image.group.similarity }}</p>
+{{~ end ~}}
+{{~ if block.image.group_candidate ~}}
+<div>
+  <p>Not grouped, similarity {{ block.image.group_candidate.similarity }}</p>
+{{~ end ~}}
+
+  <img src="images/{{ block.image.name }}" alt="{{ block.image.name }}" width="480px">
+</div>
+
+{{~ end ~}}

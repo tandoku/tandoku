@@ -197,6 +197,7 @@ public sealed partial class MarkdownExporter
             MediaBlocks = media,
             SuppressBlankAfterMedia = this.settings.Quirks == MarkdownQuirks.KyBook3,
             Chunks = chunks,
+            Block = block,
         };
     }
 
@@ -432,6 +433,8 @@ public sealed partial class MarkdownExporter
         public IReadOnlyList<string> MediaBlocks { get; init; } = [];
         public bool SuppressBlankAfterMedia { get; init; }
         public IReadOnlyList<ChunkModel> Chunks { get; init; } = [];
+
+        public required ContentBlock Block { get; init; }
     }
 
     private sealed class ChunkModel
