@@ -38,6 +38,8 @@ public sealed class GroupSimilarImagesTransform<TSignature> : IContentBlockTrans
             .GetSubdirectory("images");
     }
 
+    public bool ParallelProcessing => true;
+
     public async IAsyncEnumerable<ContentBlock> TransformAsync(IAsyncEnumerable<ContentBlock> blocks, IFileInfo file)
     {
         string? groupLeaderName = null;

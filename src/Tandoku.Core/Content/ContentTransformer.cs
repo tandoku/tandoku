@@ -21,14 +21,26 @@ public sealed class ContentTransformer
         var inputDir = this.fileSystem.GetDirectory(this.inputPath);
         var outputDir = this.fileSystem.GetDirectory(this.outputPath);
         outputDir.Create();
-        foreach (var inputFile in inputDir.EnumerateContentFiles())
+        var inputFiles = inputDir.EnumerateContentFiles();
+        if (transform.ParallelProcessing)
         {
-            var outputFile = outputDir.GetFile(inputFile.Name);
-            var blocks = YamlSerializer.ReadStreamAsync<ContentBlock>(inputFile);
-            await YamlSerializer.WriteStreamAsync(
-                outputFile,
-                transform.TransformAsync(blocks, inputFile));
+            await Parallel.ForEachAsync(inputFiles, async (inputFile, _) =>
+                await TransformFileAsync(inputFile, outputDir, transform));
         }
+        else
+        {
+            foreach (var inputFile in inputFiles)
+                await TransformFileAsync(inputFile, outputDir, transform);
+        }
+    }
+
+    private static Task TransformFileAsync(IFileInfo inputFile, IDirectoryInfo outputDir, IContentBlockTransform transform)
+    {
+        var outputFile = outputDir.GetFile(inputFile.Name);
+        var blocks = YamlSerializer.ReadStreamAsync<ContentBlock>(inputFile);
+        return YamlSerializer.WriteStreamAsync(
+            outputFile,
+            transform.TransformAsync(blocks, inputFile));
     }
 
     public Task TransformAsync(Func<ContentBlockChunk, ContentBlockChunk> transformChunk) =>

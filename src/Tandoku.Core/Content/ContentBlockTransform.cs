@@ -5,6 +5,8 @@ using System.IO.Abstractions;
 
 public interface IContentBlockTransform
 {
+    bool ParallelProcessing => false;
+
     IAsyncEnumerable<ContentBlock> TransformAsync(IAsyncEnumerable<ContentBlock> blocks, IFileInfo file);
 }
 
