@@ -20,6 +20,13 @@ param(
     [String]
     $Quirks = 'None',
 
+    # Move per-chapter footnote sections into a single footnotes.xhtml at the end of the EPUB
+    # so they aren't rendered inline at the end of each chapter by readers that don't only
+    # show footnotes as pop-ups.
+    [Parameter()]
+    [Switch]
+    $InlineFootnotes,
+
     [Parameter()]
     [String]
     $VolumePath
@@ -50,8 +57,11 @@ function GenerateEpub($markdownFiles, [string]$targetPath, [string]$title) {
 
     Pop-Location
 
-    if ($Quirks -eq 'KyBook3') {
-        ApplyEpubFixes $tempEpub $tempDestination
+    # Footnote separation is incompatible with KyBook3 (it relies on inline footnote rendering)
+    $separateFootnotes = (-not $InlineFootnotes) -and ($Quirks -ne 'KyBook3')
+
+    if ($Quirks -eq 'KyBook3' -or $separateFootnotes) {
+        ApplyEpubFixes $tempEpub $tempDestination $separateFootnotes
     }
 
     # Move epub to target path only after applying fixes
@@ -65,13 +75,17 @@ function GenerateEpub($markdownFiles, [string]$targetPath, [string]$title) {
     Move-Item $tempEpub $targetPath -PassThru
 }
 
-function ApplyEpubFixes($epubPath, $tempDestination) {
+function ApplyEpubFixes($epubPath, $tempDestination, [bool]$separateFootnotes) {
     # TODO - repacked EPUB fails validation because mimetype is not first entry in archive
     ExpandArchive -Path $epubPath -DestinationPath $tempDestination -ClobberDestination
 
     # Disabling this for now since it's really only an issue for the first 9 footnotes
     # Could also use a shorter prefix like '#'
     #PrefixFootnotes $tempDestination 'ref'
+
+    if ($separateFootnotes) {
+        MoveFootnotesToSeparateFile $tempDestination
+    }
 
     if ($Quirks -eq 'KyBook3') {
         RenameAudioMpegaToMp3 $tempDestination
@@ -80,6 +94,84 @@ function ApplyEpubFixes($epubPath, $tempDestination) {
     Push-Location $tempDestination
     CompressArchive -Path * -DestinationPath $epubPath -Force
     Pop-Location
+}
+
+function MoveFootnotesToSeparateFile($epubContentPath) {
+    # pandoc emits footnotes inline as a <section epub:type="footnotes"> at the end of each
+    # chapter xhtml. Some EPUB readers render those inline at the end of the chapter even
+    # when pop-up footnotes are supported. Extract the footnote <aside>s from each chapter,
+    # rewrite the noteref/backlink anchors so they cross files, and gather everything into a
+    # single text/footnotes.xhtml registered at the end of the spine.
+    $textPath = "$epubContentPath/EPUB/text"
+    $chapterFiles = @(Get-ChildItem $textPath -Filter "ch*.xhtml" | Sort-Object Name)
+
+    $allAsides = [Text.StringBuilder]::new()
+
+    foreach ($file in $chapterFiles) {
+        $content = Get-Content -Raw -LiteralPath $file.FullName
+        $sectionMatch = [regex]::Match($content,
+            '(?s)\s*<section\b[^>]*\bepub:type="footnotes"[^>]*>.*?</section>')
+        if (-not $sectionMatch.Success) { continue }
+
+        $basename = [IO.Path]::GetFileNameWithoutExtension($file.Name)
+        $sectionHtml = $sectionMatch.Value
+
+        # Remove the inline footnotes section and rewrite the noteref anchors that remain
+        # in the body so they point at the new footnotes file with chapter-prefixed ids.
+        $remaining = $content.Remove($sectionMatch.Index, $sectionMatch.Length)
+        $remaining = [regex]::Replace($remaining, 'href="#(fn\d+)"',
+            "href=`"footnotes.xhtml#$basename-`$1`"")
+        $remaining = [regex]::Replace($remaining, 'id="(fnref\d+)"',
+            "id=`"$basename-`$1`"")
+        Set-Content -LiteralPath $file.FullName -Value $remaining -NoNewline
+
+        # Rewrite the aside ids and backlink hrefs to match the relocated anchors, then
+        # collect the aside elements for the consolidated footnotes file.
+        $sectionHtml = [regex]::Replace($sectionHtml, 'id="(fn\d+)"',
+            "id=`"$basename-`$1`"")
+        $sectionHtml = [regex]::Replace($sectionHtml, 'href="#(fnref\d+)"',
+            "href=`"$basename.xhtml#$basename-`$1`"")
+
+        $asideMatches = [regex]::Matches($sectionHtml,
+            '(?s)<aside\b[^>]*\bepub:type="footnote"[^>]*>.*?</aside>')
+        foreach ($am in $asideMatches) {
+            [void] $allAsides.AppendLine($am.Value)
+        }
+    }
+
+    if ($allAsides.Length -eq 0) { return }
+
+    $lang = $volume.definition.language
+    $langAttrs = $lang ? " lang=`"$lang`" xml:lang=`"$lang`"" : ''
+
+    $footnotesXhtml = @"
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops"$langAttrs>
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="tandoku" />
+  <title>Footnotes</title>
+  <link rel="stylesheet" type="text/css" href="../styles/stylesheet1.css" />
+</head>
+<body epub:type="backmatter">
+<section epub:type="footnotes" role="doc-endnotes" class="footnotes">
+<h1>Footnotes</h1>
+$($allAsides.ToString().TrimEnd())
+</section>
+</body>
+</html>
+"@
+    Set-Content -LiteralPath "$textPath/footnotes.xhtml" -Value $footnotesXhtml -NoNewline
+
+    # Register the new file in the OPF manifest and spine
+    $opfPath = "$epubContentPath/EPUB/content.opf"
+    $opf = Get-Content -Raw -LiteralPath $opfPath
+    $opf = $opf -replace '(\r?\n)(\s*)</manifest>',
+        "`$1`$2  <item id=`"footnotes_xhtml`" href=`"text/footnotes.xhtml`" media-type=`"application/xhtml+xml`" />`$1`$2</manifest>"
+    $opf = $opf -replace '(\r?\n)(\s*)</spine>',
+        "`$1`$2  <itemref idref=`"footnotes_xhtml`" linear=`"no`" />`$1`$2</spine>"
+    Set-Content -LiteralPath $opfPath -Value $opf -NoNewline
 }
 
 function PrefixFootnotes($epubContentPath, $prefix) {
