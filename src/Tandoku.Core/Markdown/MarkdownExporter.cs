@@ -23,7 +23,7 @@ public sealed partial class MarkdownExporter
 
     public MarkdownExporter(MarkdownExportSettings? settings = null, IFileSystem? fileSystem = null)
     {
-        this.settings = settings ?? new MarkdownExportSettings();
+        this.settings = (settings ?? new MarkdownExportSettings()).ApplyQuirks();
         this.fileSystem = fileSystem ?? new FileSystem();
         this.blockTemplate = string.IsNullOrEmpty(this.settings.TemplatePath)
             ? DefaultBlockTemplate.Value
@@ -233,7 +233,7 @@ public sealed partial class MarkdownExporter
 
     private ChunkModel BuildChunkModel(ContentBlockChunk chunk, string chunkId)
     {
-        var ruby = this.settings.EffectiveRubyBehavior;
+        var ruby = this.settings.RubyBehavior;
         var chunkText = ProcessRubyText(chunk.Text ?? string.Empty, ruby);
         if (ruby == MarkdownRubyBehavior.BlurHtml)
             chunkText = ConvertTextToBlurHtml(chunkText, chunkId, ruby: true);

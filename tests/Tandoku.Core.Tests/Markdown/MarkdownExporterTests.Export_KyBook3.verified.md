@@ -9,7 +9,8 @@
 
 ## 00:00:05
 
-![page-001](images/page-001.png)  
+![page-001](images/page-001.png)
+
 桃[もも]太郎[たろう] [^ep01-2]
 
 [^ep01-2]: en: Momotaro  

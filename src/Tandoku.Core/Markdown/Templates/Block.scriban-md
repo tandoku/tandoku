@@ -7,10 +7,8 @@
 
 {{ end -}}
 {{ if block.image.name -}}
-{{ block.image.name | render_image }}{{ if settings.quirks == "KyBook3" }}  
-{{ else }}
+{{ block.image.name | render_image }}
 
-{{ end -}}
 {{ end -}}
 {{ end -}}
 {{ for chunk in chunks -}}

@@ -43,8 +43,11 @@ function GenerateEpub($markdownFiles, [string]$targetPath, [string]$title) {
         --metadata title="$title" `
         --metadata author="tandoku" `
         --metadata lang="$($volume.definition.language)" `
-        --css "$PSScriptRoot/../resources/styles/epub.css" `
         --split-level=$SplitLevel
+
+        # this suppresses the default stylesheet for epub
+        #--css "$PSScriptRoot/../resources/styles/epub.css" `
+
     Pop-Location
 
     if ($Quirks -eq 'KyBook3') {

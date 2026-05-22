@@ -164,7 +164,7 @@ $markdownPath = "$volumePath/markdown/$Configuration"
 if ($Configuration -eq 'image-similarity-checker') {
     tandoku markdown export $contentDirectory70 $markdownPath --template $PSScriptRoot/image-similarity-checker/image-similarity-checker.scriban-md
 } else {
-    tandoku markdown export $contentDirectory70 $markdownPath --keep-together --ruby html --ref-behavior footnotes --ref-labels none --quirks $config.markdownQuirks
+    tandoku markdown export $contentDirectory70 $markdownPath --ruby html --ref-behavior footnotes --ref-labels none --quirks $config.markdownQuirks
 }
 
 if ($Target -like '*epub') {
