@@ -76,7 +76,6 @@ function GenerateEpub($markdownFiles, [string]$targetPath, [string]$title) {
 }
 
 function ApplyEpubFixes($epubPath, $tempDestination, [bool]$separateFootnotes) {
-    # TODO - repacked EPUB fails validation because mimetype is not first entry in archive
     ExpandArchive -Path $epubPath -DestinationPath $tempDestination -ClobberDestination
 
     # Disabling this for now since it's really only an issue for the first 9 footnotes
@@ -91,9 +90,56 @@ function ApplyEpubFixes($epubPath, $tempDestination, [bool]$separateFootnotes) {
         RenameAudioMpegaToMp3 $tempDestination
     }
 
-    Push-Location $tempDestination
-    CompressArchive -Path * -DestinationPath $epubPath -Force
-    Pop-Location
+    CompressEpub $tempDestination $epubPath
+}
+
+function CompressEpub([string]$sourceDirectory, [string]$epubPath) {
+    # The EPUB OCF spec (and epubcheck PKG-006) requires the 'mimetype' file to be the first
+    # entry in the zip archive, stored uncompressed and with no extra fields. Neither
+    # Compress-Archive nor `7z a -tzip` honors this, so build the zip directly with
+    # System.IO.Compression so we can control entry order and compression per entry.
+    Add-Type -AssemblyName System.IO.Compression
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+
+    $sourceDirectory = (Resolve-Path -LiteralPath $sourceDirectory).Path
+    $epubPath = ConvertPath $epubPath
+
+    if (Test-Path -LiteralPath $epubPath) {
+        Remove-Item -LiteralPath $epubPath
+    }
+
+    $stream = [IO.File]::Open($epubPath, [IO.FileMode]::CreateNew)
+    try {
+        $zip = [IO.Compression.ZipArchive]::new($stream, [IO.Compression.ZipArchiveMode]::Create)
+        try {
+            # mimetype must be the first entry and stored uncompressed
+            $mimetypePath = Join-Path $sourceDirectory 'mimetype'
+            if (-not (Test-Path -LiteralPath $mimetypePath)) {
+                throw "mimetype file not found at $mimetypePath"
+            }
+            $mimetypeEntry = $zip.CreateEntry('mimetype', [IO.Compression.CompressionLevel]::NoCompression)
+            $entryStream = $mimetypeEntry.Open()
+            try {
+                $bytes = [IO.File]::ReadAllBytes($mimetypePath)
+                $entryStream.Write($bytes, 0, $bytes.Length)
+            } finally {
+                $entryStream.Dispose()
+            }
+
+            # Add all other files preserving directory structure with forward-slash entry names
+            Get-ChildItem -LiteralPath $sourceDirectory -Recurse -File |
+                Where-Object { $_.FullName -ne $mimetypePath } |
+                ForEach-Object {
+                    $relative = [IO.Path]::GetRelativePath($sourceDirectory, $_.FullName).Replace('\', '/')
+                    [void] [IO.Compression.ZipFileExtensions]::CreateEntryFromFile(
+                        $zip, $_.FullName, $relative, [IO.Compression.CompressionLevel]::Optimal)
+                }
+        } finally {
+            $zip.Dispose()
+        }
+    } finally {
+        $stream.Dispose()
+    }
 }
 
 function MoveFootnotesToSeparateFile($epubContentPath) {
