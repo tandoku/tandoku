@@ -1,5 +1,6 @@
 ﻿namespace Tandoku.Media;
 
+using System.Buffers.Binary;
 using System.IO.Abstractions;
 using System.Numerics;
 using SixLabors.ImageSharp;
@@ -54,13 +55,33 @@ public sealed class AverageHashImageSimilarityProvider : IImageSimilarityProvide
     }
 }
 
-public readonly record struct AverageHashImageSignature(ulong Hash) : IImageSignature<AverageHashImageSignature>
+public readonly record struct AverageHashImageSignature(ulong Hash) : ISerializableImageSignature<AverageHashImageSignature>
 {
     private const int HashBits = 64;
+    private const int HashByteCount = sizeof(ulong);
 
     public double SimilarityTo(AverageHashImageSignature other)
     {
         var distance = BitOperations.PopCount(this.Hash ^ other.Hash);
         return 1.0 - (distance / (double)HashBits);
+    }
+
+    public static async Task<AverageHashImageSignature> ReadAsync(IFileInfo cacheFile)
+    {
+        var bytes = await cacheFile.FileSystem.File.ReadAllBytesAsync(cacheFile.FullName);
+        if (bytes.Length != HashByteCount)
+        {
+            throw new InvalidDataException(
+                $"Expected {HashByteCount} bytes in '{cacheFile.FullName}' but found {bytes.Length}.");
+        }
+        var hash = BinaryPrimitives.ReadUInt64LittleEndian(bytes);
+        return new AverageHashImageSignature(hash);
+    }
+
+    public Task WriteAsync(IFileInfo cacheFile)
+    {
+        var bytes = new byte[HashByteCount];
+        BinaryPrimitives.WriteUInt64LittleEndian(bytes, this.Hash);
+        return cacheFile.FileSystem.File.WriteAllBytesAsync(cacheFile.FullName, bytes);
     }
 }
