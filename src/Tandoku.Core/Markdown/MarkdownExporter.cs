@@ -115,13 +115,15 @@ public sealed partial class MarkdownExporter
             sb.Append($"# {fileHeading}\n\n");
         }
 
+        ContentBlock? previousBlock = null;
         for (var i = 0; i < blocks.Count; i++)
         {
             var blockIndex = i + 1;
             var block = blocks[i];
             var blockId = $"{idPrefix}-{blockIndex}";
-            var model = this.BuildBlockModel(block, blockId);
+            var model = this.BuildBlockModel(block, blockId, previousBlock);
             this.RenderBlock(sb, model, this.blockTemplate);
+            previousBlock = block;
         }
     }
 
@@ -143,7 +145,7 @@ public sealed partial class MarkdownExporter
         sb.Append(output);
     }
 
-    private BlockModel BuildBlockModel(ContentBlock block, string blockId)
+    private BlockModel BuildBlockModel(ContentBlock block, string blockId, ContentBlock? previousBlock)
     {
         var heading = this.settings.NoBlockHeadings ? null : GetHeading(block);
 
@@ -176,8 +178,9 @@ public sealed partial class MarkdownExporter
 
         return new BlockModel
         {
-            Block = block,
             Settings = this.settings,
+            Block = block,
+            PreviousBlock = previousBlock,
             Heading = heading,
             Chunks = chunks,
         };
@@ -413,8 +416,9 @@ public sealed partial class MarkdownExporter
 
     private sealed class BlockModel
     {
-        public required ContentBlock Block { get; init; }
         public required MarkdownExportSettings Settings { get; init; }
+        public required ContentBlock Block { get; init; }
+        public ContentBlock? PreviousBlock { get; init; }
         public string? Heading { get; init; }
         public IReadOnlyList<ChunkModel> Chunks { get; init; } = [];
     }

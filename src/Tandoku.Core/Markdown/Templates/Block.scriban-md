@@ -1,6 +1,8 @@
-{{- capture out -}}
 {{ if settings.keep_together }}::: {.keep-together}
 {{ end -}}
+{{ effective_image = block.image.group.name ?? block.image.name -}}
+{{ prev_effective_image = previous_block.image.group.name ?? previous_block.image.name -}}
+{{ if !effective_image || effective_image != prev_effective_image -}}
 {{ if heading }}## {{ heading }}
 
 {{ end -}}
@@ -8,6 +10,7 @@
 {{ block.image.name | render_image }}{{ if settings.quirks == "KyBook3" }}  
 {{ else }}
 
+{{ end -}}
 {{ end -}}
 {{ end -}}
 {{ for chunk in chunks -}}
@@ -24,5 +27,3 @@
 {{ if settings.keep_together }}:::
 
 {{ end -}}
-{{- end -}}
-{{- out -}}
