@@ -61,7 +61,7 @@ public class MarkdownCommandTests : CliTestBase
             expectedOutput: $"Wrote {outDir.GetFile("ep01.md").FullName}");
 
         var md = this.fileSystem.GetFile(outDir.GetFile("ep01.md")).TextContents;
-        md.Should().StartWith("CUSTOM: ");
+        md.Should().Contain("CUSTOM: ");
         md.Should().NotContain("# Opening");
     }
 }

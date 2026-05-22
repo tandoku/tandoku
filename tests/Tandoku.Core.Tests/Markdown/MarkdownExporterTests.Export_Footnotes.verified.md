@@ -1,4 +1,6 @@
-﻿# Opening
+﻿# ep01
+
+## Opening
 
 <ruby>むかし<rt>むかし</rt></ruby>、ある所にお爺さんとお婆さんが住んでいました。 [^ep01-1]
 
@@ -7,7 +9,7 @@
     time: 00:00:01
 
 
-# page-001
+## 00:00:05
 
 ![page-001](images/page-001.png)
 
@@ -18,7 +20,9 @@
     time: 00:00:05
 
 
-<audio src="audio/clip01.mp3" controls=""></audio>
+## 00:00:09
 
 <ruby>これは音<rt>おと</rt></ruby>のテストです。
+
+<audio src="audio/clip01.mp3" controls="controls"></audio>
 

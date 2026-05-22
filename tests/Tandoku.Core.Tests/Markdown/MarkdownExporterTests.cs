@@ -18,10 +18,10 @@ public class MarkdownExporterTests
         this.RunAndVerifyAsync(new MarkdownExportSettings { KeepTogether = true });
 
     [Test]
-    public Task Export_NoHeadings() =>
+    public Task Export_NoBlockHeadings() =>
         this.RunAndVerifyAsync(new MarkdownExportSettings
         {
-            NoHeadings = true,
+            NoBlockHeadings = true,
             RubyBehavior = MarkdownRubyBehavior.Remove,
         });
 
@@ -62,7 +62,7 @@ public class MarkdownExporterTests
         var exporter = new MarkdownExporter(new MarkdownExportSettings
         {
             Combine = true,
-            NoHeadings = true,
+            NoBlockHeadings = true,
         }, fs);
         var written = await exporter.ExportAsync(inputDir.FullName, outDir.FullName);
 
@@ -70,6 +70,27 @@ public class MarkdownExporterTests
         var combined = fs.File.ReadAllText(written[0]);
         combined.Should().Contain("# ep01");
         combined.Should().Contain("# ep02");
+    }
+
+    [Test]
+    public async Task Export_CustomTemplate_FormatTimecodeFunction()
+    {
+        var fs = new MockFileSystem();
+        var inputDir = fs.GetCurrentDirectory().CreateSubdirectory("in");
+        WriteSampleResource(fs, inputDir.GetFile("ep01.content.yaml"), "ep01.content.yaml");
+        var outDir = fs.GetCurrentDirectory().CreateSubdirectory("out");
+
+        var templatePath = fs.Path.Combine(fs.GetCurrentDirectory().FullName, "block.scriban-md");
+        fs.AddFile(templatePath, new MockFileData("[{{ format_timecode block.source.timecodes.start }}]\n"));
+
+        var exporter = new MarkdownExporter(new MarkdownExportSettings { TemplatePath = templatePath }, fs);
+        var written = await exporter.ExportAsync(inputDir.FullName, outDir.FullName);
+
+        written.Should().HaveCount(1);
+        var markdown = fs.File.ReadAllText(written[0]);
+        markdown.Should().Contain("[00:00:01]");
+        markdown.Should().Contain("[00:00:05]");
+        markdown.Should().Contain("[00:00:09]");
     }
 
     private async Task RunAndVerifyAsync(MarkdownExportSettings settings)

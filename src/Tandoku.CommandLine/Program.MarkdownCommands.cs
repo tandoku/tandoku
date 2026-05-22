@@ -23,11 +23,9 @@ public sealed partial class Program
         {
             Description = "Combine all input content files into a single markdown file",
         };
-        // TODO - revisit naming/semantics; this is really "do not promote images to headings".
-        // Consider making this the default and adding a --heading-per-block (or similar) switch instead.
-        var noHeadingsOption = new Option<bool>("--no-headings")
+        var noBlockHeadingsOption = new Option<bool>("--no-block-headings")
         {
-            Description = "Do not promote per-block notes/resources to headings",
+            Description = "Do not render per-block headings from notes/resources/timecodes",
         };
         var keepTogetherOption = new Option<bool>("--keep-together")
         {
@@ -63,7 +61,7 @@ public sealed partial class Program
             inputPathArgument,
             outputPathArgument,
             combineOption,
-            noHeadingsOption,
+            noBlockHeadingsOption,
             keepTogetherOption,
             rubyOption,
             refBehaviorOption,
@@ -83,7 +81,7 @@ public sealed partial class Program
             var settings = new MarkdownExportSettings
             {
                 Combine = parseResult.GetValue(combineOption),
-                NoHeadings = parseResult.GetValue(noHeadingsOption),
+                NoBlockHeadings = parseResult.GetValue(noBlockHeadingsOption),
                 KeepTogether = parseResult.GetValue(keepTogetherOption),
                 RubyBehavior = parseResult.GetValue(rubyOption),
                 ReferenceBehavior = parseResult.GetValue(refBehaviorOption),

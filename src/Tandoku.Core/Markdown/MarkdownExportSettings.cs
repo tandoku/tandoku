@@ -31,7 +31,7 @@ public enum MarkdownQuirks
 public sealed record MarkdownExportSettings
 {
     public bool Combine { get; init; }
-    public bool NoHeadings { get; init; }
+    public bool NoBlockHeadings { get; init; }
     public bool KeepTogether { get; init; }
     public MarkdownRubyBehavior RubyBehavior { get; init; }
     public MarkdownReferenceBehavior ReferenceBehavior { get; init; }

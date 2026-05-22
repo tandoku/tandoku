@@ -1,5 +1,7 @@
-﻿::: {.keep-together}
-# Opening
+﻿# ep01
+
+::: {.keep-together}
+## Opening
 
 むかし[むかし]、ある所にお爺さんとお婆さんが住んでいました。
 
@@ -11,7 +13,7 @@
 :::
 
 ::: {.keep-together}
-# page-001
+## 00:00:05
 
 ![page-001](images/page-001.png)
 
@@ -25,9 +27,11 @@
 :::
 
 ::: {.keep-together}
-<audio src="audio/clip01.mp3" controls=""></audio>
+## 00:00:09
 
 これは音[おと]のテストです。
+
+<audio src="audio/clip01.mp3" controls="controls"></audio>
 
 :::
 
