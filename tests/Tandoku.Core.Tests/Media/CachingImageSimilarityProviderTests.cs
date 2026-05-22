@@ -26,7 +26,7 @@ public class CachingImageSimilarityProviderTests
         var cacheFile = this.Fs.GetFile("/imgs/similarity/hashes.json");
         cacheFile.Exists.Should().BeTrue();
         var root = JsonNode.Parse(cacheFile.OpenRead())!;
-        root["images"]!["a.png"]!.GetValue<ulong>().Should().Be(0x42UL);
+        root["images"]!["a.png"]!.GetValue<string>().Should().Be("0000000000000042");
         inner.CallCount.Should().Be(1);
     }
 
@@ -50,7 +50,7 @@ public class CachingImageSimilarityProviderTests
     {
         this.mockFs.AddFile("/imgs/a.png", new MockFileData("a"));
         this.mockFs.AddFile("/imgs/similarity/hashes.json", new MockFileData(
-            """{"images":{"a.png":99}}"""));
+            """{"images":{"a.png":"0000000000000063"}}"""));
         var inner = new RecordingProvider();
 
         await using var provider = inner.AddCaching("hashes.json", this.mockFs);
@@ -66,7 +66,7 @@ public class CachingImageSimilarityProviderTests
         this.mockFs.AddFile("/imgs/a.png", new MockFileData("a"));
         this.mockFs.AddFile("/imgs/b.png", new MockFileData("b"));
         this.mockFs.AddFile("/imgs/similarity/hashes.json", new MockFileData(
-            """{"images":{"a.png":1}}"""));
+            """{"images":{"a.png":"0000000000000001"}}"""));
         var inner = new RecordingProvider { ["b.png"] = 2UL };
 
         await using (var provider = inner.AddCaching("hashes.json", this.mockFs))
@@ -76,15 +76,15 @@ public class CachingImageSimilarityProviderTests
         }
 
         var root = JsonNode.Parse(this.Fs.GetFile("/imgs/similarity/hashes.json").OpenRead())!;
-        root["images"]!["a.png"]!.GetValue<ulong>().Should().Be(1UL);
-        root["images"]!["b.png"]!.GetValue<ulong>().Should().Be(2UL);
+        root["images"]!["a.png"]!.GetValue<string>().Should().Be("0000000000000001");
+        root["images"]!["b.png"]!.GetValue<string>().Should().Be("0000000000000002");
     }
 
     [Test]
     public async Task NoNewSignatures_CacheFileNotRewritten()
     {
         this.mockFs.AddFile("/imgs/a.png", new MockFileData("a"));
-        const string original = """{"images":{"a.png":7}}""";
+        const string original = """{"images":{"a.png":"0000000000000007"}}""";
         this.mockFs.AddFile("/imgs/similarity/hashes.json", new MockFileData(original));
         var inner = new RecordingProvider();
 

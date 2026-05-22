@@ -68,7 +68,7 @@ public readonly record struct AverageHashImageSignature(ulong Hash) : ISerializa
     }
 
     public static AverageHashImageSignature FromJson(JsonNode node) =>
-        new(node.GetValue<ulong>());
+        new(Convert.ToUInt64(node.GetValue<string>(), 16));
 
-    public JsonNode ToJson() => JsonValue.Create(this.Hash);
+    public JsonNode ToJson() => JsonValue.Create(this.Hash.ToString("x16"));
 }
