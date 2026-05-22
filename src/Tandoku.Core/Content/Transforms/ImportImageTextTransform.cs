@@ -1,7 +1,7 @@
 ﻿namespace Tandoku.Content.Transforms;
 
 using System.IO.Abstractions;
-using Tandoku.Images;
+using Tandoku.Media;
 using Tandoku.Volume;
 
 public sealed class ImportImageTextTransform : IContentBlockTransform
@@ -23,9 +23,7 @@ public sealed class ImportImageTextTransform : IContentBlockTransform
         this.role = role;
         this.fileSystem = fileSystem ?? new FileSystem();
 
-        this.imagesDir = this.fileSystem
-            .GetDirectory(this.volumeInfo.Path)
-            .GetSubdirectory("images");
+        this.imagesDir = this.volumeInfo.GetImagesDirectory(this.fileSystem);
     }
 
     public async IAsyncEnumerable<ContentBlock> TransformAsync(IAsyncEnumerable<ContentBlock> blocks, IFileInfo file)

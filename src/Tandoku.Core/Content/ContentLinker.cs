@@ -6,6 +6,7 @@ using Lucene.Net.Analysis.TokenAttributes;
 using Lucene.Net.Index;
 using Lucene.Net.Search;
 using Lucene.Net.Store;
+using Tandoku.Markdown;
 
 public sealed class ContentLinker
 {

@@ -1,5 +1,7 @@
 ﻿namespace Tandoku.Tests.Markdown;
 
+using Tandoku.Markdown;
+
 public class MarkdownExtensionsTests
 {
     private sealed record Md(string? Text) : IMarkdownText;

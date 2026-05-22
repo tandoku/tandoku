@@ -1,4 +1,4 @@
-﻿namespace Tandoku;
+﻿namespace Tandoku.Markdown;
 
 using Markdig.Renderers.Normalize;
 using Markdig.Syntax;

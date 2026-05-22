@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using System.Runtime.Serialization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Tandoku.Markdown;
 using Tandoku.Serialization;
 using YamlDotNet.Core;
 using YamlDotNet.Serialization;

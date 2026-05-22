@@ -4,7 +4,7 @@ using System.CommandLine;
 using Tandoku.Content;
 using Tandoku.Content.Alignment;
 using Tandoku.Content.Transforms;
-using Tandoku.Images;
+using Tandoku.Media;
 
 public sealed partial class Program
 {

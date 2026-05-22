@@ -1,12 +1,11 @@
 ﻿namespace Tandoku.Tests.Content.Transforms;
 
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.IO.Abstractions;
 using System.IO.Abstractions.TestingHelpers;
 using Tandoku.Content;
 using Tandoku.Content.Transforms;
-using Tandoku.Images;
+using Tandoku.Media;
 using Tandoku.Volume;
 
 public class GroupSimilarImagesTransformTests

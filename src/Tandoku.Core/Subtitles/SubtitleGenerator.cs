@@ -5,6 +5,7 @@ using System.IO.Abstractions;
 using Nikse.SubtitleEdit.Core.Common;
 using Nikse.SubtitleEdit.Core.SubtitleFormats;
 using Tandoku.Content;
+using Tandoku.Markdown;
 using Tandoku.Serialization;
 
 public enum SubtitlePurpose

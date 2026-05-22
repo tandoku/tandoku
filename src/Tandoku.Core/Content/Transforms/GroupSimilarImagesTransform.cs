@@ -1,7 +1,7 @@
 ﻿namespace Tandoku.Content.Transforms;
 
 using System.IO.Abstractions;
-using Tandoku.Images;
+using Tandoku.Media;
 using Tandoku.Volume;
 
 public static class GroupSimilarImagesTransform
@@ -33,9 +33,7 @@ public sealed class GroupSimilarImagesTransform<TSignature> : IContentBlockTrans
         this.similarityThreshold = similarityThreshold;
         this.fileSystem = fileSystem ?? new FileSystem();
 
-        this.imagesDir = this.fileSystem
-            .GetDirectory(volumeInfo.Path)
-            .GetSubdirectory("images");
+        this.imagesDir = volumeInfo.GetImagesDirectory(this.fileSystem);
     }
 
     public bool ParallelProcessing => true;

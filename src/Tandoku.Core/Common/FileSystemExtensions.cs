@@ -39,6 +39,9 @@ public static class FileSystemExtensions
     public static bool ExtensionEquals(this IFileInfo file, string extension) =>
         GetComparer(file.FileSystem.Path).Equals(file.Extension, extension);
 
+    public static bool ExtensionEquals(this IPath pathObject, string path, string extension) =>
+        GetComparer(pathObject).Equals(pathObject.GetExtension(path), extension);
+
     public static string? GetBaseName(this IFileInfo file) =>
         GetBaseName(file.FileSystem.Path, file.Name);
 

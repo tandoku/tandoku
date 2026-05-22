@@ -11,6 +11,8 @@ using Tandoku.Serialization;
 
 public sealed partial class MarkdownExporter
 {
+    private const string MarkdownExtension = ".md";
+    private const string DefaultBaseName = "content";
     private const string BlockTemplateResourceName = "Tandoku.Markdown.Templates.Block.scriban-md";
 
     private static readonly Lazy<Template> DefaultBlockTemplate = new(LoadDefaultBlockTemplate);
@@ -31,9 +33,7 @@ public sealed partial class MarkdownExporter
     public async Task<IReadOnlyList<string>> ExportAsync(string inputPath, string outputPath)
     {
         var inputDir = this.fileSystem.GetDirectory(inputPath);
-        var contentFiles = inputDir.EnumerateContentFiles()
-            .OrderBy(f => f.Name, this.fileSystem.Path.GetComparer())
-            .ToList();
+        var contentFiles = inputDir.EnumerateContentFiles().ToList();
 
         if (contentFiles.Count == 0)
             return [];
@@ -44,7 +44,7 @@ public sealed partial class MarkdownExporter
         {
             string combinedPath;
             string targetDirectory;
-            if (outputPath.EndsWith(".md", StringComparison.OrdinalIgnoreCase))
+            if (this.fileSystem.Path.ExtensionEquals(outputPath, MarkdownExtension))
             {
                 combinedPath = outputPath;
                 targetDirectory = this.fileSystem.Path.GetDirectoryName(outputPath) ?? string.Empty;
@@ -54,7 +54,7 @@ public sealed partial class MarkdownExporter
                 targetDirectory = outputPath;
                 // TODO - consider exposing the combined output filename as a property on volume info
                 // (and possibly drop the moniker, just using the cleaned title)
-                combinedPath = this.fileSystem.Path.Combine(outputPath, "content.md");
+                combinedPath = this.fileSystem.Path.Combine(outputPath, DefaultBaseName + MarkdownExtension);
             }
 
             if (!string.IsNullOrEmpty(targetDirectory))
@@ -75,8 +75,8 @@ public sealed partial class MarkdownExporter
             this.fileSystem.GetDirectory(outputPath).Create();
             foreach (var contentFile in contentFiles)
             {
-                var baseName = this.fileSystem.Path.GetBaseName(contentFile.Name) ?? "content";
-                var target = this.fileSystem.Path.Combine(outputPath, baseName + ".md");
+                var baseName = this.fileSystem.Path.GetBaseName(contentFile.Name) ?? DefaultBaseName;
+                var target = this.fileSystem.Path.Combine(outputPath, baseName + MarkdownExtension);
 
                 var blocks = await ReadBlocksAsync(contentFile);
                 var sb = new StringBuilder();

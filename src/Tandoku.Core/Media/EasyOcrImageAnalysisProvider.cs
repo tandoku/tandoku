@@ -1,4 +1,4 @@
-﻿namespace Tandoku.Images;
+﻿namespace Tandoku.Media;
 
 using System.Collections.Generic;
 using System.Collections.Immutable;

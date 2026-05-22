@@ -5,7 +5,7 @@ using System.IO.Abstractions;
 using System.IO.Abstractions.TestingHelpers;
 using Tandoku.Content;
 using Tandoku.Content.Transforms;
-using Tandoku.Images;
+using Tandoku.Media;
 using Tandoku.Volume;
 
 public class ImportImageTextTransformTests
