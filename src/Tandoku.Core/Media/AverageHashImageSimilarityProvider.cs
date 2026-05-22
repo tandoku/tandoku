@@ -1,8 +1,8 @@
 ﻿namespace Tandoku.Media;
 
-using System.Buffers.Binary;
 using System.IO.Abstractions;
 using System.Numerics;
+using System.Text.Json.Nodes;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -53,12 +53,13 @@ public sealed class AverageHashImageSimilarityProvider : IImageSimilarityProvide
 
         return new AverageHashImageSignature(hash);
     }
+
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 }
 
 public readonly record struct AverageHashImageSignature(ulong Hash) : ISerializableImageSignature<AverageHashImageSignature>
 {
     private const int HashBits = 64;
-    private const int HashByteCount = sizeof(ulong);
 
     public double SimilarityTo(AverageHashImageSignature other)
     {
@@ -66,22 +67,8 @@ public readonly record struct AverageHashImageSignature(ulong Hash) : ISerializa
         return 1.0 - (distance / (double)HashBits);
     }
 
-    public static async Task<AverageHashImageSignature> ReadAsync(IFileInfo cacheFile)
-    {
-        var bytes = await cacheFile.FileSystem.File.ReadAllBytesAsync(cacheFile.FullName);
-        if (bytes.Length != HashByteCount)
-        {
-            throw new InvalidDataException(
-                $"Expected {HashByteCount} bytes in '{cacheFile.FullName}' but found {bytes.Length}.");
-        }
-        var hash = BinaryPrimitives.ReadUInt64LittleEndian(bytes);
-        return new AverageHashImageSignature(hash);
-    }
+    public static AverageHashImageSignature FromJson(JsonNode node) =>
+        new(node.GetValue<ulong>());
 
-    public Task WriteAsync(IFileInfo cacheFile)
-    {
-        var bytes = new byte[HashByteCount];
-        BinaryPrimitives.WriteUInt64LittleEndian(bytes, this.Hash);
-        return cacheFile.FileSystem.File.WriteAllBytesAsync(cacheFile.FullName, bytes);
-    }
+    public JsonNode ToJson() => JsonValue.Create(this.Hash);
 }

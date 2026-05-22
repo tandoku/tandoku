@@ -153,5 +153,7 @@ public class GroupSimilarImagesTransformTests
     {
         public Task<AverageHashImageSignature> ComputeSignatureAsync(IFileInfo imageFile) =>
             Task.FromResult(new AverageHashImageSignature(this[imageFile.Name]));
+
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }
 }
