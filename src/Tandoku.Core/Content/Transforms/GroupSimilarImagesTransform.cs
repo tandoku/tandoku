@@ -7,7 +7,7 @@ using Tandoku.Volume;
 public static class GroupSimilarImagesTransform
 {
     public static GroupSimilarImagesTransform<TSignature> Create<TSignature>(
-        IImageSimilarityProvider<TSignature> provider,
+        IImageSignatureProvider<TSignature> provider,
         double similarityThreshold,
         VolumeInfo volumeInfo,
         IFileSystem? fileSystem = null)
@@ -18,13 +18,13 @@ public static class GroupSimilarImagesTransform
 public sealed class GroupSimilarImagesTransform<TSignature> : IContentBlockTransform
     where TSignature : IImageSignature<TSignature>
 {
-    private readonly IImageSimilarityProvider<TSignature> provider;
+    private readonly IImageSignatureProvider<TSignature> provider;
     private readonly double similarityThreshold;
     private readonly IFileSystem fileSystem;
     private readonly IDirectoryInfo imagesDir;
 
     public GroupSimilarImagesTransform(
-        IImageSimilarityProvider<TSignature> provider,
+        IImageSignatureProvider<TSignature> provider,
         double similarityThreshold,
         VolumeInfo volumeInfo,
         IFileSystem? fileSystem = null)

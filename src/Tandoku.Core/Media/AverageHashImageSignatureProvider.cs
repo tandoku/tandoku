@@ -9,7 +9,7 @@ using SixLabors.ImageSharp.Processing;
 
 // Computes a 64-bit perceptual "average hash" (aHash) for each image and compares signatures
 // by Hamming distance. Similar images produce hashes with few differing bits.
-public sealed class AverageHashImageSimilarityProvider : IImageSimilarityProvider<AverageHashImageSignature>
+public sealed class AverageHashImageSignatureProvider : IImageSignatureProvider<AverageHashImageSignature>
 {
     private const int HashSize = 8;
 

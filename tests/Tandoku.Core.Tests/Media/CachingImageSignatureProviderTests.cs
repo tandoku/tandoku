@@ -5,7 +5,7 @@ using System.IO.Abstractions.TestingHelpers;
 using System.Text.Json.Nodes;
 using Tandoku.Media;
 
-public class CachingImageSimilarityProviderTests
+public class CachingImageSignatureProviderTests
 {
     private readonly MockFileSystem mockFs = new();
     private IFileSystem Fs => this.mockFs;
@@ -23,7 +23,7 @@ public class CachingImageSimilarityProviderTests
             sig.Hash.Should().Be(0x42UL);
         }
 
-        var cacheFile = this.Fs.GetFile("/imgs/similarity/hashes.json");
+        var cacheFile = this.Fs.GetFile("/imgs/signature/hashes.json");
         cacheFile.Exists.Should().BeTrue();
         var root = JsonNode.Parse(cacheFile.OpenRead())!;
         root["images"]!["a.png"]!.GetValue<string>().Should().Be("0000000000000042");
@@ -49,7 +49,7 @@ public class CachingImageSimilarityProviderTests
     public async Task ExistingCacheFile_LoadedOnFirstAccess_NoRecompute()
     {
         this.mockFs.AddFile("/imgs/a.png", new MockFileData("a"));
-        this.mockFs.AddFile("/imgs/similarity/hashes.json", new MockFileData(
+        this.mockFs.AddFile("/imgs/signature/hashes.json", new MockFileData(
             """{"images":{"a.png":"0000000000000063"}}"""));
         var inner = new RecordingProvider();
 
@@ -65,7 +65,7 @@ public class CachingImageSimilarityProviderTests
     {
         this.mockFs.AddFile("/imgs/a.png", new MockFileData("a"));
         this.mockFs.AddFile("/imgs/b.png", new MockFileData("b"));
-        this.mockFs.AddFile("/imgs/similarity/hashes.json", new MockFileData(
+        this.mockFs.AddFile("/imgs/signature/hashes.json", new MockFileData(
             """{"images":{"a.png":"0000000000000001"}}"""));
         var inner = new RecordingProvider { ["b.png"] = 2UL };
 
@@ -75,7 +75,7 @@ public class CachingImageSimilarityProviderTests
             await provider.ComputeSignatureAsync(this.Fs.GetFile("/imgs/b.png"));
         }
 
-        var root = JsonNode.Parse(this.Fs.GetFile("/imgs/similarity/hashes.json").OpenRead())!;
+        var root = JsonNode.Parse(this.Fs.GetFile("/imgs/signature/hashes.json").OpenRead())!;
         root["images"]!["a.png"]!.GetValue<string>().Should().Be("0000000000000001");
         root["images"]!["b.png"]!.GetValue<string>().Should().Be("0000000000000002");
     }
@@ -85,7 +85,7 @@ public class CachingImageSimilarityProviderTests
     {
         this.mockFs.AddFile("/imgs/a.png", new MockFileData("a"));
         const string original = """{"images":{"a.png":"0000000000000007"}}""";
-        this.mockFs.AddFile("/imgs/similarity/hashes.json", new MockFileData(original));
+        this.mockFs.AddFile("/imgs/signature/hashes.json", new MockFileData(original));
         var inner = new RecordingProvider();
 
         await using (var provider = inner.AddCaching("hashes.json", this.mockFs))
@@ -93,7 +93,7 @@ public class CachingImageSimilarityProviderTests
             await provider.ComputeSignatureAsync(this.Fs.GetFile("/imgs/a.png"));
         }
 
-        this.mockFs.File.ReadAllText("/imgs/similarity/hashes.json").Should().Be(original);
+        this.mockFs.File.ReadAllText("/imgs/signature/hashes.json").Should().Be(original);
     }
 
     [Test]
@@ -109,8 +109,8 @@ public class CachingImageSimilarityProviderTests
             await provider.ComputeSignatureAsync(this.Fs.GetFile("/imgs2/a.png"));
         }
 
-        this.Fs.GetFile("/imgs1/similarity/hashes.json").Exists.Should().BeTrue();
-        this.Fs.GetFile("/imgs2/similarity/hashes.json").Exists.Should().BeTrue();
+        this.Fs.GetFile("/imgs1/signature/hashes.json").Exists.Should().BeTrue();
+        this.Fs.GetFile("/imgs2/signature/hashes.json").Exists.Should().BeTrue();
     }
 
     [Test]
@@ -131,7 +131,7 @@ public class CachingImageSimilarityProviderTests
         inner.CallCount.Should().Be(1);
     }
 
-    private class RecordingProvider : Dictionary<string, ulong>, IImageSimilarityProvider<AverageHashImageSignature>
+    private class RecordingProvider : Dictionary<string, ulong>, IImageSignatureProvider<AverageHashImageSignature>
     {
         private int callCount;
 

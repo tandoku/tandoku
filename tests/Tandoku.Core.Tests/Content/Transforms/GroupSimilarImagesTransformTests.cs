@@ -149,7 +149,7 @@ public class GroupSimilarImagesTransformTests
         }
     }
 
-    private sealed class FakeProvider : Dictionary<string, ulong>, IImageSimilarityProvider<AverageHashImageSignature>
+    private sealed class FakeProvider : Dictionary<string, ulong>, IImageSignatureProvider<AverageHashImageSignature>
     {
         public Task<AverageHashImageSignature> ComputeSignatureAsync(IFileInfo imageFile) =>
             Task.FromResult(new AverageHashImageSignature(this[imageFile.Name]));

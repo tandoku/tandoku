@@ -424,8 +424,8 @@ public sealed partial class Program
 
                 var volumeManager = program.CreateVolumeManager();
                 var volumeInfo = await volumeManager.GetInfoAsync(volumeDirectory.FullName);
-                await using var provider = new AverageHashImageSimilarityProvider()
-                    .AddCaching("hash.json", program.fileSystem);
+                await using var provider = new AverageHashImageSignatureProvider()
+                    .AddCaching("averagehash.json", program.fileSystem);
                 var transform = GroupSimilarImagesTransform.Create(
                     provider,
                     similarityThreshold,

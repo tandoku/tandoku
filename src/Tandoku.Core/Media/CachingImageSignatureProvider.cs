@@ -13,28 +13,28 @@ public interface ISerializableImageSignature<TSelf> : IImageSignature<TSelf>
     JsonNode ToJson();
 }
 
-public static class CachingImageSimilarityProviderExtensions
+public static class CachingImageSignatureProviderExtensions
 {
-    public static CachingImageSimilarityProvider<TSignature> AddCaching<TSignature>(
-        this IImageSimilarityProvider<TSignature> provider,
+    public static CachingImageSignatureProvider<T> AddCaching<T>(
+        this IImageSignatureProvider<T> provider,
         string cacheFileName,
         IFileSystem fileSystem)
-        where TSignature : ISerializableImageSignature<TSignature> =>
+        where T : ISerializableImageSignature<T> =>
         new(provider, cacheFileName, fileSystem);
 }
 
-public sealed class CachingImageSimilarityProvider<TSignature> : IImageSimilarityProvider<TSignature>
-    where TSignature : ISerializableImageSignature<TSignature>
+public sealed class CachingImageSignatureProvider<T> : IImageSignatureProvider<T>
+    where T : ISerializableImageSignature<T>
 {
-    private const string CacheDirectoryName = "similarity";
+    private const string CacheDirectoryName = "signature";
 
-    private readonly IImageSimilarityProvider<TSignature> provider;
+    private readonly IImageSignatureProvider<T> provider;
     private readonly string cacheFileName;
     private readonly ConcurrentDictionary<string, Lazy<DirectoryCache>> caches;
     private int disposed;
 
-    public CachingImageSimilarityProvider(
-        IImageSimilarityProvider<TSignature> provider,
+    public CachingImageSignatureProvider(
+        IImageSignatureProvider<T> provider,
         string cacheFileName,
         IFileSystem fileSystem)
     {
@@ -43,7 +43,7 @@ public sealed class CachingImageSimilarityProvider<TSignature> : IImageSimilarit
         this.caches = new(fileSystem.Path.GetComparer());
     }
 
-    public async Task<TSignature> ComputeSignatureAsync(IFileInfo imageFile)
+    public async Task<T> ComputeSignatureAsync(IFileInfo imageFile)
     {
         var imageDir = imageFile.Directory;
         if (imageDir is null)
@@ -52,7 +52,7 @@ public sealed class CachingImageSimilarityProvider<TSignature> : IImageSimilarit
         var cache = this.GetOrLoadCache(imageDir);
         var entry = cache.Signatures.GetOrAdd(
             imageFile.Name,
-            name => new Lazy<Task<TSignature>>(async () =>
+            name => new Lazy<Task<T>>(async () =>
             {
                 var signature = await this.provider.ComputeSignatureAsync(imageFile);
                 cache.MarkDirty();
@@ -93,20 +93,20 @@ public sealed class CachingImageSimilarityProvider<TSignature> : IImageSimilarit
 
         private DirectoryCache(
             IFileInfo cacheFile,
-            ConcurrentDictionary<string, Lazy<Task<TSignature>>> signatures)
+            ConcurrentDictionary<string, Lazy<Task<T>>> signatures)
         {
             this.cacheFile = cacheFile;
             this.Signatures = signatures;
         }
 
-        public ConcurrentDictionary<string, Lazy<Task<TSignature>>> Signatures { get; }
+        public ConcurrentDictionary<string, Lazy<Task<T>>> Signatures { get; }
 
         public void MarkDirty() => Interlocked.Exchange(ref this.dirty, 1);
 
         public static DirectoryCache Load(IFileInfo cacheFile)
         {
             var comparer = cacheFile.FileSystem.Path.GetComparer();
-            var signatures = new ConcurrentDictionary<string, Lazy<Task<TSignature>>>(comparer);
+            var signatures = new ConcurrentDictionary<string, Lazy<Task<T>>>(comparer);
             if (cacheFile.Exists)
             {
                 using var stream = cacheFile.OpenRead();
@@ -117,8 +117,8 @@ public sealed class CachingImageSimilarityProvider<TSignature> : IImageSimilarit
                     {
                         if (node is null)
                             continue;
-                        var signature = TSignature.FromJson(node);
-                        signatures[name] = new Lazy<Task<TSignature>>(Task.FromResult(signature));
+                        var signature = T.FromJson(node);
+                        signatures[name] = new Lazy<Task<T>>(Task.FromResult(signature));
                     }
                 }
             }
