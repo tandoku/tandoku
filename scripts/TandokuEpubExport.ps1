@@ -20,9 +20,8 @@ param(
     [String]
     $Quirks = 'None',
 
-    # Move per-chapter footnote sections into a single footnotes.xhtml at the end of the EPUB
-    # so they aren't rendered inline at the end of each chapter by readers that don't only
-    # show footnotes as pop-ups.
+    # Keep per-chapter footnote sections inline in each chapter instead of moving them into
+    # a consolidated footnotes.xhtml file at the end of the EPUB.
     [Parameter()]
     [Switch]
     $InlineFootnotes,
@@ -130,9 +129,15 @@ function CompressEpub([string]$sourceDirectory, [string]$epubPath) {
             Get-ChildItem -LiteralPath $sourceDirectory -Recurse -File |
                 Where-Object { $_.FullName -ne $mimetypePath } |
                 ForEach-Object {
-                    $relative = [IO.Path]::GetRelativePath($sourceDirectory, $_.FullName).Replace('\', '/')
+                    [pscustomobject]@{
+                        FullName = $_.FullName
+                        RelativePath = [IO.Path]::GetRelativePath($sourceDirectory, $_.FullName).Replace('\', '/')
+                    }
+                } |
+                Sort-Object RelativePath |
+                ForEach-Object {
                     [void] [IO.Compression.ZipFileExtensions]::CreateEntryFromFile(
-                        $zip, $_.FullName, $relative, [IO.Compression.CompressionLevel]::Optimal)
+                        $zip, $_.FullName, $_.RelativePath, [IO.Compression.CompressionLevel]::Optimal)
                 }
         } finally {
             $zip.Dispose()
