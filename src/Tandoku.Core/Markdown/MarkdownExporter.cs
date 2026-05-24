@@ -23,7 +23,7 @@ public sealed partial class MarkdownExporter
 
     public MarkdownExporter(MarkdownExportSettings? settings = null, IFileSystem? fileSystem = null)
     {
-        this.settings = settings ?? new MarkdownExportSettings();
+        this.settings = (settings ?? new MarkdownExportSettings()).ApplyQuirks();
         this.fileSystem = fileSystem ?? new FileSystem();
         this.blockTemplate = string.IsNullOrEmpty(this.settings.TemplatePath)
             ? DefaultBlockTemplate.Value
@@ -100,67 +100,54 @@ public sealed partial class MarkdownExporter
 
     private void AppendFile(StringBuilder sb, IReadOnlyList<ContentBlock> blocks, IFileInfo file)
     {
-        var idPrefix = this.fileSystem.Path.GetBaseName(file.Name);
-        string? fileHeading = null;
-        if (string.IsNullOrEmpty(idPrefix))
-        {
-            // Default id prefix - blockId may be used in HTML id attributes which must start with a letter
-            idPrefix = "block";
-        }
-        else if (this.settings.NoHeadings)
-        {
-            // TODO - clean up naming; consider including the file heading even when writing block headings
-            fileHeading = idPrefix;
-        }
+        var baseName = this.fileSystem.Path.GetBaseName(file.Name);
+        var idPrefix = string.IsNullOrEmpty(baseName) ?
+            "block" : // Default id prefix - blockId may be used in HTML id attributes which must start with a letter
+            baseName;
 
-        this.AppendBlocks(sb, blocks, idPrefix, fileHeading);
+        this.AppendBlocks(sb, blocks, idPrefix, baseName);
     }
 
     private void AppendBlocks(StringBuilder sb, IReadOnlyList<ContentBlock> blocks, string idPrefix, string? fileHeading)
     {
-        if (this.settings.NoHeadings && !string.IsNullOrEmpty(fileHeading))
+        if (!string.IsNullOrEmpty(fileHeading))
         {
-            sb.Append("# ").Append(fileHeading).Append('\n').Append('\n');
+            sb.Append($"# {fileHeading}\n\n");
         }
 
+        ContentBlock? previousBlock = null;
         for (var i = 0; i < blocks.Count; i++)
         {
             var blockIndex = i + 1;
             var block = blocks[i];
             var blockId = $"{idPrefix}-{blockIndex}";
-            var model = this.BuildBlockModel(block, blockIndex, blockId);
-            RenderBlock(sb, model, this.blockTemplate);
+            var model = this.BuildBlockModel(block, blockId, previousBlock);
+            this.RenderBlock(sb, model, this.blockTemplate);
+            previousBlock = block;
         }
     }
 
-    private static void RenderBlock(StringBuilder sb, BlockModel model, Template template)
+    private void RenderBlock(StringBuilder sb, BlockModel model, Template template)
     {
         var scriptObject = new ScriptObject();
         scriptObject.Import(model);
-        var context = new TemplateContext { StrictVariables = false, NewLine = "\n" };
+        scriptObject.Import("format_timecode", new Func<TimeSpan?, string?>(FormatTimecode));
+        scriptObject.Import("render_audio", new Func<string?, string?>(this.RenderAudio));
+        scriptObject.Import("render_image", new Func<string?, string?>(this.RenderImage));
+        var context = new TemplateContext
+        {
+            StrictVariables = false,
+            EnableRelaxedTargetAccess = true,
+            NewLine = "\n",
+        };
         context.PushGlobal(scriptObject);
         var output = template.Render(context);
         sb.Append(output);
     }
 
-    private BlockModel BuildBlockModel(ContentBlock block, int blockIndex, string blockId)
+    private BlockModel BuildBlockModel(ContentBlock block, string blockId, ContentBlock? previousBlock)
     {
-        var heading = GetHeading(block);
-        var showHeading = !string.IsNullOrEmpty(heading) && !this.settings.NoHeadings;
-        string? sectionHeading = null;
-        if (!showHeading && blockIndex % 50 == 0)
-        {
-            // TODO - clean this up alongside heading styling overall
-            sectionHeading = FormatTimecode(block.Source?.Timecodes?.Start);
-        }
-
-        var media = new List<string>();
-        var imageMd = this.RenderMedia(block.Image?.Name, "images", heading);
-        if (imageMd is not null)
-            media.Add(imageMd);
-        var audioMd = this.RenderMedia(block.Audio?.Name, "audio", heading);
-        if (audioMd is not null)
-            media.Add(audioMd);
+        var heading = this.settings.NoBlockHeadings ? null : GetHeading(block);
 
         var chunks = new List<ChunkModel>();
         if (block.Chunks.Count > 0)
@@ -191,27 +178,18 @@ public sealed partial class MarkdownExporter
 
         return new BlockModel
         {
-            KeepTogether = this.settings.KeepTogether,
-            Heading = showHeading ? heading : null,
-            SectionHeading = sectionHeading,
-            MediaBlocks = media,
-            SuppressBlankAfterMedia = this.settings.Quirks == MarkdownQuirks.KyBook3,
-            Chunks = chunks,
+            Settings = this.settings,
             Block = block,
+            PreviousBlock = previousBlock,
+            Heading = heading,
+            Chunks = chunks,
         };
     }
 
-    private static string? GetHeading(ContentBlock block)
-    {
-        var heading = block.Source?.Note ?? block.Source?.Resource;
-        if (!string.IsNullOrEmpty(heading))
-            return heading;
-
-        if (!string.IsNullOrEmpty(block.Image?.Name))
-            return Path.GetFileNameWithoutExtension(block.Image.Name);
-
-        return null;
-    }
+    private static string? GetHeading(ContentBlock block) =>
+        block.Source?.Note ??
+        block.Source?.Resource ??
+        FormatTimecode(block.Source?.Timecodes?.Start);
 
     private static string? FormatTimecode(TimeSpan? start)
     {
@@ -222,29 +200,40 @@ public sealed partial class MarkdownExporter
         return $"{(int)start.Value.TotalHours:00}:{start.Value.Minutes:00}:{start.Value.Seconds:00}";
     }
 
-    private string? RenderMedia(string? media, string container, string? caption)
+    private string? RenderAudio(string? name)
     {
-        if (string.IsNullOrEmpty(media))
+        if (string.IsNullOrWhiteSpace(name))
             return null;
 
-        var encoded = Uri.EscapeDataString(media).Replace("%2F", "/", StringComparison.Ordinal);
-        var url = $"{container}/{encoded}";
-        var suffix = this.settings.Quirks == MarkdownQuirks.KyBook3 ? "  " : string.Empty;
+        // TODO - get "audio" from constant in Media namespace
+        var escaped = EscapeFilePathAsUri(name);
+        var url = $"audio/{escaped}";
 
-        if (container == "audio")
-        {
-            // Use explicit <audio> tag because the anchor link that pandoc embeds within the <audio> tag
-            // if ![]() is used fails EPUB3 validation and causes issues for KyBook 3 on iOS
-            var controls = this.settings.Quirks == MarkdownQuirks.KyBook3 ? "controls" : string.Empty;
-            return $"<audio src=\"{url}\" controls=\"{controls}\"></audio>{suffix}";
-        }
+        // Use explicit <audio> tag because the anchor link that pandoc embeds within the <audio> tag
+        // if ![]() is used fails EPUB3 validation and causes issues for KyBook 3 on iOS
+        return $"""<audio src="{url}" controls="controls"></audio>""";
+    }
 
-        return $"![{caption}]({url}){suffix}";
+    private string? RenderImage(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            return null;
+
+        // TODO - get "images" from constant in Media namespace
+        var escaped = EscapeFilePathAsUri(name);
+        var url = $"images/{escaped}";
+        var caption = this.fileSystem.Path.GetFileNameWithoutExtension(name);
+        return $"![{caption}]({url})";
+    }
+
+    private static string EscapeFilePathAsUri(string path)
+    {
+        return Uri.EscapeDataString(path).Replace("%2F", "/", StringComparison.Ordinal);
     }
 
     private ChunkModel BuildChunkModel(ContentBlockChunk chunk, string chunkId)
     {
-        var ruby = this.settings.EffectiveRubyBehavior;
+        var ruby = this.settings.RubyBehavior;
         var chunkText = ProcessRubyText(chunk.Text ?? string.Empty, ruby);
         if (ruby == MarkdownRubyBehavior.BlurHtml)
             chunkText = ConvertTextToBlurHtml(chunkText, chunkId, ruby: true);
@@ -427,19 +416,16 @@ public sealed partial class MarkdownExporter
 
     private sealed class BlockModel
     {
-        public bool KeepTogether { get; init; }
-        public string? Heading { get; init; }
-        public string? SectionHeading { get; init; }
-        public IReadOnlyList<string> MediaBlocks { get; init; } = [];
-        public bool SuppressBlankAfterMedia { get; init; }
-        public IReadOnlyList<ChunkModel> Chunks { get; init; } = [];
-
+        public required MarkdownExportSettings Settings { get; init; }
         public required ContentBlock Block { get; init; }
+        public ContentBlock? PreviousBlock { get; init; }
+        public string? Heading { get; init; }
+        public IReadOnlyList<ChunkModel> Chunks { get; init; } = [];
     }
 
     private sealed class ChunkModel
     {
-        public string Text { get; init; } = string.Empty;
+        public required string Text { get; init; }
         public string? RefText { get; init; }
     }
 

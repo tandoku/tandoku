@@ -1,14 +1,14 @@
-{{- capture out -}}
-{{ if keep_together }}::: {.keep-together}
+{{ if settings.keep_together }}::: {.keep-together}
 {{ end -}}
-{{ if heading }}# {{ heading }}
+{{ effective_image = block.image.group.name ?? block.image.name -}}
+{{ prev_effective_image = previous_block.image.group.name ?? previous_block.image.name -}}
+{{ if !effective_image || effective_image != prev_effective_image -}}
+{{ if heading }}## {{ heading }}
 
 {{ end -}}
-{{ if section_heading }}## {{ section_heading }}
-{{ end -}}
-{{ for media in media_blocks -}}
-{{ media }}
-{{ if !suppress_blank_after_media }}
+{{ if block.image.name -}}
+{{ block.image.name | render_image }}
+
 {{ end -}}
 {{ end -}}
 {{ for chunk in chunks -}}
@@ -18,8 +18,10 @@
 {{ chunk.ref_text }}
 {{ end -}}
 {{ end -}}
-{{ if keep_together }}:::
+{{ if block.audio.name -}}
+{{ block.audio.name | render_audio }}
 
 {{ end -}}
-{{- end -}}
-{{- out -}}
+{{ if settings.keep_together }}:::
+
+{{ end -}}

@@ -16,7 +16,7 @@
 > time: 00:00:05
 
 
-<audio src="audio/clip01.mp3" controls=""></audio>
-
 これは音のテストです。
+
+<audio src="audio/clip01.mp3" controls="controls"></audio>
 

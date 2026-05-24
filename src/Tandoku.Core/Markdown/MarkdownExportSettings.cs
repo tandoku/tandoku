@@ -31,7 +31,7 @@ public enum MarkdownQuirks
 public sealed record MarkdownExportSettings
 {
     public bool Combine { get; init; }
-    public bool NoHeadings { get; init; }
+    public bool NoBlockHeadings { get; init; }
     public bool KeepTogether { get; init; }
     public MarkdownRubyBehavior RubyBehavior { get; init; }
     public MarkdownReferenceBehavior ReferenceBehavior { get; init; }
@@ -39,10 +39,22 @@ public sealed record MarkdownExportSettings
     public MarkdownQuirks Quirks { get; init; }
     public string? TemplatePath { get; init; }
 
-    internal MarkdownRubyBehavior EffectiveRubyBehavior =>
-        // KyBook 3 does not support ruby rendering — drop *Html ruby behaviors back to None
-        this.Quirks == MarkdownQuirks.KyBook3 &&
-        (this.RubyBehavior == MarkdownRubyBehavior.Html || this.RubyBehavior == MarkdownRubyBehavior.BlurHtml)
-            ? MarkdownRubyBehavior.None
-            : this.RubyBehavior;
+    internal MarkdownExportSettings ApplyQuirks()
+    {
+        if (this.Quirks == MarkdownQuirks.KyBook3)
+        {
+            // KyBook 3 does not support ruby rendering — drop *Html ruby behaviors back to None
+            var effectiveRubyBehavior =
+                this.RubyBehavior is MarkdownRubyBehavior.Html or MarkdownRubyBehavior.BlurHtml ?
+                MarkdownRubyBehavior.None :
+                this.RubyBehavior;
+
+            return this with
+            {
+                KeepTogether = false,
+                RubyBehavior = effectiveRubyBehavior,
+            };
+        }
+        return this;
+    }
 }
