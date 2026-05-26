@@ -121,6 +121,7 @@ public sealed class TimecodeContentAligner(string refName) : IContentAligner
         return block with
         {
             References = block.References.SetItem(refName, blockRef),
+            Source = block.Source ?? refBlock.Source,
         };
     }
 
