@@ -189,7 +189,11 @@ public sealed partial class MarkdownExporter
     private static string? GetHeading(ContentBlock block) =>
         block.Source?.Note ??
         block.Source?.Resource ??
-        FormatTimecode(block.Source?.Timecodes?.Start);
+        FormatTimecode(block.Source?.Timecodes?.Start) ??
+        // TODO - we should probably promote the ref source to the block when merging but there are other assumptions
+        // in the downstream transforms on this right now, need to clean those up first (e.g. to use content roles instead
+        // of presence/absence of Source to indicate reference/text-only blocks)
+        FormatTimecode(block.References.Select(r => r.Value.Source?.Timecodes?.Start).Where(t => t.HasValue).FirstOrDefault());
 
     private static string? FormatTimecode(TimeSpan? start)
     {
