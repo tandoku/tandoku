@@ -215,6 +215,7 @@ public sealed partial class MarkdownExporter
 
         // Use explicit <audio> tag because the anchor link that pandoc embeds within the <audio> tag
         // if ![]() is used fails EPUB3 validation and causes issues for KyBook 3 on iOS
+        // TODO - file this issue against pandoc and switch to ![]() once fixed (converge with RenderImage)
         return $"""<audio src="{url}" controls="controls"></audio>""";
     }
 
