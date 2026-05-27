@@ -21,6 +21,9 @@
 {{ if block.audio.name -}}
 {{ block.audio.name | render_audio }}
 
+{{ else -}}
+---
+
 {{ end -}}
 {{ if settings.keep_together }}:::
 
