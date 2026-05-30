@@ -26,6 +26,12 @@ param(
     [Switch]
     $InlineFootnotes,
 
+    # Hide the section headings in the chapter body while keeping them available for
+    # TOC navigation. This also removes the leading whitespace they introduce.
+    [Parameter()]
+    [Switch]
+    $HideSectionHeadings,
+
     [Parameter()]
     [String]
     $VolumePath
@@ -79,6 +85,10 @@ function ApplyEpubFixes($epubPath, $tempDestination, [bool]$separateFootnotes) {
 
     FixHorizontalRules $tempDestination
 
+    if ($HideSectionHeadings) {
+        HideSectionHeadings $tempDestination
+    }
+
     if ($separateFootnotes) {
         MoveFootnotesToSeparateFile $tempDestination
     }
@@ -113,6 +123,31 @@ hr {
     if ($fixedCss -ne $css) {
         Set-Content $stylePath $fixedCss -NoNewline
     }
+}
+
+function HideSectionHeadings($epubContentPath) {
+    # pandoc emits each section heading at the top of the chapter and styles it
+    # with a large top margin, producing a tall band of whitespace before the content. These
+    # headings exist mainly to drive TOC/navigation, but the nav documents target the enclosing
+    # <section> ids (e.g. #section, #section-1) rather than the heading elements, so the headings
+    # can be hidden without breaking navigation. Using display:none also collapses the heading
+    # box (and its margin), which removes the leading whitespace. display:none is broadly
+    # supported by EPUB readers (B&N Nook, Readium/Thorium, etc.). Only the heading level that
+    # starts each split chapter (-SplitLevel) is targeted; the title page and footnotes headings
+    # stay visible.
+    $stylePath = "$epubContentPath/EPUB/styles/stylesheet1.css"
+    if (-not (Test-Path $stylePath)) {
+        return
+    }
+
+    $css = Get-Content $stylePath -Raw
+    $hideHeadings = @"
+
+section[class~="level$SplitLevel"] > h$SplitLevel {
+  display: none;
+}
+"@
+    Set-Content $stylePath ($css.TrimEnd() + "`n" + $hideHeadings) -NoNewline
 }
 
 function CompressEpub([string]$sourceDirectory, [string]$epubPath) {

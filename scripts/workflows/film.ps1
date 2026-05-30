@@ -172,5 +172,5 @@ if ($Target -like '*epub') {
     $epubPath = $epubTargetPath
 
     # tandoku epub export
-    TandokuEpubExport $markdownPath $epubPath -Quirks $config.epubQuirks
+    TandokuEpubExport $markdownPath $epubPath -HideSectionHeadings -Quirks $config.epubQuirks
 }
