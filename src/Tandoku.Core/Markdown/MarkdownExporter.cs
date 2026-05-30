@@ -209,7 +209,7 @@ public sealed partial class MarkdownExporter
         if (string.IsNullOrWhiteSpace(name))
             return null;
 
-        // TODO - get "audio" from constant in Media namespace
+        // TODO - get "audio" from constant in Media namespace - or better replace 'name' with 'path' on audio object
         var escaped = EscapeFilePathAsUri(name);
         var url = $"audio/{escaped}";
 
@@ -224,7 +224,7 @@ public sealed partial class MarkdownExporter
         if (string.IsNullOrWhiteSpace(name))
             return null;
 
-        // TODO - get "images" from constant in Media namespace
+        // TODO - get "images" from constant in Media namespace - or better replace 'name' with 'path' on image object
         var escaped = EscapeFilePathAsUri(name);
         var url = $"images/{escaped}";
         var caption = this.fileSystem.Path.GetFileNameWithoutExtension(name);

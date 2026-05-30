@@ -59,9 +59,7 @@ function GenerateEpub($markdownFiles, [string]$targetPath, [string]$title) {
     # Footnote separation is incompatible with KyBook3 (it relies on inline footnote rendering)
     $separateFootnotes = (-not $InlineFootnotes) -and ($Quirks -ne 'KyBook3')
 
-    if ($Quirks -eq 'KyBook3' -or $separateFootnotes) {
-        ApplyEpubFixes $tempEpub $tempDestination $separateFootnotes
-    }
+    ApplyEpubFixes $tempEpub $tempDestination $separateFootnotes
 
     # Move epub to target path only after applying fixes
     # so any cloud upload does not start on pre-fixed epub
@@ -77,9 +75,9 @@ function GenerateEpub($markdownFiles, [string]$targetPath, [string]$title) {
 function ApplyEpubFixes($epubPath, $tempDestination, [bool]$separateFootnotes) {
     ExpandArchive -Path $epubPath -DestinationPath $tempDestination -ClobberDestination
 
-    # Disabling this for now since it's really only an issue for the first 9 footnotes
-    # Could also use a shorter prefix like '#'
-    #PrefixFootnotes $tempDestination 'ref'
+    PrefixFootnotes $tempDestination '#'
+
+    FixHorizontalRules $tempDestination
 
     if ($separateFootnotes) {
         MoveFootnotesToSeparateFile $tempDestination
@@ -90,6 +88,31 @@ function ApplyEpubFixes($epubPath, $tempDestination, [bool]$separateFootnotes) {
     }
 
     CompressEpub $tempDestination $epubPath
+}
+
+function FixHorizontalRules($epubContentPath) {
+    # pandoc's default EPUB stylesheet draws <hr/> using only background-color with
+    # `border: none`. Many readers (B&N Nook, Readium-based apps like Thorium) drop
+    # publisher background-color so they can apply their own themes, which makes the
+    # rule invisible. Redraw the rule with a border so it renders reliably.
+    $stylePath = "$epubContentPath/EPUB/styles/stylesheet1.css"
+    if (-not (Test-Path $stylePath)) {
+        return
+    }
+
+    $css = Get-Content $stylePath -Raw
+    $fixedHr = @"
+hr {
+  border: none;
+  border-top: 1px solid #1a1a1a;
+  height: 0;
+  margin: 1em 0;
+}
+"@
+    $fixedCss = [regex]::Replace($css, 'hr\s*\{[^}]*\}', $fixedHr)
+    if ($fixedCss -ne $css) {
+        Set-Content $stylePath $fixedCss -NoNewline
+    }
 }
 
 function CompressEpub([string]$sourceDirectory, [string]$epubPath) {
@@ -227,7 +250,7 @@ $($allAsides.ToString().TrimEnd())
 
 function PrefixFootnotes($epubContentPath, $prefix) {
     # pandoc always writes footnotes as increasing integers which can make for a small target on touchscreen devices
-    # so rewrite the footnotes to include the reference name as a prefix
+    # so rewrite the footnotes to include a prefix
     Get-ChildItem "$epubContentPath/EPUB/text" -Filter "ch*.xhtml" |
         ReplaceStringInFiles 'role="doc-(noteref|backlink)">(\d+)</a>' ('role="doc-$1">' + $prefix + '-$2</a>')
 }
