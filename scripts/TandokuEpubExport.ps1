@@ -252,7 +252,7 @@ function PrefixFootnotes($epubContentPath, $prefix) {
     # pandoc always writes footnotes as increasing integers which can make for a small target on touchscreen devices
     # so rewrite the footnotes to include a prefix
     Get-ChildItem "$epubContentPath/EPUB/text" -Filter "ch*.xhtml" |
-        ReplaceStringInFiles 'role="doc-(noteref|backlink)">(\d+)</a>' ('role="doc-$1">' + $prefix + '-$2</a>')
+        ReplaceStringInFiles 'role="doc-(noteref|backlink)">(\d+)</a>' ('role="doc-$1">' + $prefix + '$2</a>')
 }
 
 function RenameAudioMpegaToMp3($epubContentPath) {
