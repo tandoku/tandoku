@@ -1,6 +1,7 @@
 ﻿namespace Tandoku.CommandLine;
 
 using System.CommandLine;
+using Scriban.Runtime;
 using Tandoku.Markdown;
 
 public sealed partial class Program
@@ -27,9 +28,11 @@ public sealed partial class Program
         {
             Description = "Do not render per-block headings from notes/resources/timecodes",
         };
-        var keepTogetherOption = new Option<bool>("--keep-together")
+        var optionOption = new Option<string[]>("--option")
         {
-            Description = "Wrap each block in a keep-together div",
+            Description = "Custom template option in the form key=value; may be specified multiple times",
+            Arity = ArgumentArity.ZeroOrMore,
+            AllowMultipleArgumentsPerToken = false,
         };
         var rubyOption = new Option<MarkdownRubyBehavior>("--ruby")
         {
@@ -62,7 +65,7 @@ public sealed partial class Program
             outputPathArgument,
             combineOption,
             noBlockHeadingsOption,
-            keepTogetherOption,
+            optionOption,
             rubyOption,
             refBehaviorOption,
             refLabelsOption,
@@ -82,12 +85,12 @@ public sealed partial class Program
             {
                 Combine = parseResult.GetValue(combineOption),
                 NoBlockHeadings = parseResult.GetValue(noBlockHeadingsOption),
-                KeepTogether = parseResult.GetValue(keepTogetherOption),
                 RubyBehavior = parseResult.GetValue(rubyOption),
                 ReferenceBehavior = parseResult.GetValue(refBehaviorOption),
                 ReferenceLabels = parseResult.GetValue(refLabelsOption),
                 Quirks = parseResult.GetValue(quirksOption),
                 TemplatePath = parseResult.GetValue(templateOption)?.FullName,
+                CustomOptions = ParseCustomOptions(parseResult.GetValue(optionOption)),
             };
 
             var exporter = new MarkdownExporter(settings, this.fileSystem);
@@ -98,4 +101,30 @@ public sealed partial class Program
 
         return command;
     }
+
+    private static ScriptObject ParseCustomOptions(string[]? options)
+    {
+        var customOptions = new ScriptObject();
+        if (options is null)
+            return customOptions;
+
+        foreach (var option in options)
+        {
+            var separatorIndex = option.IndexOf('=', StringComparison.Ordinal);
+            if (separatorIndex < 0)
+                throw new ArgumentException($"Invalid --option value '{option}'; expected key=value.");
+
+            var key = option[..separatorIndex];
+            var value = option[(separatorIndex + 1)..];
+            customOptions[key] = CoerceOptionValue(value);
+        }
+
+        return customOptions;
+    }
+
+    private static object CoerceOptionValue(string value) =>
+        bool.TryParse(value, out var boolValue) ? boolValue :
+        long.TryParse(value, out var longValue) ? longValue :
+        double.TryParse(value, out var doubleValue) ? doubleValue :
+        value;
 }

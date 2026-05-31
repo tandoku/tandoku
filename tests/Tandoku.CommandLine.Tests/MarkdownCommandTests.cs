@@ -64,4 +64,24 @@ public class MarkdownCommandTests : CliTestBase
         md.Should().Contain("CUSTOM: ");
         md.Should().NotContain("# Opening");
     }
+
+    [Test]
+    public async Task Export_PassesCustomOptionsToTemplate()
+    {
+        var inputDir = this.fileSystem.GetCurrentDirectory().CreateSubdirectory("in");
+        var outDir = this.fileSystem.GetCurrentDirectory().CreateSubdirectory("out");
+        var templateFile = this.fileSystem.GetCurrentDirectory().GetFile("custom.scriban-md");
+
+        this.fileSystem.AddFile(inputDir.GetFile("ep01.content.yaml"), new MockFileData(SampleContent));
+        this.fileSystem.AddFile(templateFile, new MockFileData(
+            "lang={{ lang }}\n{{ if draft }}DRAFT\n{{ end -}}\n"));
+
+        await this.RunAndAssertAsync(
+            $"markdown export {inputDir.FullName} {outDir.FullName} --template {templateFile.FullName} --option lang=ja --option draft=true",
+            expectedOutput: $"Wrote {outDir.GetFile("ep01.md").FullName}");
+
+        var md = this.fileSystem.GetFile(outDir.GetFile("ep01.md")).TextContents;
+        md.Should().Contain("lang=ja");
+        md.Should().Contain("DRAFT");
+    }
 }

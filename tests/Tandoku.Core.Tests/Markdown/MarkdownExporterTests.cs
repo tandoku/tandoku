@@ -2,6 +2,7 @@
 
 using System.IO.Abstractions;
 using System.IO.Abstractions.TestingHelpers;
+using Scriban.Runtime;
 using Tandoku.Markdown;
 
 public class MarkdownExporterTests
@@ -15,7 +16,10 @@ public class MarkdownExporterTests
 
     [Test]
     public Task Export_KeepTogether() =>
-        this.RunAndVerifyAsync(new MarkdownExportSettings { KeepTogether = true });
+        this.RunAndVerifyAsync(new MarkdownExportSettings
+        {
+            CustomOptions = new ScriptObject { ["keep_together"] = true },
+        });
 
     [Test]
     public Task Export_NoBlockHeadings() =>

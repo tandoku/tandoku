@@ -122,6 +122,7 @@ public sealed partial class MarkdownExporter
     {
         var scriptObject = new ScriptObject();
         scriptObject.Import(model);
+        scriptObject.Import(this.settings.CustomOptions);
         scriptObject.Import("format_timecode", new Func<TimeSpan?, string?>(FormatTimecode));
         scriptObject.Import("render_audio", new Func<string?, string?>(this.RenderAudio));
         scriptObject.Import("render_image", new Func<string?, string?>(this.RenderImage));
