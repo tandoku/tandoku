@@ -1,3 +1,8 @@
+---
+header-includes: <base href="../../">
+---
+{{ for block_model in blocks ~}}
+{{~ block = block_model.block ~}}
 {{~ if block.image ~}}
 {{~ if block.image.group ~}}
 <div style="padding-left: 80px;">
@@ -11,4 +16,5 @@
   <img src="images/{{ block.image.name }}" alt="{{ block.image.name }}" width="480px">
 </div>
 
+{{~ end ~}}
 {{~ end ~}}
