@@ -53,7 +53,7 @@ public sealed partial class Program
         };
         var templateOption = new Option<FileInfo?>("--template")
         {
-            Description = "Path to a custom Scriban template file to use for rendering blocks",
+            Description = "Path to a custom Scriban template file to use for rendering content",
         }.AcceptLegalFilePathsOnly();
 
         var command = new Command("export", "Exports tandoku content to markdown")

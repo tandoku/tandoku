@@ -54,7 +54,7 @@ public class MarkdownCommandTests : CliTestBase
 
         this.fileSystem.AddFile(inputDir.GetFile("ep01.content.yaml"), new MockFileData(SampleContent));
         this.fileSystem.AddFile(templateFile, new MockFileData(
-            "{{- for chunk in chunks -}}\nCUSTOM: {{ chunk.text }}\n{{ end -}}\n"));
+            "{{- for block in blocks -}}\n{{- for chunk in block.chunks -}}\nCUSTOM: {{ chunk.text }}\n{{ end -}}\n{{ end -}}\n"));
 
         await this.RunAndAssertAsync(
             $"markdown export {inputDir.FullName} {outDir.FullName} --template {templateFile.FullName}",

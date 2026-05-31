@@ -80,8 +80,8 @@ public class MarkdownExporterTests
         WriteSampleResource(fs, inputDir.GetFile("ep01.content.yaml"), "ep01.content.yaml");
         var outDir = fs.GetCurrentDirectory().CreateSubdirectory("out");
 
-        var templatePath = fs.Path.Combine(fs.GetCurrentDirectory().FullName, "block.scriban-md");
-        fs.AddFile(templatePath, new MockFileData("[{{ format_timecode block.source.timecodes.start }}]\n"));
+        var templatePath = fs.Path.Combine(fs.GetCurrentDirectory().FullName, "content.scriban-md");
+        fs.AddFile(templatePath, new MockFileData("{{ for b in blocks }}[{{ format_timecode b.block.source.timecodes.start }}]\n{{ end }}"));
 
         var exporter = new MarkdownExporter(new MarkdownExportSettings { TemplatePath = templatePath }, fs);
         var written = await exporter.ExportAsync(inputDir.FullName, outDir.FullName);

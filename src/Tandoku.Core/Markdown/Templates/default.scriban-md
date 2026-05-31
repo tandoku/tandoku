@@ -1,3 +1,11 @@
+{{ if file_heading }}# {{ file_heading }}
+
+{{ end -}}
+{{ for block_model in blocks -}}
+{{ block = block_model.block -}}
+{{ previous_block = block_model.previous_block -}}
+{{ heading = block_model.heading -}}
+{{ chunks = block_model.chunks -}}
 {{ if settings.keep_together }}::: {.keep-together}
 {{ end -}}
 {{ effective_image = block.image.group.name ?? block.image.name -}}
@@ -27,4 +35,5 @@
 {{ end -}}
 {{ if settings.keep_together }}:::
 
+{{ end -}}
 {{ end -}}
