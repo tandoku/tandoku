@@ -44,7 +44,6 @@ function GenerateEpub($markdownFiles, [string]$targetPath, [string]$title) {
     CreateDirectoryIfNotExists $tempPath
 
     $tempEpub = "$tempPath/temp.epub"
-    $tempDestination = "$tempPath/epub"
 
     # pandoc resolves references to resources (e.g. images, audio) based on the current working directory,
     # not the directory of the input files
@@ -65,7 +64,7 @@ function GenerateEpub($markdownFiles, [string]$targetPath, [string]$title) {
     # Footnote separation is incompatible with KyBook3 (it relies on inline footnote rendering)
     $separateFootnotes = (-not $InlineFootnotes) -and ($Quirks -ne 'KyBook3')
 
-    ApplyEpubFixes $tempEpub $tempDestination $separateFootnotes
+    ApplyEpubFixes $tempEpub $separateFootnotes
 
     # Move epub to target path only after applying fixes
     # so any cloud upload does not start on pre-fixed epub
@@ -78,39 +77,90 @@ function GenerateEpub($markdownFiles, [string]$targetPath, [string]$title) {
     Move-Item $tempEpub $targetPath -PassThru
 }
 
-function ApplyEpubFixes($epubPath, $tempDestination, [bool]$separateFootnotes) {
-    ExpandArchive -Path $epubPath -DestinationPath $tempDestination -ClobberDestination
+function ApplyEpubFixes([string]$epubPath, [bool]$separateFootnotes) {
+    # All fixes are applied by editing the text/style entries of the pandoc-generated EPUB
+    # zip in place. The media entries (images, audio) are left untouched, so they are neither
+    # re-read from disk nor re-compressed - that media handling was the bulk of the work for
+    # media-heavy volumes when the EPUB was fully expanded and recompressed. Editing in Update
+    # mode preserves the pandoc entry order, so the 'mimetype' entry stays first and stored
+    # uncompressed as the EPUB OCF spec (and epubcheck PKG-006) requires.
+    Add-Type -AssemblyName System.IO.Compression
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
 
-    PrefixFootnotes $tempDestination '#'
+    $resolvedPath = ConvertPath $epubPath
+    $zip = [IO.Compression.ZipFile]::Open($resolvedPath, [IO.Compression.ZipArchiveMode]::Update)
+    try {
+        PrefixFootnotes $zip '#'
 
-    FixHorizontalRules $tempDestination
+        FixHorizontalRules $zip
 
-    if ($HideSectionHeadings) {
-        HideSectionHeadings $tempDestination
+        if ($HideSectionHeadings) {
+            HideSectionHeadings $zip
+        }
+
+        if ($separateFootnotes) {
+            MoveFootnotesToSeparateFile $zip
+        }
+
+        if ($Quirks -eq 'KyBook3') {
+            RenameAudioMpegaToMp3 $zip
+        }
+    } finally {
+        $zip.Dispose()
     }
-
-    if ($separateFootnotes) {
-        MoveFootnotesToSeparateFile $tempDestination
-    }
-
-    if ($Quirks -eq 'KyBook3') {
-        RenameAudioMpegaToMp3 $tempDestination
-    }
-
-    CompressEpub $tempDestination $epubPath
 }
 
-function FixHorizontalRules($epubContentPath) {
+# UTF-8 without a byte order mark, matching pandoc's EPUB output so rewritten entries stay
+# byte-for-byte compatible with the rest of the archive.
+$script:EpubEntryEncoding = [Text.UTF8Encoding]::new($false)
+
+# Entry name of the pandoc-generated EPUB stylesheet that the fixes read from and write back to.
+$script:StylesheetEntry = 'EPUB/styles/stylesheet1.css'
+
+function ReadEpubEntry([IO.Compression.ZipArchive]$zip, [string]$entryName) {
+    $entry = $zip.GetEntry($entryName)
+    if (-not $entry) {
+        return $null
+    }
+    $stream = $entry.Open()
+    try {
+        $reader = [IO.StreamReader]::new($stream)
+        return $reader.ReadToEnd()
+    } finally {
+        $stream.Dispose()
+    }
+}
+
+function WriteEpubEntry([IO.Compression.ZipArchive]$zip, [string]$entryName, [string]$content) {
+    $entry = $zip.GetEntry($entryName)
+    if (-not $entry) {
+        $entry = $zip.CreateEntry($entryName)
+    }
+    $stream = $entry.Open()
+    try {
+        $stream.SetLength(0)
+        $writer = [IO.StreamWriter]::new($stream, $script:EpubEntryEncoding)
+        $writer.Write($content)
+        $writer.Flush()
+    } finally {
+        $stream.Dispose()
+    }
+}
+
+function GetChapterEntries([IO.Compression.ZipArchive]$zip) {
+    return @($zip.Entries | Where-Object { $_.FullName -like 'EPUB/text/ch*.xhtml' })
+}
+
+function FixHorizontalRules([IO.Compression.ZipArchive]$zip) {
     # pandoc's default EPUB stylesheet draws <hr/> using only background-color with
     # `border: none`. Many readers (B&N Nook, Readium-based apps like Thorium) drop
     # publisher background-color so they can apply their own themes, which makes the
     # rule invisible. Redraw the rule with a border so it renders reliably.
-    $stylePath = "$epubContentPath/EPUB/styles/stylesheet1.css"
-    if (-not (Test-Path $stylePath)) {
+    $css = ReadEpubEntry $zip $script:StylesheetEntry
+    if ($null -eq $css) {
         return
     }
 
-    $css = Get-Content $stylePath -Raw
     $fixedHr = @"
 hr {
   border: none;
@@ -121,11 +171,11 @@ hr {
 "@
     $fixedCss = [regex]::Replace($css, 'hr\s*\{[^}]*\}', $fixedHr)
     if ($fixedCss -ne $css) {
-        Set-Content $stylePath $fixedCss -NoNewline
+        WriteEpubEntry $zip $script:StylesheetEntry $fixedCss
     }
 }
 
-function HideSectionHeadings($epubContentPath) {
+function HideSectionHeadings([IO.Compression.ZipArchive]$zip) {
     # pandoc emits each section heading at the top of the chapter and styles it
     # with a large top margin, producing a tall band of whitespace before the content. These
     # headings exist mainly to drive TOC/navigation, but the nav documents target the enclosing
@@ -135,94 +185,37 @@ function HideSectionHeadings($epubContentPath) {
     # supported by EPUB readers (B&N Nook, Readium/Thorium, etc.). Only the heading level that
     # starts each split chapter (-SplitLevel) is targeted; the title page and footnotes headings
     # stay visible.
-    $stylePath = "$epubContentPath/EPUB/styles/stylesheet1.css"
-    if (-not (Test-Path $stylePath)) {
+    $css = ReadEpubEntry $zip $script:StylesheetEntry
+    if ($null -eq $css) {
         return
     }
 
-    $css = Get-Content $stylePath -Raw
     $hideHeadings = @"
 
 section[class~="level$SplitLevel"] > h$SplitLevel {
   display: none;
 }
 "@
-    Set-Content $stylePath ($css.TrimEnd() + "`n" + $hideHeadings) -NoNewline
+    WriteEpubEntry $zip $script:StylesheetEntry ($css.TrimEnd() + "`n" + $hideHeadings)
 }
 
-function CompressEpub([string]$sourceDirectory, [string]$epubPath) {
-    # The EPUB OCF spec (and epubcheck PKG-006) requires the 'mimetype' file to be the first
-    # entry in the zip archive, stored uncompressed and with no extra fields. Neither
-    # Compress-Archive nor `7z a -tzip` honors this, so build the zip directly with
-    # System.IO.Compression so we can control entry order and compression per entry.
-    Add-Type -AssemblyName System.IO.Compression
-    Add-Type -AssemblyName System.IO.Compression.FileSystem
-
-    $sourceDirectory = (Resolve-Path -LiteralPath $sourceDirectory).Path
-    $epubPath = ConvertPath $epubPath
-
-    if (Test-Path -LiteralPath $epubPath) {
-        Remove-Item -LiteralPath $epubPath
-    }
-
-    $stream = [IO.File]::Open($epubPath, [IO.FileMode]::CreateNew)
-    try {
-        $zip = [IO.Compression.ZipArchive]::new($stream, [IO.Compression.ZipArchiveMode]::Create)
-        try {
-            # mimetype must be the first entry and stored uncompressed
-            $mimetypePath = Join-Path $sourceDirectory 'mimetype'
-            if (-not (Test-Path -LiteralPath $mimetypePath)) {
-                throw "mimetype file not found at $mimetypePath"
-            }
-            $mimetypeEntry = $zip.CreateEntry('mimetype', [IO.Compression.CompressionLevel]::NoCompression)
-            $entryStream = $mimetypeEntry.Open()
-            try {
-                $bytes = [IO.File]::ReadAllBytes($mimetypePath)
-                $entryStream.Write($bytes, 0, $bytes.Length)
-            } finally {
-                $entryStream.Dispose()
-            }
-
-            # Add all other files preserving directory structure with forward-slash entry names
-            Get-ChildItem -LiteralPath $sourceDirectory -Recurse -File |
-                Where-Object { $_.FullName -ne $mimetypePath } |
-                ForEach-Object {
-                    [pscustomobject]@{
-                        FullName = $_.FullName
-                        RelativePath = [IO.Path]::GetRelativePath($sourceDirectory, $_.FullName).Replace('\', '/')
-                    }
-                } |
-                Sort-Object RelativePath |
-                ForEach-Object {
-                    [void] [IO.Compression.ZipFileExtensions]::CreateEntryFromFile(
-                        $zip, $_.FullName, $_.RelativePath, [IO.Compression.CompressionLevel]::Optimal)
-                }
-        } finally {
-            $zip.Dispose()
-        }
-    } finally {
-        $stream.Dispose()
-    }
-}
-
-function MoveFootnotesToSeparateFile($epubContentPath) {
+function MoveFootnotesToSeparateFile([IO.Compression.ZipArchive]$zip) {
     # pandoc emits footnotes inline as a <section epub:type="footnotes"> at the end of each
     # chapter xhtml. Some EPUB readers render those inline at the end of the chapter even
     # when pop-up footnotes are supported. Extract the footnote <aside>s from each chapter,
     # rewrite the noteref/backlink anchors so they cross files, and gather everything into a
     # single text/footnotes.xhtml registered at the end of the spine.
-    $textPath = "$epubContentPath/EPUB/text"
-    $chapterFiles = @(Get-ChildItem $textPath -Filter "ch*.xhtml" | Sort-Object Name)
+    $chapterEntries = @(GetChapterEntries $zip | Sort-Object FullName)
 
     $allAsides = [Text.StringBuilder]::new()
 
-    foreach ($file in $chapterFiles) {
-        $content = Get-Content -Raw -LiteralPath $file.FullName
+    foreach ($entry in $chapterEntries) {
+        $content = ReadEpubEntry $zip $entry.FullName
         $sectionMatch = [regex]::Match($content,
             '(?s)\s*<section\b[^>]*\bepub:type="footnotes"[^>]*>.*?</section>')
         if (-not $sectionMatch.Success) { continue }
 
-        $basename = [IO.Path]::GetFileNameWithoutExtension($file.Name)
+        $basename = [IO.Path]::GetFileNameWithoutExtension($entry.Name)
         $sectionHtml = $sectionMatch.Value
 
         # Remove the inline footnotes section and rewrite the noteref anchors that remain
@@ -232,7 +225,7 @@ function MoveFootnotesToSeparateFile($epubContentPath) {
             "href=`"footnotes.xhtml#$basename-`$1`"")
         $remaining = [regex]::Replace($remaining, 'id="(fnref\d+)"',
             "id=`"$basename-`$1`"")
-        Set-Content -LiteralPath $file.FullName -Value $remaining -NoNewline
+        WriteEpubEntry $zip $entry.FullName $remaining
 
         # Rewrite the aside ids and backlink hrefs to match the relocated anchors, then
         # collect the aside elements for the consolidated footnotes file.
@@ -271,37 +264,67 @@ $($allAsides.ToString().TrimEnd())
 </body>
 </html>
 "@
-    Set-Content -LiteralPath "$textPath/footnotes.xhtml" -Value $footnotesXhtml -NoNewline
+    WriteEpubEntry $zip 'EPUB/text/footnotes.xhtml' $footnotesXhtml
 
     # Register the new file in the OPF manifest and spine
-    $opfPath = "$epubContentPath/EPUB/content.opf"
-    $opf = Get-Content -Raw -LiteralPath $opfPath
+    $opf = ReadEpubEntry $zip 'EPUB/content.opf'
     $opf = $opf -replace '(\r?\n)(\s*)</manifest>',
         "`$1`$2  <item id=`"footnotes_xhtml`" href=`"text/footnotes.xhtml`" media-type=`"application/xhtml+xml`" />`$1`$2</manifest>"
     $opf = $opf -replace '(\r?\n)(\s*)</spine>',
         "`$1`$2  <itemref idref=`"footnotes_xhtml`" linear=`"no`" />`$1`$2</spine>"
-    Set-Content -LiteralPath $opfPath -Value $opf -NoNewline
+    WriteEpubEntry $zip 'EPUB/content.opf' $opf
 }
 
-function PrefixFootnotes($epubContentPath, $prefix) {
+function PrefixFootnotes([IO.Compression.ZipArchive]$zip, $prefix) {
     # pandoc always writes footnotes as increasing integers which can make for a small target on touchscreen devices
     # so rewrite the footnotes to include a prefix
-    Get-ChildItem "$epubContentPath/EPUB/text" -Filter "ch*.xhtml" |
-        ReplaceStringInFiles 'role="doc-(noteref|backlink)">(\d+)</a>' ('role="doc-$1">' + $prefix + '$2</a>')
+    $search = 'role="doc-(noteref|backlink)">(\d+)</a>'
+    $replace = 'role="doc-$1">' + $prefix + '$2</a>'
+    foreach ($entry in GetChapterEntries $zip) {
+        $content = ReadEpubEntry $zip $entry.FullName
+        $updated = [regex]::Replace($content, $search, $replace)
+        if ($updated -ne $content) {
+            WriteEpubEntry $zip $entry.FullName $updated
+        }
+    }
 }
 
-function RenameAudioMpegaToMp3($epubContentPath) {
+function RenameAudioMpegaToMp3([IO.Compression.ZipArchive]$zip) {
     # pandoc renames audio files to mpega extension which breaks KyBook 3 on iOS
     # rename mpega back to mp3
     # TODO - this isn't updating the manifest so the resulting EPUB isn't fully valid
-    $mediaPath = "$epubContentPath/EPUB/media"
-    if (Test-Path $mediaPath) {
-        Get-ChildItem $mediaPath -Filter '*.mpega' | ForEach-Object {
-            $baseName = Split-Path $_ -LeafBase
-            Move-Item -LiteralPath $_ "$mediaPath/$baseName.mp3"
+    $mpegaEntries = @($zip.Entries | Where-Object { $_.FullName -like 'EPUB/media/*.mpega' })
+    foreach ($entry in $mpegaEntries) {
+        $newName = $entry.FullName.Substring(0, $entry.FullName.Length - '.mpega'.Length) + '.mp3'
+
+        # Read the source bytes fully before creating the destination entry; Update mode does
+        # not allow two entries to be open at the same time.
+        $source = $entry.Open()
+        try {
+            $buffer = [IO.MemoryStream]::new()
+            $source.CopyTo($buffer)
+        } finally {
+            $source.Dispose()
         }
-        Get-ChildItem "$epubContentPath/EPUB/text" -Filter "ch*.xhtml" |
-            ReplaceStringInFiles '(src|href)="([^"]+)\.mpega"' '$1="$2.mp3"'
+
+        $newEntry = $zip.CreateEntry($newName, [IO.Compression.CompressionLevel]::NoCompression)
+        $target = $newEntry.Open()
+        try {
+            $bytes = $buffer.ToArray()
+            $target.Write($bytes, 0, $bytes.Length)
+        } finally {
+            $target.Dispose()
+        }
+
+        $entry.Delete()
+    }
+
+    foreach ($entry in GetChapterEntries $zip) {
+        $content = ReadEpubEntry $zip $entry.FullName
+        $updated = [regex]::Replace($content, '(src|href)="([^"]+)\.mpega"', '$1="$2.mp3"')
+        if ($updated -ne $content) {
+            WriteEpubEntry $zip $entry.FullName $updated
+        }
     }
 }
 
