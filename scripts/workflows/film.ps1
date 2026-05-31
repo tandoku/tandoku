@@ -30,6 +30,9 @@ if ($Target -eq "epub") {
         Write-Error "Missing configuration for targets.$configTarget"
         return
     }
+    if (-not [System.IO.Path]::IsPathRooted($epubTargetPath)) {
+        $epubTargetPath = Join-Path $volumePath $epubTargetPath
+    }
 }
 
 # workflow configuration variables
