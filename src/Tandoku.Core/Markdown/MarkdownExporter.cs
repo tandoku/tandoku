@@ -105,14 +105,12 @@ public sealed partial class MarkdownExporter
             baseName;
 
         var blockModels = new List<BlockModel>(blocks.Count);
-        ContentBlock? previousBlock = null;
         for (var i = 0; i < blocks.Count; i++)
         {
             var blockIndex = i + 1;
             var block = blocks[i];
             var blockId = $"{idPrefix}-{blockIndex}";
-            blockModels.Add(this.BuildBlockModel(block, blockId, previousBlock));
-            previousBlock = block;
+            blockModels.Add(this.BuildBlockModel(block, blockId));
         }
 
         var model = new ContentModel
@@ -142,7 +140,7 @@ public sealed partial class MarkdownExporter
         return this.contentTemplate.Render(context);
     }
 
-    private BlockModel BuildBlockModel(ContentBlock block, string blockId, ContentBlock? previousBlock)
+    private BlockModel BuildBlockModel(ContentBlock block, string blockId)
     {
         var heading = this.settings.NoBlockHeadings ? null : GetHeading(block);
 
@@ -176,7 +174,6 @@ public sealed partial class MarkdownExporter
         return new BlockModel
         {
             Block = block,
-            PreviousBlock = previousBlock,
             Heading = heading,
             Chunks = chunks,
         };
@@ -425,7 +422,6 @@ public sealed partial class MarkdownExporter
     private sealed class BlockModel
     {
         public required ContentBlock Block { get; init; }
-        public ContentBlock? PreviousBlock { get; init; }
         public string? Heading { get; init; }
         public IReadOnlyList<ChunkModel> Chunks { get; init; } = [];
     }
