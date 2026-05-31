@@ -13,21 +13,21 @@ public sealed partial class MarkdownExporter
 {
     private const string MarkdownExtension = ".md";
     private const string DefaultBaseName = "content";
-    private const string ContentTemplateResourceName = "Tandoku.Markdown.Templates.default.scriban-md";
+    private const string TemplateResourceName = "Tandoku.Markdown.Templates.default.scriban-md";
 
-    private static readonly Lazy<Template> DefaultContentTemplate = new(LoadDefaultContentTemplate);
+    private static readonly Lazy<Template> DefaultTemplate = new(LoadDefaultTemplate);
 
     private readonly IFileSystem fileSystem;
     private readonly MarkdownExportSettings settings;
-    private readonly Template contentTemplate;
+    private readonly Template template;
 
     public MarkdownExporter(MarkdownExportSettings? settings = null, IFileSystem? fileSystem = null)
     {
         this.settings = (settings ?? new MarkdownExportSettings()).ApplyQuirks();
         this.fileSystem = fileSystem ?? new FileSystem();
-        this.contentTemplate = string.IsNullOrEmpty(this.settings.TemplatePath)
-            ? DefaultContentTemplate.Value
-            : LoadContentTemplateFromFile(this.fileSystem, this.settings.TemplatePath);
+        this.template = string.IsNullOrEmpty(this.settings.TemplatePath)
+            ? DefaultTemplate.Value
+            : LoadTemplateFromFile(this.fileSystem, this.settings.TemplatePath);
     }
 
     public async Task<IReadOnlyList<string>> ExportAsync(string inputPath, string outputPath)
@@ -63,8 +63,8 @@ public sealed partial class MarkdownExporter
             var sb = new StringBuilder();
             foreach (var contentFile in contentFiles)
             {
-                var blocks = await ReadBlocksAsync(contentFile);
-                sb.Append(this.RenderFile(blocks, contentFile));
+                var blocks = ReadBlocks(contentFile);
+                sb.Append(await this.RenderFileAsync(blocks, contentFile));
             }
 
             await this.fileSystem.File.WriteAllTextAsync(combinedPath, sb.ToString());
@@ -78,8 +78,8 @@ public sealed partial class MarkdownExporter
                 var baseName = this.fileSystem.Path.GetBaseName(contentFile.Name) ?? DefaultBaseName;
                 var target = this.fileSystem.Path.Combine(outputPath, baseName + MarkdownExtension);
 
-                var blocks = await ReadBlocksAsync(contentFile);
-                var output = this.RenderFile(blocks, contentFile);
+                var blocks = ReadBlocks(contentFile);
+                var output = await this.RenderFileAsync(blocks, contentFile);
 
                 await this.fileSystem.File.WriteAllTextAsync(target, output);
                 written.Add(target);
@@ -89,26 +89,21 @@ public sealed partial class MarkdownExporter
         return written;
     }
 
-    private static async Task<IReadOnlyList<ContentBlock>> ReadBlocksAsync(IFileInfo file)
-    {
-        var blocks = new List<ContentBlock>();
-        await foreach (var block in YamlSerializer.ReadStreamAsync<ContentBlock>(file))
-            blocks.Add(block);
-        return blocks;
-    }
+    private static IAsyncEnumerable<ContentBlock> ReadBlocks(IFileInfo file) =>
+        YamlSerializer.ReadStreamAsync<ContentBlock>(file);
 
-    private string RenderFile(IReadOnlyList<ContentBlock> blocks, IFileInfo file)
+    private async Task<string> RenderFileAsync(IAsyncEnumerable<ContentBlock> blocks, IFileInfo file)
     {
         var baseName = this.fileSystem.Path.GetBaseName(file.Name);
         var idPrefix = string.IsNullOrEmpty(baseName) ?
             "block" : // Default id prefix - blockId may be used in HTML id attributes which must start with a letter
             baseName;
 
-        var blockModels = new List<BlockModel>(blocks.Count);
-        for (var i = 0; i < blocks.Count; i++)
+        var blockModels = new List<BlockModel>();
+        var blockIndex = 0;
+        await foreach (var block in blocks)
         {
-            var blockIndex = i + 1;
-            var block = blocks[i];
+            blockIndex++;
             var blockId = $"{idPrefix}-{blockIndex}";
             blockModels.Add(this.BuildBlockModel(block, blockId));
         }
@@ -137,7 +132,7 @@ public sealed partial class MarkdownExporter
             NewLine = "\n",
         };
         context.PushGlobal(scriptObject);
-        return this.contentTemplate.Render(context);
+        return this.template.Render(context);
     }
 
     private BlockModel BuildBlockModel(ContentBlock block, string blockId)
@@ -386,29 +381,29 @@ public sealed partial class MarkdownExporter
         return lines;
     }
 
-    private static Template LoadDefaultContentTemplate()
+    private static Template LoadDefaultTemplate()
     {
         using var stream = typeof(MarkdownExporter).Assembly
-            .GetManifestResourceStream(ContentTemplateResourceName)
-            ?? throw new InvalidOperationException($"Embedded resource '{ContentTemplateResourceName}' not found.");
+            .GetManifestResourceStream(TemplateResourceName)
+            ?? throw new InvalidOperationException($"Embedded resource '{TemplateResourceName}' not found.");
         using var reader = new StreamReader(stream);
-        return ParseContentTemplate(reader.ReadToEnd(), ContentTemplateResourceName);
+        return ParseTemplate(reader.ReadToEnd(), TemplateResourceName);
     }
 
-    private static Template LoadContentTemplateFromFile(IFileSystem fileSystem, string path)
+    private static Template LoadTemplateFromFile(IFileSystem fileSystem, string path)
     {
         var file = fileSystem.GetFile(path);
         if (!file.Exists)
             throw new FileNotFoundException($"Template file not found: {path}", path);
         var source = fileSystem.File.ReadAllText(file.FullName);
-        return ParseContentTemplate(source, path);
+        return ParseTemplate(source, path);
     }
 
-    private static Template ParseContentTemplate(string source, string sourceDescription)
+    private static Template ParseTemplate(string source, string sourceDescription)
     {
         var template = Template.Parse(source, sourceDescription);
         return template.HasErrors ?
-            throw new InvalidOperationException($"Failed to parse content template '{sourceDescription}': " + string.Join("; ", template.Messages)) :
+            throw new InvalidOperationException($"Failed to parse template '{sourceDescription}': " + string.Join("; ", template.Messages)) :
             template;
     }
 
