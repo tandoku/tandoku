@@ -9,6 +9,8 @@
 <p><span>time:</span> <span class='blurText'><input type='checkbox' id='ep01-1-ref-time'/><label for='ep01-1-ref-time'>00:00:01</label></span></p>
 
 
+---
+
 ## 00:00:05
 
 ![page-001](images/page-001.png)
@@ -19,6 +21,8 @@
 
 <p><span>time:</span> <span class='blurText'><input type='checkbox' id='ep01-2-ref-time'/><label for='ep01-2-ref-time'>00:00:05</label></span></p>
 
+
+---
 
 ## 00:00:09
 

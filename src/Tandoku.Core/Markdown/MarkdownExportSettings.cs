@@ -1,5 +1,7 @@
 ﻿namespace Tandoku.Markdown;
 
+using Scriban.Runtime;
+
 public enum MarkdownRubyBehavior
 {
     None,
@@ -32,12 +34,14 @@ public sealed record MarkdownExportSettings
 {
     public bool Combine { get; init; }
     public bool NoBlockHeadings { get; init; }
-    public bool KeepTogether { get; init; }
     public MarkdownRubyBehavior RubyBehavior { get; init; }
     public MarkdownReferenceBehavior ReferenceBehavior { get; init; }
     public MarkdownReferenceLabels ReferenceLabels { get; init; }
     public MarkdownQuirks Quirks { get; init; }
     public string? TemplatePath { get; init; }
+
+    // Arbitrary template-only options imported directly into the Scriban context.
+    public ScriptObject CustomOptions { get; init; } = new();
 
     internal MarkdownExportSettings ApplyQuirks()
     {
@@ -51,7 +55,6 @@ public sealed record MarkdownExportSettings
 
             return this with
             {
-                KeepTogether = false,
                 RubyBehavior = effectiveRubyBehavior,
             };
         }
