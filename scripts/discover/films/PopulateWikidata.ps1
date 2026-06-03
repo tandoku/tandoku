@@ -1,7 +1,9 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)]
-    [string]$DatabasePath
+    [string]$DatabasePath,
+
+    [switch]$Force
 )
 
 Import-Module "$PSScriptRoot\..\..\modules\tandoku-yaml.psm1"
@@ -68,8 +70,10 @@ Write-Host "Read $($films.Count) entries from films database"
 
 $needsQid = @{}
 foreach ($film in $films) {
-    if (-not $film.wikidata -and $film.providers -and $film.providers.netflix -and $null -ne $film.providers.netflix.id) {
-        $needsQid[[string]$film.providers.netflix.id] = $film
+    if ($film.providers -and $film.providers.netflix -and $null -ne $film.providers.netflix.id) {
+        if ($Force -or -not $film.wikidata) {
+            $needsQid[[string]$film.providers.netflix.id] = $film
+        }
     }
 }
 
@@ -87,11 +91,22 @@ if ($needsQid.Count -gt 0) {
         $query = "SELECT ?item ?netflixId WHERE { VALUES ?netflixId { $values } ?item wdt:P1874 ?netflixId . }"
 
         try {
+            $batchResults = @{}
             foreach ($binding in (Invoke-WikidataSparql $query)) {
                 $qid = $binding.item.value -replace '.*/entity/', ''
                 $netflixId = $binding.netflixId.value
-                if (-not $needsQid[$netflixId].Contains('wikidata')) {
-                    $needsQid[$netflixId]['wikidata'] = $qid
+                if (-not $batchResults.ContainsKey($netflixId)) {
+                    $batchResults[$netflixId] = [System.Collections.Generic.List[string]]::new()
+                }
+                $batchResults[$netflixId].Add($qid)
+            }
+            foreach ($netflixId in $batchResults.Keys) {
+                $qids = $batchResults[$netflixId]
+                if ($qids.Count -gt 1) {
+                    Write-Warning "Netflix ID $netflixId matches multiple Wikidata entities: $($qids -join ', ')"
+                }
+                if ($Force -or -not $needsQid[$netflixId].Contains('wikidata')) {
+                    $needsQid[$netflixId]['wikidata'] = $qids[0]
                     $qidMatched++
                 }
             }
@@ -116,7 +131,7 @@ if ($needsQid.Count -gt 0) {
 
 $needsData = @{}
 foreach ($film in $films) {
-    if ($film.wikidata -and -not $film.title) {
+    if ($film.wikidata -and ($Force -or -not $film.title)) {
         $needsData[$film.wikidata] = $film
     }
 }
@@ -171,38 +186,60 @@ GROUP BY ?item
 
                 if ($binding.title.value) {
                     $film['title'] = $binding.title.value
+                } elseif ($Force) {
+                    $film.Remove('title')
                 }
                 if ($binding.titleJa.value) {
                     $film['title-ja'] = $binding.titleJa.value
+                } elseif ($Force) {
+                    $film.Remove('title-ja')
                 }
+                $type = $null
                 if ($binding.types.value) {
                     $types = $binding.types.value -split '\|' |
                         Where-Object { $_ -notin $excludedTypes } |
                         ForEach-Object { ($_.ToLower() -replace ' ', '-') }
                     if ($types) {
-                        $film['type'] = ($types | Select-Object -First 1)
+                        $type = ($types | Select-Object -First 1)
                     }
+                }
+                if ($type) {
+                    $film['type'] = $type
+                } elseif ($Force) {
+                    $film.Remove('type')
                 }
                 if ($binding.originCountry.value) {
                     $film['originCountry'] = $binding.originCountry.value
+                } elseif ($Force) {
+                    $film.Remove('originCountry')
                 }
                 if ($binding.originalLanguage.value) {
                     $film['originalLanguage'] = $binding.originalLanguage.value
+                } elseif ($Force) {
+                    $film.Remove('originalLanguage')
                 }
                 $year = if ($binding.startYear.value) { $binding.startYear.value } else { $binding.pubYear.value }
                 if ($year) {
                     $film['year'] = [int]$year
+                } elseif ($Force) {
+                    $film.Remove('year')
                 }
                 if ($binding.imdbId.value) {
                     $film['imdb'] = @{ id = $binding.imdbId.value }
+                } elseif ($Force) {
+                    $film.Remove('imdb')
                 }
                 if ($binding.malId.value) {
                     $film['myAnimeList'] = @{ id = [int]$binding.malId.value }
+                } elseif ($Force) {
+                    $film.Remove('myAnimeList')
                 }
                 $tmdbId = if ($binding.tmdbMovieId.value) { $binding.tmdbMovieId.value } else { $binding.tmdbTvId.value }
                 if ($tmdbId) {
                     $tmdbKind = if ($binding.tmdbMovieId.value) { 'movie' } else { 'tv-series' }
                     $film['tmdb'] = [ordered]@{ id = [int]$tmdbId; kind = $tmdbKind }
+                } elseif ($Force) {
+                    $film.Remove('tmdb')
                 }
                 $enriched++
             }
