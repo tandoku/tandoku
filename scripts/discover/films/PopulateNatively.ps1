@@ -54,10 +54,20 @@ foreach ($doc in @(Import-Yaml -LiteralPath $DatabasePath)) {
 
 Write-Host "Read $($films.Count) entries from films database"
 
-# Filter to Japanese-language entries that need Natively data
+# Filter to Japanese-language entries that need Natively data.
+# An entry needs a (re)lookup when it has no Natively data, or when the captured
+# tmdbId/tmdbKind are missing or no longer match the current tmdb info.
 $needsNatively = @()
 foreach ($film in $films) {
-    if ($film.originalLanguage -eq 'ja' -and -not $film.natively -and $film.'title-ja' -and $film.tmdb) {
+    if ($film.originalLanguage -ne 'ja' -or -not $film.'title-ja' -or -not $film.tmdb) {
+        continue
+    }
+    if (-not $film.natively) {
+        $needsNatively += $film
+    } elseif (
+        [int]$film.natively.tmdbId -ne [int]$film.tmdb.id -or
+        $film.natively.tmdbKind -ne $film.tmdb.kind
+    ) {
         $needsNatively += $film
     }
 }
@@ -132,6 +142,9 @@ foreach ($film in $needsNatively) {
         if ($matchedResult.temporary) {
             $film['natively']['temporaryLevel'] = $true
         }
+        # Capture the TMDB info that was matched so we can recheck Natively if it changes
+        $film['natively']['tmdbId'] = [int]$film.tmdb.id
+        $film['natively']['tmdbKind'] = $film.tmdb.kind
         $matched++
         Write-Host "Matched '$titleJa' -> $($matchedResult.url) (level $($matchedResult.level))"
     } else {

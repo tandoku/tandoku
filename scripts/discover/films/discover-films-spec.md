@@ -25,6 +25,8 @@ tmdb:
 natively:
   level: 21
   url: https://learnnatively.com/tv/66797d747a/
+  tmdbId: 271607
+  tmdbKind: tv-series
 providers:
   netflix:
     id: 82024665
@@ -49,6 +51,8 @@ natively:
   level: 30
   temporaryLevel: true
   url: https://learnnatively.com/tv/8c14b5b860/
+  tmdbId: 2146
+  tmdbKind: tv-series
 providers:
   netflix:
     id: 81922646
@@ -73,17 +77,18 @@ Imports Netflix watch list into films.yaml by adding or updating entries matched
 ## PopulateWikidata.ps1
 ### Usage
 ```powershell
-PopulateWikidata.ps1 -DatabasePath <films.yaml>
+PopulateWikidata.ps1 -DatabasePath <films.yaml> [-Force]
 ```
 
 ### Parameters
 - `-DatabasePath` - Path to the films.yaml database file.
+- `-Force` - When specified, re-runs both phases for every entry even if the data is already present, refreshing existing values and removing fields that Wikidata no longer returns. Without it, the script only fills in missing data.
 
 ### Behavior
 Iterates over each entry in films.yaml and populates data from Wikidata in two phases:
 
-1. **QID lookup** - For entries missing the `wikidata` field that have `providers.netflix.id`, looks up the Wikidata entity ID associated with the Netflix ID (using Wikidata property P1874).
-2. **Details enrichment** - For entries that have a `wikidata` QID but are missing a `title`, queries Wikidata to populate additional fields: `title` (English label), `title-ja` (Japanese label), `type` (instance of / P31, kebab-cased), `originCountry` (country of origin / P495), `originalLanguage` (original language code / P364 + P424), `year` (start time / P580, or publication date / P577), `imdb.id` (P345), `myAnimeList.id` (P4086), `tmdb.id` (TMDb movie P4947 or TV series P4983), and `tmdb.kind` (`movie` or `tv-series` to disambiguate the TMDb ID).
+1. **QID lookup** - For entries missing the `wikidata` field that have `providers.netflix.id`, looks up the Wikidata entity ID associated with the Netflix ID (using Wikidata property P1874). With `-Force`, re-resolves the QID for every entry that has a Netflix ID.
+2. **Details enrichment** - For entries that have a `wikidata` QID but are missing a `title`, queries Wikidata to populate additional fields: `title` (English label), `title-ja` (Japanese label), `type` (instance of / P31, kebab-cased), `originCountry` (country of origin / P495), `originalLanguage` (original language code / P364 + P424), `year` (start time / P580, or publication date / P577), `imdb.id` (P345), `myAnimeList.id` (P4086), `tmdb.id` (TMDb movie P4947 or TV series P4983), and `tmdb.kind` (`movie` or `tv-series` to disambiguate the TMDb ID). With `-Force`, enriches every entry that has a QID and overwrites each field, removing any field for which Wikidata no longer returns a value.
 
 ## PopulateIMDb.ps1
 ### Usage
@@ -109,7 +114,7 @@ PopulateNatively.ps1 -DatabasePath <films.yaml>
 - `-DatabasePath` - Path to the films.yaml database file.
 
 ### Behavior
-For each entry in films.yaml with `originalLanguage` of `ja` that has `title-ja` and `tmdb.id` but is missing `natively`, searches [Natively](https://learnnatively.com) for the Japanese title and matches results by TMDB ID. If a match is found, populates `natively.level` (difficulty level), `natively.url`, and `natively.temporaryLevel` (set to `true` when the level is a temporary rating). Warns if no matching result is found. Sleeps 1-2 seconds between requests to avoid overwhelming the site.
+For each entry in films.yaml with `originalLanguage` of `ja` that has `title-ja` and `tmdb.id`, searches [Natively](https://learnnatively.com) for the Japanese title and matches results by TMDB ID. An entry is searched when it is missing `natively`, or when the captured `natively.tmdbId`/`natively.tmdbKind` are missing or no longer match the entry's current `tmdb.id`/`tmdb.kind` (so the Natively match is rechecked whenever the TMDB info changes). If a match is found, populates `natively.level` (difficulty level), `natively.url`, `natively.temporaryLevel` (set to `true` when the level is a temporary rating), and records `natively.tmdbId` and `natively.tmdbKind` (the TMDB info that was matched). Warns if no matching result is found. Sleeps 1-2 seconds between requests to avoid overwhelming the site.
 
 ## ExportFilms.ps1
 ### Usage
