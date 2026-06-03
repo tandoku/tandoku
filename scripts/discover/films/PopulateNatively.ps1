@@ -46,6 +46,50 @@ function Format-NativelyLevel($rating) {
     return [int]$rating.lvl
 }
 
+# Produce a relaxed version of a title for a fallback search: strips parenthetical
+# annotations (half- or full-width) and any subtitle following a colon, e.g.
+# 'HUNTER×HUNTER (2011年のアニメ)' -> 'HUNTER×HUNTER' and '愛なき森で叫べ : Deep Cut' -> '愛なき森で叫べ'.
+function Get-RelaxedQuery($query) {
+    $relaxed = $query -replace '[\(（][^\)）]*[\)）]', ''
+    $relaxed = ($relaxed -split '[:：]', 2)[0]
+    # Drop zero-width/BOM characters and surrounding whitespace
+    $relaxed = ($relaxed -replace '[\uFEFF\u200B]', '').Trim()
+    return $relaxed
+}
+
+# Search Natively results for an entry whose TMDB ID matches $tmdbId; returns a
+# match descriptor (level/temporary/url) or $null if none of the results match.
+function Find-NativelyMatch($results, $tmdbId) {
+    foreach ($result in $results) {
+        if ($result.widget -eq 'series') {
+            if ([int]$result.series.tmdb_id -eq [int]$tmdbId) {
+                return @{
+                    level     = Format-NativelyLevel $result.series.rating
+                    temporary = [bool]$result.series.rating.temporary
+                    url       = "$nativelyBaseUrl$($result.series.url)"
+                }
+            }
+        } else {
+            # 'item' widget - check both item-level and series-level tmdb_id
+            if ([int]$result.item.tmdb_id -eq [int]$tmdbId) {
+                return @{
+                    level     = Format-NativelyLevel $result.item.rating
+                    temporary = [bool]$result.item.rating.temporary
+                    url       = "$nativelyBaseUrl$($result.item.url)"
+                }
+            }
+            if ($result.item.series -and [int]$result.item.series.tmdb_id -eq [int]$tmdbId) {
+                return @{
+                    level     = Format-NativelyLevel $result.item.rating
+                    temporary = [bool]$result.item.rating.temporary
+                    url       = "$nativelyBaseUrl$($result.item.series.url)"
+                }
+            }
+        }
+    }
+    return $null
+}
+
 # Read films database
 $films = [System.Collections.Generic.List[object]]::new()
 foreach ($doc in @(Import-Yaml -LiteralPath $DatabasePath)) {
@@ -102,34 +146,26 @@ foreach ($film in $needsNatively) {
     $resultCount = $results.Count
 
     # Search through results for a TMDB ID match
-    $matchedResult = $null
-    foreach ($result in $results) {
-        if ($result.widget -eq 'series') {
-            if ([int]$result.series.tmdb_id -eq [int]$tmdbId) {
-                $matchedResult = @{
-                    level     = Format-NativelyLevel $result.series.rating
-                    temporary = [bool]$result.series.rating.temporary
-                    url       = "$nativelyBaseUrl$($result.series.url)"
+    $matchedResult = Find-NativelyMatch $results $tmdbId
+
+    # Fall back to a relaxed query (parenthetical/subtitle stripped) if no match
+    if (-not ($matchedResult -and $matchedResult.level)) {
+        $relaxedQuery = Get-RelaxedQuery $titleJa
+        if ($relaxedQuery -and $relaxedQuery -ne $titleJa) {
+            $delay = 1000 + (Get-Random -Maximum 1000)
+            Start-Sleep -Milliseconds $delay
+            try {
+                $relaxedSearch = Search-Natively $relaxedQuery
+                $relaxedResults = @($relaxedSearch.results)
+                $relaxedMatch = Find-NativelyMatch $relaxedResults $tmdbId
+                if ($relaxedMatch -and $relaxedMatch.level) {
+                    $matchedResult = $relaxedMatch
+                    $resultCount = $relaxedResults.Count
+                    Write-Host "Relaxed match for '$titleJa' using '$relaxedQuery'"
                 }
-                break
             }
-        } else {
-            # 'item' widget - check both item-level and series-level tmdb_id
-            if ([int]$result.item.tmdb_id -eq [int]$tmdbId) {
-                $matchedResult = @{
-                    level     = Format-NativelyLevel $result.item.rating
-                    temporary = [bool]$result.item.rating.temporary
-                    url       = "$nativelyBaseUrl$($result.item.url)"
-                }
-                break
-            }
-            if ($result.item.series -and [int]$result.item.series.tmdb_id -eq [int]$tmdbId) {
-                $matchedResult = @{
-                    level     = Format-NativelyLevel $result.item.rating
-                    temporary = [bool]$result.item.rating.temporary
-                    url       = "$nativelyBaseUrl$($result.item.series.url)"
-                }
-                break
+            catch {
+                Write-Warning "Failed relaxed Natively search for '$relaxedQuery': $_"
             }
         }
     }
@@ -148,7 +184,7 @@ foreach ($film in $needsNatively) {
         $matched++
         Write-Host "Matched '$titleJa' -> $($matchedResult.url) (level $($matchedResult.level))"
     } else {
-        Write-Warning "No Natively match for '$titleJa' (tmdb=$tmdbId) - $resultCount search result(s)"
+        Write-Warning "No Natively match for '$titleJa' (tmdb=$tmdbId kind=$($film.tmdb.kind) wikidata=$($film.wikidata)) - $resultCount search result(s)"
         $notFound++
     }
 }
