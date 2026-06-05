@@ -98,22 +98,22 @@ function ConvertTo-NativelyRecord($result) {
     return $null
 }
 
-# Fetch every available video for $language from Natively, paging until all
-# pages have been retrieved.
-function Get-NativelyVideos($language) {
+# Fetch Natively videos for $language matching the given item type / series
+# grouping, paging until all pages have been retrieved.
+function Get-NativelyVideos($language, $itype, $seriesMode, $label) {
     $videos = [System.Collections.Generic.List[object]]::new()
     $page = 1
     $numPages = $null
     $totalCount = 0
 
     while ($true) {
-        $url = "$nativelyBaseUrl/api/ninja/search/videos/?language=$language&series=series&p=$page"
+        $url = "$nativelyBaseUrl/api/ninja/search/videos/?language=$language&itype=$itype&series=$seriesMode&p=$page"
         $resp = Invoke-RestMethod -Uri $url -Headers $nativelyHeaders
 
         if ($null -eq $numPages) {
             $numPages = [int]$resp.num_of_pages
             $totalCount = [int]$resp.total_count
-            Write-Host "Fetching $totalCount Natively videos across $numPages page(s)..."
+            Write-Host "Fetching $totalCount Natively $label across $numPages page(s)..."
         }
 
         foreach ($result in @($resp.results)) {
@@ -123,7 +123,7 @@ function Get-NativelyVideos($language) {
             }
         }
 
-        Write-Host "  page $page/$numPages ($($videos.Count) records so far)"
+        Write-Host "  $label page $page/$numPages ($($videos.Count) records so far)"
 
         if ($page -ge $numPages) { break }
         $page++
@@ -134,10 +134,27 @@ function Get-NativelyVideos($language) {
 
     return [ordered]@{
         language   = $language
+        itype      = $itype
+        series     = $seriesMode
         fetchedAt  = (Get-Date).ToString('o')
         totalCount = $totalCount
         videos     = $videos
     }
+}
+
+# Fetch (or load cached) Natively records for one slice (movies or TV) and
+# persist them to their own JSON file.
+function Get-OrFetchNatively($jsonPath, $itype, $seriesMode, $label) {
+    if ($UpdateNativelyData -or -not (Test-Path $jsonPath)) {
+        $data = Get-NativelyVideos $Language $itype $seriesMode $label
+        $data | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $jsonPath -Encoding UTF8
+        Write-Host "Saved $($data.videos.Count) Natively $label records to $jsonPath"
+    }
+    else {
+        $data = Get-Content -LiteralPath $jsonPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        Write-Host "Loaded $($data.videos.Count) Natively $label records from $jsonPath"
+    }
+    return $data
 }
 
 # Build a lookup table keyed by "<tmdbKind>|<tmdbId>". When the same key appears
@@ -198,24 +215,26 @@ if (-not (Test-Path $NativelyDataPath)) {
 }
 
 $NativelyDataPath = Resolve-Path $NativelyDataPath
-$videosJsonPath = Join-Path $NativelyDataPath "natively-videos-$Language.json"
+$moviesJsonPath = Join-Path $NativelyDataPath "natively-movies-$Language.json"
+$tvJsonPath = Join-Path $NativelyDataPath "natively-tv-$Language.json"
 
-if ($UpdateNativelyData -or -not (Test-Path $videosJsonPath)) {
-    $data = Get-NativelyVideos $Language
-    $data | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $videosJsonPath -Encoding UTF8
-    Write-Host "Saved $($data.videos.Count) Natively video records to $videosJsonPath"
-}
-else {
-    $data = Get-Content -LiteralPath $videosJsonPath -Raw -Encoding UTF8 | ConvertFrom-Json
-    Write-Host "Loaded $($data.videos.Count) Natively video records from $videosJsonPath"
-}
+# Movies: itype=movie with series=all_volumes expands collections / movie-series
+# into their individual movie volumes so each movie is keyed by its own TMDB id.
+$moviesData = Get-OrFetchNatively $moviesJsonPath 'movie' 'all_volumes' 'movies'
+
+# TV: itype=tv_season with series=series groups seasons under their parent series
+# so entries match against the series' TMDB id.
+$tvData = Get-OrFetchNatively $tvJsonPath 'tv_season' 'series' 'TV series'
 
 if ($needsNatively.Count -eq 0) {
     Write-Host "No entries need Natively lookup"
     return
 }
 
-$index = Build-NativelyIndex $data.videos
+$allVideos = @()
+$allVideos += @($moviesData.videos)
+$allVideos += @($tvData.videos)
+$index = Build-NativelyIndex $allVideos
 
 Write-Host "$($needsNatively.Count) entries need Natively lookup"
 
