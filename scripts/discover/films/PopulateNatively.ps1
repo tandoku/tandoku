@@ -24,7 +24,7 @@ $nativelyBaseUrl = 'https://learnnatively.com'
 $nativelyHeaders = @{
     "User-Agent" = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     "Accept"     = "*/*"
-    "Referer"    = "https://learnnatively.com/search/jpn/videos/"
+    "Referer"    = "https://learnnatively.com/search/$Language/videos/"
 }
 
 function Reorder-FilmEntry($film) {
@@ -172,22 +172,16 @@ foreach ($doc in @(Import-Yaml -LiteralPath $DatabasePath)) {
 
 Write-Host "Read $($films.Count) entries from films database"
 
-# Filter to Japanese-language entries that need Natively data.
-# An entry needs a (re)lookup when it has no Natively data, or when the captured
-# tmdbId/tmdbKind are missing or no longer match the current tmdb info.
+# Filter to entries eligible for Natively data. Matching is done by TMDB id/kind,
+# so any entry with tmdb data is eligible. Every eligible entry is (re)looked up
+# on each run so existing Natively metadata is refreshed against the current
+# dataset, not just entries that are missing it.
 $needsNatively = @()
 foreach ($film in $films) {
-    if ($film.originalLanguage -ne 'ja' -or -not $film.'title-ja' -or -not $film.tmdb) {
+    if (-not $film.tmdb) {
         continue
     }
-    if (-not $film.natively) {
-        $needsNatively += $film
-    } elseif (
-        [int]$film.natively.tmdbId -ne [int]$film.tmdb.id -or
-        $film.natively.tmdbKind -ne $film.tmdb.kind
-    ) {
-        $needsNatively += $film
-    }
+    $needsNatively += $film
 }
 
 # Skip fetching the (large) Natively dataset entirely when there is nothing to
@@ -229,7 +223,7 @@ $matched = 0
 $notFound = 0
 
 foreach ($film in $needsNatively) {
-    $titleJa = $film.'title-ja'
+    $title = $film.title
     $tmdbId = [int]$film.tmdb.id
     $tmdbKind = $film.tmdb.kind
 
@@ -245,13 +239,13 @@ foreach ($film in $needsNatively) {
         if ($matchedResult.temporary) {
             $film['natively']['temporaryLevel'] = $true
         }
-        # Capture the TMDB info that was matched so we can recheck Natively if it changes
-        $film['natively']['tmdbId'] = $tmdbId
-        $film['natively']['tmdbKind'] = $tmdbKind
         $matched++
-        Write-Host "Matched '$titleJa' -> $($matchedResult.url) (level $($matchedResult.level))"
+        Write-Host "Matched '$title' -> $($matchedResult.url) (level $($matchedResult.level))"
     } else {
-        Write-Warning "No Natively match for '$titleJa' (tmdb=$tmdbId kind=$tmdbKind wikidata=$($film.wikidata))"
+        $tmdbPath = if ($tmdbKind -eq 'movie') { 'movie' } else { 'tv' }
+        $tmdbUrl = "https://www.themoviedb.org/$tmdbPath/$tmdbId"
+        $nativelySearchUrl = "$nativelyBaseUrl/search/$Language/videos/?q=$([uri]::EscapeDataString([string]$title))"
+        Write-Warning "No Natively match for '$title' (tmdb $tmdbUrl natively $nativelySearchUrl wikidata=$($film.wikidata))"
         $notFound++
     }
 }
