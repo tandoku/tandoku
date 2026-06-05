@@ -6,6 +6,10 @@ param(
     [switch]$UpdateNativelyData
 )
 
+Import-Module "$PSScriptRoot/../../modules/tandoku-utils.psm1" -Scope Local
+
+RequireCommand yq
+
 $dbPath = "$Path/films.yaml"
 $dbJsonPath = "$Path/films.json"
 $sources = "$Path/sources"

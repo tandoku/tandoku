@@ -9,7 +9,7 @@ param(
     [switch]$UpdateImdbData
 )
 
-Import-Module "$PSScriptRoot\..\..\modules\tandoku-yaml.psm1"
+Import-Module "$PSScriptRoot/../../modules/tandoku-yaml.psm1"
 
 # Preferred key order for film entries
 $fieldOrder = @('wikidata', 'title', 'title-ja', 'type', 'originCountry', 'originalLanguage', 'year', 'imdb', 'myAnimeList', 'tmdb', 'providers')

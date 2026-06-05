@@ -7,7 +7,7 @@ param(
     [string]$DatabasePath
 )
 
-Import-Module "$PSScriptRoot\..\..\modules\tandoku-yaml.psm1"
+Import-Module "$PSScriptRoot/../../modules/tandoku-yaml.psm1"
 
 # Read Netflix watchlist
 $watchlist = Get-Content -Path $Path -Raw | ConvertFrom-Json

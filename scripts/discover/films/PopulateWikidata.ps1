@@ -6,7 +6,7 @@ param(
     [switch]$Force
 )
 
-Import-Module "$PSScriptRoot\..\..\modules\tandoku-yaml.psm1"
+Import-Module "$PSScriptRoot/../../modules/tandoku-yaml.psm1"
 
 $sparqlHeaders = @{ "User-Agent" = "tandoku-discover/1.0 (https://github.com/tandoku)" }
 

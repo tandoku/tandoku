@@ -7,7 +7,7 @@ param(
     [string]$OutputPath = 'films.json'
 )
 
-Import-Module "$PSScriptRoot\..\..\modules\tandoku-yaml.psm1"
+Import-Module "$PSScriptRoot/../../modules/tandoku-yaml.psm1"
 
 $films = @(Import-Yaml -LiteralPath $DatabasePath)
 
