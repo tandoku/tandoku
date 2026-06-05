@@ -10,6 +10,9 @@ Import-Module "$PSScriptRoot/../../modules/tandoku-utils.psm1" -Scope Local
 
 RequireCommand yq
 
+Write-Host "Setting console encoding to UTF-8 (required for yq roundtripping)"
+[Console]::InputEncoding = [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new()
+
 $dbPath = "$Path/films.yaml"
 $dbJsonPath = "$Path/films.json"
 $sources = "$Path/sources"
