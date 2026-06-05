@@ -107,14 +107,19 @@ Downloads `title.ratings.tsv.gz` from IMDb daily data dumps and extracts it to t
 ## PopulateNatively.ps1
 ### Usage
 ```powershell
-PopulateNatively.ps1 -DatabasePath <films.yaml>
+PopulateNatively.ps1 -DatabasePath <films.yaml> -NativelyDataPath <path> [-UpdateNativelyData] [-Language <code>]
 ```
 
 ### Parameters
 - `-DatabasePath` - Path to the films.yaml database file.
+- `-NativelyDataPath` - Path to a local folder for storing the Natively video catalog downloaded from [Natively](https://learnnatively.com).
+- `-UpdateNativelyData` - When specified, re-downloads the Natively catalog even if a local copy already exists.
+- `-Language` - Natively language code for the catalog (defaults to `jpn`). Determines the API language and the local file name `natively-videos-<lang>.json`.
 
 ### Behavior
-For each entry in films.yaml with `originalLanguage` of `ja` that has `title-ja` and `tmdb.id`, searches [Natively](https://learnnatively.com) for the Japanese title and matches results by TMDB ID. An entry is searched when it is missing `natively`, or when the captured `natively.tmdbId`/`natively.tmdbKind` are missing or no longer match the entry's current `tmdb.id`/`tmdb.kind` (so the Natively match is rechecked whenever the TMDB info changes). If the initial search yields no TMDB match, retries once with a relaxed query that strips parenthetical annotations and any subtitle following a colon (e.g. `HUNTER×HUNTER (2011年のアニメ)` → `HUNTER×HUNTER`, `愛なき森で叫べ : Deep Cut` → `愛なき森で叫べ`). If a match is found, populates `natively.level` (difficulty level), `natively.url`, `natively.temporaryLevel` (set to `true` when the level is a temporary rating), and records `natively.tmdbId` and `natively.tmdbKind` (the TMDB info that was matched). Warns if no matching result is found. Sleeps 1-2 seconds between requests to avoid overwhelming the site.
+Pre-fetches the entire Natively video catalog for the language (paging through the search API with no `q=` filter) and stores it as `natively-videos-<lang>.json` in `-NativelyDataPath`. Uses the existing local file unless it is missing or `-UpdateNativelyData` is specified. Each catalog entry is normalized to a TMDB id, a kind (`movie` or `tv-series`, distinguishing movies from TV series/seasons), difficulty level, and URL.
+
+For each entry in films.yaml with `originalLanguage` of `ja` that has `title-ja` and `tmdb.id`, matches against the local catalog by `tmdb.id` and `tmdb.kind` directly. An entry is matched when it is missing `natively`, or when the captured `natively.tmdbId`/`natively.tmdbKind` are missing or no longer match the entry's current `tmdb.id`/`tmdb.kind` (so the Natively match is rechecked whenever the TMDB info changes). If a match is found, populates `natively.level` (difficulty level), `natively.url`, `natively.temporaryLevel` (set to `true` when the level is a temporary rating), and records `natively.tmdbId` and `natively.tmdbKind` (the TMDB info that was matched). Warns if no matching catalog entry is found. The catalog download is skipped entirely when no entries need a lookup and `-UpdateNativelyData` is not specified.
 
 ## ExportFilms.ps1
 ### Usage
