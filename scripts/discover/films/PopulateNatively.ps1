@@ -8,7 +8,9 @@ param(
 
     [switch]$UpdateNativelyData,
 
-    [string]$Language = 'jpn'
+    [string]$NativelyLanguage = 'ja',
+
+    [string[]]$OriginalLanguage = @()
 )
 
 Import-Module "$PSScriptRoot/../../modules/tandoku-yaml.psm1"
@@ -17,6 +19,10 @@ Import-Module "$PSScriptRoot/../../modules/tandoku-yaml.psm1"
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 [Console]::InputEncoding = [System.Text.Encoding]::UTF8
 
+# Natively's API and URLs use three-letter ISO 639-2 language codes; convert the
+# two-letter ISO 639-1 code supplied via -NativelyLanguage.
+$nativelyLanguageCode = [System.Globalization.CultureInfo]::GetCultureInfo($NativelyLanguage).ThreeLetterISOLanguageName
+
 # Preferred key order for film entries
 $fieldOrder = @('wikidata', 'title', 'title-ja', 'type', 'originCountry', 'originalLanguage', 'year', 'imdb', 'myAnimeList', 'tmdb', 'natively', 'providers')
 
@@ -24,7 +30,7 @@ $nativelyBaseUrl = 'https://learnnatively.com'
 $nativelyHeaders = @{
     "User-Agent" = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     "Accept"     = "*/*"
-    "Referer"    = "https://learnnatively.com/search/$Language/videos/"
+    "Referer"    = "https://learnnatively.com/search/$nativelyLanguageCode/videos/"
 }
 
 function Reorder-FilmEntry($film) {
@@ -146,7 +152,7 @@ function Get-NativelyVideos($language, $itype, $seriesMode, $label) {
 # persist them to their own JSON file.
 function Get-OrFetchNatively($jsonPath, $itype, $seriesMode, $label) {
     if ($UpdateNativelyData -or -not (Test-Path $jsonPath)) {
-        $data = Get-NativelyVideos $Language $itype $seriesMode $label
+        $data = Get-NativelyVideos $nativelyLanguageCode $itype $seriesMode $label
         $data | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $jsonPath -Encoding UTF8
         Write-Host "Saved $($data.videos.Count) Natively $label records to $jsonPath"
     }
@@ -190,13 +196,28 @@ foreach ($doc in @(Import-Yaml -LiteralPath $DatabasePath)) {
 Write-Host "Read $($films.Count) entries from films database"
 
 # Filter to entries eligible for Natively data. Matching is done by TMDB id/kind,
-# so any entry with tmdb data is eligible. Every eligible entry is (re)looked up
-# on each run so existing Natively metadata is refreshed against the current
-# dataset, not just entries that are missing it.
+# so any entry with tmdb data is eligible. When -OriginalLanguage is supplied,
+# only entries whose originalLanguage includes at least one of those two-letter
+# codes are processed. Every eligible entry is (re)looked up on each run so
+# existing Natively metadata is refreshed against the current dataset, not just
+# entries that are missing it.
 $needsNatively = @()
 foreach ($film in $films) {
     if (-not $film.tmdb) {
         continue
+    }
+    if ($OriginalLanguage.Count -gt 0) {
+        $filmLanguages = @($film.originalLanguage)
+        $hasLanguageMatch = $false
+        foreach ($language in $filmLanguages) {
+            if ($OriginalLanguage -contains $language) {
+                $hasLanguageMatch = $true
+                break
+            }
+        }
+        if (-not $hasLanguageMatch) {
+            continue
+        }
     }
     $needsNatively += $film
 }
@@ -215,8 +236,8 @@ if (-not (Test-Path $NativelyDataPath)) {
 }
 
 $NativelyDataPath = Resolve-Path $NativelyDataPath
-$moviesJsonPath = Join-Path $NativelyDataPath "natively-movies-$Language.json"
-$tvJsonPath = Join-Path $NativelyDataPath "natively-tv-$Language.json"
+$moviesJsonPath = Join-Path $NativelyDataPath "natively-movies-$nativelyLanguageCode.json"
+$tvJsonPath = Join-Path $NativelyDataPath "natively-tv-$nativelyLanguageCode.json"
 
 # Movies: itype=movie with series=all_volumes expands collections / movie-series
 # into their individual movie volumes so each movie is keyed by its own TMDB id.
@@ -251,19 +272,21 @@ foreach ($film in $needsNatively) {
     $matchedResult = if ($entry) { $entry.video } else { $null }
 
     if ($matchedResult -and $null -ne $matchedResult.level) {
-        $film['natively'] = [ordered]@{
-            level = [int]$matchedResult.level
-            url   = $matchedResult.url
+        $natively = [ordered]@{
+            language = $NativelyLanguage
+            level    = [int]$matchedResult.level
         }
         if ($matchedResult.temporary) {
-            $film['natively']['temporaryLevel'] = $true
+            $natively['temporaryLevel'] = $true
         }
+        $natively['url'] = $matchedResult.url
+        $film['natively'] = $natively
         $matched++
         Write-Host "Matched '$title' -> $($matchedResult.url) (level $($matchedResult.level))"
     } else {
         $tmdbPath = if ($tmdbKind -eq 'movie') { 'movie' } else { 'tv' }
         $tmdbUrl = "https://www.themoviedb.org/$tmdbPath/$tmdbId"
-        $nativelySearchUrl = "$nativelyBaseUrl/search/$Language/videos/?q=$([uri]::EscapeDataString([string]$title))"
+        $nativelySearchUrl = "$nativelyBaseUrl/search/$nativelyLanguageCode/videos/?q=$([uri]::EscapeDataString([string]$title))"
         Write-Warning "No Natively match for '$title' (tmdb $tmdbUrl natively $nativelySearchUrl wikidata=$($film.wikidata))"
         $notFound++
     }
