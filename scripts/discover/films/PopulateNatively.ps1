@@ -282,7 +282,7 @@ foreach ($film in $needsNatively) {
         $natively['url'] = $matchedResult.url
         $film['natively'] = $natively
         $matched++
-        Write-Host "Matched '$title' -> $($matchedResult.url) (level $($matchedResult.level))"
+        Write-Verbose "Matched '$title' -> $($matchedResult.url) (level $($matchedResult.level))"
     } else {
         $tmdbPath = if ($tmdbKind -eq 'movie') { 'movie' } else { 'tv' }
         $tmdbUrl = "https://www.themoviedb.org/$tmdbPath/$tmdbId"

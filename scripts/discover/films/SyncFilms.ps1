@@ -23,6 +23,6 @@ $sources = "$Path/sources"
 
 & "$PSScriptRoot/PopulateIMDb.ps1" -DatabasePath $dbPath -ImdbDataPath "$sources/imdb" -UpdateImdbData:$UpdateImdbData
 
-& "$PSScriptRoot/PopulateNatively.ps1" -DatabasePath $dbPath -NativelyDataPath "$sources/natively" -UpdateNativelyData:$UpdateNativelyData
+& "$PSScriptRoot/PopulateNatively.ps1" -DatabasePath $dbPath -NativelyDataPath "$sources/natively" -UpdateNativelyData:$UpdateNativelyData -NativelyLanguage ja -OriginalLanguage ja
 
 & "$PSScriptRoot/ExportFilms.ps1" -DatabasePath $dbPath -OutputPath $dbJsonPath
