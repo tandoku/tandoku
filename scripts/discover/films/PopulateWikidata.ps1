@@ -13,9 +13,6 @@ $sparqlHeaders = @{ "User-Agent" = "tandoku-discover/1.0 (https://github.com/tan
 # Preferred key order for film entries
 $fieldOrder = @('wikidata', 'title', 'title-ja', 'type', 'originCountry', 'originalLanguage', 'year', 'imdb', 'myAnimeList', 'tmdb', 'providers')
 
-# Wikidata type labels to exclude (not meaningful content types)
-$excludedTypes = @('conflation', 'fictional crossover')
-
 function Invoke-WikidataSparql($query) {
     $url = "https://query.wikidata.org/sparql?query=$([uri]::EscapeDataString($query))&format=json"
     $maxRetries = 3
@@ -153,14 +150,14 @@ SELECT ?item
   (SAMPLE(?title_) AS ?title)
   (SAMPLE(?titleJa_) AS ?titleJa)
   (GROUP_CONCAT(DISTINCT ?typeLabel_; SEPARATOR="|") AS ?types)
-  (SAMPLE(?originCountryLabel_) AS ?originCountry)
-  (SAMPLE(?langCode_) AS ?originalLanguage)
+  (GROUP_CONCAT(DISTINCT ?originCountryLabel_; SEPARATOR="|") AS ?originCountry)
+  (GROUP_CONCAT(DISTINCT ?langCode_; SEPARATOR="|") AS ?originalLanguage)
   (SAMPLE(?startYear_) AS ?startYear)
   (SAMPLE(?pubYear_) AS ?pubYear)
-  (SAMPLE(?imdbId_) AS ?imdbId)
-  (SAMPLE(?malId_) AS ?malId)
-  (SAMPLE(?tmdbMovieId_) AS ?tmdbMovieId)
-  (SAMPLE(?tmdbTvId_) AS ?tmdbTvId)
+  (GROUP_CONCAT(DISTINCT ?imdbId_; SEPARATOR="|") AS ?imdbId)
+  (GROUP_CONCAT(DISTINCT ?malId_; SEPARATOR="|") AS ?malId)
+  (GROUP_CONCAT(DISTINCT ?tmdbMovieId_; SEPARATOR="|") AS ?tmdbMovieId)
+  (GROUP_CONCAT(DISTINCT ?tmdbTvId_; SEPARATOR="|") AS ?tmdbTvId)
 WHERE {
   VALUES ?item { $values }
   OPTIONAL { ?item rdfs:label ?title_ . FILTER(LANG(?title_) = "en") }
@@ -196,11 +193,10 @@ GROUP BY ?item
                 }
                 $type = $null
                 if ($binding.types.value) {
-                    $types = $binding.types.value -split '\|' |
-                        Where-Object { $_ -notin $excludedTypes } |
-                        ForEach-Object { ($_.ToLower() -replace ' ', '-') }
-                    if ($types) {
-                        $type = ($types | Select-Object -First 1)
+                    $types = @($binding.types.value -split '\|' |
+                        ForEach-Object { ($_.ToLower() -replace ' ', '-') })
+                    if ($types.Count -gt 0) {
+                        $type = $types
                     }
                 }
                 if ($type) {
@@ -209,12 +205,12 @@ GROUP BY ?item
                     $film.Remove('type')
                 }
                 if ($binding.originCountry.value) {
-                    $film['originCountry'] = $binding.originCountry.value
+                    $film['originCountry'] = @($binding.originCountry.value -split '\|')
                 } elseif ($Force) {
                     $film.Remove('originCountry')
                 }
                 if ($binding.originalLanguage.value) {
-                    $film['originalLanguage'] = $binding.originalLanguage.value
+                    $film['originalLanguage'] = @($binding.originalLanguage.value -split '\|')
                 } elseif ($Force) {
                     $film.Remove('originalLanguage')
                 }
@@ -225,19 +221,41 @@ GROUP BY ?item
                     $film.Remove('year')
                 }
                 if ($binding.imdbId.value) {
-                    $film['imdb'] = @{ id = $binding.imdbId.value }
+                    $imdbIds = @($binding.imdbId.value -split '\|' | Sort-Object)
+                    if ($imdbIds.Count -gt 1) {
+                        Write-Warning "$qid has multiple IMDb IDs: $($imdbIds -join ', '); using $($imdbIds[0])"
+                    }
+                    $film['imdb'] = @{ id = $imdbIds[0] }
                 } elseif ($Force) {
                     $film.Remove('imdb')
                 }
                 if ($binding.malId.value) {
-                    $film['myAnimeList'] = @{ id = [int]$binding.malId.value }
+                    $malIds = @($binding.malId.value -split '\|' | ForEach-Object { [int]$_ } | Sort-Object)
+                    if ($malIds.Count -gt 1) {
+                        Write-Warning "$qid has multiple MyAnimeList IDs: $($malIds -join ', '); using $($malIds[0])"
+                    }
+                    $film['myAnimeList'] = @{ id = $malIds[0] }
                 } elseif ($Force) {
                     $film.Remove('myAnimeList')
                 }
-                $tmdbId = if ($binding.tmdbMovieId.value) { $binding.tmdbMovieId.value } else { $binding.tmdbTvId.value }
-                if ($tmdbId) {
-                    $tmdbKind = if ($binding.tmdbMovieId.value) { 'movie' } else { 'tv-series' }
-                    $film['tmdb'] = [ordered]@{ id = [int]$tmdbId; kind = $tmdbKind }
+                $tmdbMovieIds = @()
+                if ($binding.tmdbMovieId.value) {
+                    $tmdbMovieIds = @($binding.tmdbMovieId.value -split '\|' | ForEach-Object { [int]$_ } | Sort-Object)
+                }
+                $tmdbTvIds = @()
+                if ($binding.tmdbTvId.value) {
+                    $tmdbTvIds = @($binding.tmdbTvId.value -split '\|' | ForEach-Object { [int]$_ } | Sort-Object)
+                }
+                if ($tmdbMovieIds.Count + $tmdbTvIds.Count -gt 1) {
+                    $tmdbDesc = @()
+                    if ($tmdbMovieIds.Count -gt 0) { $tmdbDesc += "movie: $($tmdbMovieIds -join ', ')" }
+                    if ($tmdbTvIds.Count -gt 0) { $tmdbDesc += "tv-series: $($tmdbTvIds -join ', ')" }
+                    Write-Warning "$qid has multiple TMDB IDs ($($tmdbDesc -join '; ')); preferring tv-series over movie and lowest ID"
+                }
+                if ($tmdbTvIds.Count -gt 0) {
+                    $film['tmdb'] = [ordered]@{ id = $tmdbTvIds[0]; kind = 'tv-series' }
+                } elseif ($tmdbMovieIds.Count -gt 0) {
+                    $film['tmdb'] = [ordered]@{ id = $tmdbMovieIds[0]; kind = 'movie' }
                 } elseif ($Force) {
                     $film.Remove('tmdb')
                 }

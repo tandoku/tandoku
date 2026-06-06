@@ -9,9 +9,12 @@ YAML file containing a stream of documets representing films (movie or TV series
 wikidata: Q130305455
 title: The Fragrant Flower Blooms with Dignity
 title-ja: 薫る花は凛と咲く
-type: anime-television-series
-originCountry: Japan
-originalLanguage: ja
+type:
+  - anime-television-series
+originCountry:
+  - Japan
+originalLanguage:
+  - ja
 year: 2025 # derived from wikidata 'start time'
 imdb:
   id: tt36592690
@@ -36,9 +39,12 @@ providers:
 wikidata: Q626942
 title: Good Luck!!
 title-ja: GOOD LUCK!!
-type: japanese-television-drama
-originCountry: Japan
-originalLanguage: ja
+type:
+  - japanese-television-drama
+originCountry:
+  - Japan
+originalLanguage:
+  - ja
 year: 2003
 imdb:
   id: tt0399971
@@ -88,7 +94,7 @@ PopulateWikidata.ps1 -DatabasePath <films.yaml> [-Force]
 Iterates over each entry in films.yaml and populates data from Wikidata in two phases:
 
 1. **QID lookup** - For entries missing the `wikidata` field that have `providers.netflix.id`, looks up the Wikidata entity ID associated with the Netflix ID (using Wikidata property P1874). With `-Force`, re-resolves the QID for every entry that has a Netflix ID.
-2. **Details enrichment** - For entries that have a `wikidata` QID but are missing a `title`, queries Wikidata to populate additional fields: `title` (English label), `title-ja` (Japanese label), `type` (instance of / P31, kebab-cased), `originCountry` (country of origin / P495), `originalLanguage` (original language code / P364 + P424), `year` (start time / P580, or publication date / P577), `imdb.id` (P345), `myAnimeList.id` (P4086), `tmdb.id` (TMDb movie P4947 or TV series P4983), and `tmdb.kind` (`movie` or `tv-series` to disambiguate the TMDb ID). With `-Force`, enriches every entry that has a QID and overwrites each field, removing any field for which Wikidata no longer returns a value.
+2. **Details enrichment** - For entries that have a `wikidata` QID but are missing a `title`, queries Wikidata to populate additional fields: `title` (English label), `title-ja` (Japanese label), `type` (instance of / P31, kebab-cased, as a list of all values), `originCountry` (country of origin / P495, as a list of all values), `originalLanguage` (original language codes / P364 + P424, as a list of all values), `year` (start time / P580, or publication date / P577), `imdb.id` (P345), `myAnimeList.id` (P4086), `tmdb.id` (TMDb movie P4947 or TV series P4983), and `tmdb.kind` (`movie` or `tv-series` to disambiguate the TMDb ID). When Wikidata returns multiple IDs for `imdb.id`, `myAnimeList.id`, or `tmdb.id`, the script warns and keeps the lowest value for stability; for `tmdb.id` it prefers a TV series ID over a movie ID (warning also when both movie and TV IDs are present). With `-Force`, enriches every entry that has a QID and overwrites each field, removing any field for which Wikidata no longer returns a value.
 
 ## PopulateIMDb.ps1
 ### Usage
@@ -119,7 +125,7 @@ PopulateNatively.ps1 -DatabasePath <films.yaml> -NativelyDataPath <path> [-Updat
 ### Behavior
 Pre-fetches the entire Natively video catalog for the language (paging through the search API with no `q=` filter) and stores it as `natively-videos-<lang>.json` in `-NativelyDataPath`. Uses the existing local file unless it is missing or `-UpdateNativelyData` is specified. Each catalog entry is normalized to a TMDB id, a kind (`movie` or `tv-series`, distinguishing movies from TV series/seasons), difficulty level, and URL.
 
-For each entry in films.yaml with `originalLanguage` of `ja` that has `title-ja` and `tmdb.id`, matches against the local catalog by `tmdb.id` and `tmdb.kind` directly. An entry is matched when it is missing `natively`, or when the captured `natively.tmdbId`/`natively.tmdbKind` are missing or no longer match the entry's current `tmdb.id`/`tmdb.kind` (so the Natively match is rechecked whenever the TMDB info changes). If a match is found, populates `natively.level` (difficulty level), `natively.url`, `natively.temporaryLevel` (set to `true` when the level is a temporary rating), and records `natively.tmdbId` and `natively.tmdbKind` (the TMDB info that was matched). Warns if no matching catalog entry is found. The catalog download is skipped entirely when no entries need a lookup and `-UpdateNativelyData` is not specified.
+For each entry in films.yaml that has `tmdb.id`, matches against the local catalog by `tmdb.id` and `tmdb.kind` directly. An entry is matched when it is missing `natively`, or when the captured `natively.tmdbId`/`natively.tmdbKind` are missing or no longer match the entry's current `tmdb.id`/`tmdb.kind` (so the Natively match is rechecked whenever the TMDB info changes). If a match is found, populates `natively.level` (difficulty level), `natively.url`, `natively.temporaryLevel` (set to `true` when the level is a temporary rating), and records `natively.tmdbId` and `natively.tmdbKind` (the TMDB info that was matched). Warns if no matching catalog entry is found. The catalog download is skipped entirely when no entries need a lookup and `-UpdateNativelyData` is not specified.
 
 ## ExportFilms.ps1
 ### Usage
