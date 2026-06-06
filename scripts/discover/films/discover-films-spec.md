@@ -94,6 +94,20 @@ Iterates over each entry in films.yaml and populates data from Wikidata in two p
 1. **QID lookup** - For entries missing the `wikidata` field that have `providers.netflix.id`, looks up the Wikidata entity ID associated with the Netflix ID (using Wikidata property P1874). With `-Force`, re-resolves the QID for every entry that has a Netflix ID.
 2. **Details enrichment** - For entries that have a `wikidata` QID but are missing a `title`, queries Wikidata to populate additional fields: `title` (English label), `title-ja` (Japanese label), `type` (instance of / P31, kebab-cased, as a list of all values), `originCountry` (country of origin / P495, as a list of all values), `originalLanguage` (original language codes / P364 + P424, as a list of all values), `year` (start time / P580, or publication date / P577), `imdb.id` (P345), `myAnimeList.id` (P4086), `tmdb.id` (TMDb movie P4947 or TV series P4983), and `tmdb.kind` (`movie` or `tv-series` to disambiguate the TMDb ID). When Wikidata returns multiple IDs for `imdb.id`, `myAnimeList.id`, or `tmdb.id`, the script warns and keeps the lowest value for stability; for `tmdb.id` it prefers a TV series ID over a movie ID (warning also when both movie and TV IDs are present). With `-Force`, enriches every entry that has a QID and overwrites each field, removing any field for which Wikidata no longer returns a value.
 
+## UpdateIMDbData.ps1
+### Usage
+```powershell
+UpdateIMDbData.ps1 -ImdbDataPath <path> [-Datasets <names>] [-UpdateImdbData]
+```
+
+### Parameters
+- `-ImdbDataPath` - Path to a local folder for storing IMDb data files downloaded from https://datasets.imdbws.com.
+- `-Datasets` - One or more IMDb dataset names to make available, given without the `.tsv.gz` suffix (e.g. `title.ratings`, `title.basics`, `title.akas`). Defaults to `title.ratings`.
+- `-UpdateImdbData` - When specified, re-downloads (and re-extracts) the data files even if they already exist locally.
+
+### Behavior
+Shared helper used by the other IMDb-consuming scripts. For each requested dataset, downloads `<dataset>.tsv.gz` from the IMDb daily data dumps into `-ImdbDataPath` and extracts it to `<dataset>.tsv`. Existing `.tsv` files are reused unless `-UpdateImdbData` is specified; a previously downloaded `.gz` is reused (and only re-extracted) when its `.tsv` is missing. Extraction is written to a temporary file and moved into place so an interrupted run never leaves a partial `.tsv`. Returns an ordered hashtable mapping each dataset name to the full path of its extracted `.tsv` file.
+
 ## PopulateIMDb.ps1
 ### Usage
 ```powershell
@@ -106,7 +120,47 @@ PopulateIMDb.ps1 -DatabasePath <films.yaml> -ImdbDataPath <path> [-UpdateImdbDat
 - `-UpdateImdbData` - When specified, re-downloads IMDb data files even if they already exist locally.
 
 ### Behavior
-Downloads `title.ratings.tsv.gz` from IMDb daily data dumps and extracts it to the folder specified by `-ImdbDataPath`. Uses existing data files at that path unless `-UpdateImdbData` is specified. For each entry in films.yaml that has `imdb.id`, looks up the IMDb rating and vote count and updates the `imdb.rating` and `imdb.votes` fields.
+Uses `UpdateIMDbData.ps1` to download `title.ratings.tsv.gz` from IMDb daily data dumps and extract it to the folder specified by `-ImdbDataPath` (passing through `-UpdateImdbData`). For each entry in films.yaml that has `imdb.id`, looks up the IMDb rating and vote count and updates the `imdb.rating` and `imdb.votes` fields.
+
+## SuggestWikidataIdentifiers.ps1
+### Usage
+```powershell
+SuggestWikidataIdentifiers.ps1 -DatabasePath <films.yaml> -OutputPath <candidates.yaml> [-ImdbDataPath <path>] [-UpdateImdbData]
+```
+
+### Parameters
+- `-DatabasePath` - Path to the films.yaml database file.
+- `-OutputPath` - Path to the YAML file to write proposed candidates to.
+- `-ImdbDataPath` - Path to a local folder for storing IMDb data files downloaded from https://datasets.imdbws.com. Defaults to a `tandoku-imdb` folder under the system temp directory.
+- `-UpdateImdbData` - When specified, re-downloads IMDb data files even if they already exist locally.
+
+### Behavior
+Proposes candidates for filling Wikidata data gaps. Considers every entry in films.yaml that has `providers.netflix.id` but no `wikidata` field, indexing them by a normalized form of `providers.netflix.title` (lower-cased, runs of non-letter/non-digit characters collapsed to a single space, trimmed); a warning is emitted when several films share the same normalized title.
+
+Uses `UpdateIMDbData.ps1` to fetch `title.akas`, `title.basics`, and `title.ratings`, then makes one streaming pass over each:
+
+1. **akas** - alternate titles are grouped by `titleId` (rows for a title are contiguous in the file); a title is a candidate when any of its alternate titles matches a needed Netflix title. While scanning the group it also records a Japanese-language signal (an alternate title tagged language `ja`, or one containing Hiragana/Katakana/Han characters) - this catches Japanese works whose matched title is the English/romaji one while the Japanese title appears in a separate row.
+2. **basics** - additionally matches each title's `primaryTitle`/`originalTitle`, and for every candidate records its `titleType` and whether its `originalTitle` contains Japanese text.
+3. **ratings** - records vote counts for candidate titles (used only as a tie-breaker).
+
+Candidate IMDb titles are kept when their `titleType` is a watchable type (`movie`, `tvMovie`, `tvSeries`, `tvMiniSeries`, `short`, `tvShort`, `tvSpecial`, `video`) **and** they carry a Japanese signal (from either the akas or the original title). For each film the best surviving candidate is chosen by preferred title type, then most votes, then lowest IMDb ID; a warning lists the alternatives whenever more than one candidate survives. The chosen IMDb IDs are then looked up on Wikidata in batches (property P345) to find any entity that already exists.
+
+Writes one YAML document per processed film to `-OutputPath`, omitting the `imdb` and/or `wikidata` sections when no match was found:
+
+```yaml
+netflix:
+  id: <netflix-id>
+  url: <netflix-title-url>
+imdb:
+  id: <imdb-id>
+  url: <imdb-title-url>
+wikidata:
+  id: <wikidata-id>
+  url: <wikidata-entity-url>
+---
+# one document per film in YAML stream
+```
+
 
 ## PopulateNatively.ps1
 ### Usage
