@@ -59,14 +59,31 @@ function Invoke-WikidataSparql($query) {
     }
 }
 
-function Get-NormalizedTitle([string]$title) {
-    if ([string]::IsNullOrEmpty($title) -or $title -eq '\N') {
-        return $null
+# Title normalization runs once per row across the full IMDb akas/basics datasets (tens of
+# millions of calls). A PowerShell function call at that volume is ~10x slower than the work
+# itself, so the normalizer lives in a compiled helper invoked directly as a static method.
+Add-Type -TypeDefinition @'
+using System.Text;
+public static class TandokuTitle {
+    // Lower-cases, collapses runs of non-letter/non-digit characters to a single space, and trims.
+    public static string Normalize(string title) {
+        if (string.IsNullOrEmpty(title) || title == "\\N") return null;
+        var sb = new StringBuilder(title.Length);
+        bool pendingSpace = false, started = false;
+        foreach (char c in title) {
+            if (char.IsLetterOrDigit(c)) {
+                if (pendingSpace && started) sb.Append(' ');
+                sb.Append(char.ToLowerInvariant(c));
+                started = true;
+                pendingSpace = false;
+            } else {
+                pendingSpace = true;
+            }
+        }
+        return sb.ToString();
     }
-    $n = $title.ToLowerInvariant()
-    $n = [regex]::Replace($n, '[^\p{L}\p{Nd}]+', ' ')
-    return $n.Trim()
 }
+'@
 
 # Japanese-language signal: title contains Hiragana, Katakana, or CJK ideographs
 $cjkRegex = [regex]::new('[\p{IsHiragana}\p{IsKatakana}\p{IsCJKUnifiedIdeographs}]')
@@ -92,7 +109,7 @@ $needsWikidata = [System.Collections.Generic.List[object]]::new()
 foreach ($film in $films) {
     if ($film.providers -and $film.providers.netflix -and $null -ne $film.providers.netflix.id -and -not $film.wikidata) {
         $needsWikidata.Add($film)
-        $norm = Get-NormalizedTitle ([string]$film.providers.netflix.title)
+        $norm = [TandokuTitle]::Normalize([string]$film.providers.netflix.title)
         if ($norm) {
             if (-not $filmsByTitle.ContainsKey($norm)) {
                 $filmsByTitle[$norm] = [System.Collections.Generic.List[object]]::new()
@@ -191,7 +208,7 @@ foreach ($line in [System.IO.File]::ReadLines($akasPath)) {
     $title = $fields[2]
     $groupTitles.Add($title)
     if ($fields.Count -ge 5 -and $fields[4] -eq 'ja') { $groupHasJaLang = $true }
-    $norm = Get-NormalizedTitle $title
+    $norm = [TandokuTitle]::Normalize($title)
     if ($norm -and $filmsByTitle.ContainsKey($norm)) {
         if (-not $groupFilms) { $groupFilms = [System.Collections.Generic.Dictionary[object, object]]::new() }
         foreach ($f in $filmsByTitle[$norm]) { $groupFilms[$f] = $true }
@@ -225,7 +242,7 @@ foreach ($line in [System.IO.File]::ReadLines($basicsPath)) {
     $originalTitle = $fields[3]
 
     foreach ($t in @($primaryTitle, $originalTitle)) {
-        $norm = Get-NormalizedTitle $t
+        $norm = [TandokuTitle]::Normalize($t)
         if ($norm -and $filmsByTitle.ContainsKey($norm)) {
             Add-Candidate $tconst $filmsByTitle[$norm]
         }
