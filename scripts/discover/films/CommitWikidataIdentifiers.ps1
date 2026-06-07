@@ -25,16 +25,19 @@ if (-not $WhatIfPreference -and -not $token) {
     throw "Wikidata access token required. Pass -AccessToken or set WIKIDATA_ACCESS_TOKEN (or use -WhatIf to preview)."
 }
 
-$authHeaders = @{ 'User-Agent' = $userAgent }
+# Reads (wbgetclaims) are public, so they must never send the access token -
+# an invalid/mismatched token would otherwise break reads (and -WhatIf).
+$readHeaders = @{ 'User-Agent' = $userAgent }
+$writeHeaders = @{ 'User-Agent' = $userAgent }
 if ($token) {
-    $authHeaders['Authorization'] = "Bearer $token"
+    $writeHeaders['Authorization'] = "Bearer $token"
 }
 
 $script:csrfToken = $null
 function Get-CsrfToken {
     if (-not $script:csrfToken) {
         $body = @{ action = 'query'; meta = 'tokens'; type = 'csrf'; format = 'json' }
-        $resp = Invoke-RestMethod -Uri $ApiUrl -Method Post -Body $body -Headers $authHeaders
+        $resp = Invoke-RestMethod -Uri $ApiUrl -Method Post -Body $body -Headers $writeHeaders
         $script:csrfToken = $resp.query.tokens.csrftoken
         if (-not $script:csrfToken -or $script:csrfToken -eq '+\') {
             throw "Failed to obtain a CSRF token (the access token may be invalid or lack edit rights)."
@@ -46,7 +49,7 @@ function Get-CsrfToken {
 # Returns the existing values of a string/external-id property on an entity (empty list if none).
 function Get-ClaimValues([string]$qid, [string]$property) {
     $uri = "$ApiUrl`?action=wbgetclaims&entity=$qid&property=$property&format=json"
-    $resp = Invoke-RestMethod -Uri $uri -Headers $authHeaders
+    $resp = Invoke-RestMethod -Uri $uri -Headers $readHeaders
     if ($resp.error) {
         throw "wbgetclaims failed for $qid/$property`: $($resp.error.code) - $($resp.error.info)"
     }
@@ -78,7 +81,7 @@ function Add-StringClaim([string]$qid, [string]$property, [string]$value) {
 
     $maxRetries = 3
     for ($attempt = 1; $attempt -le $maxRetries; $attempt++) {
-        $resp = Invoke-RestMethod -Uri $ApiUrl -Method Post -Body $body -Headers $authHeaders
+        $resp = Invoke-RestMethod -Uri $ApiUrl -Method Post -Body $body -Headers $writeHeaders
         if ($resp.success -eq 1) {
             return $true
         }
