@@ -168,6 +168,31 @@ verified: false
 ```
 
 
+## CommitWikidataIdentifiers.ps1
+### Usage
+```powershell
+CommitWikidataIdentifiers.ps1 -CandidatesPath <candidates.yaml> [-AccessToken <token>] [-ApiUrl <url>] [-WhatIf]
+```
+
+### Parameters
+- `-CandidatesPath` - Path to the candidates YAML stream produced by `SuggestWikidataIdentifiers.ps1` (after manual review).
+- `-AccessToken` - Wikidata OAuth 2.0 owner-only access token used to authenticate edits. Falls back to the `WIKIDATA_ACCESS_TOKEN` environment variable. Only required when actually writing (not needed with `-WhatIf`).
+- `-ApiUrl` - Wikidata Action API endpoint. Defaults to `https://www.wikidata.org/w/api.php`.
+- `-WhatIf` - Previews the claims that would be added without making any edits (and without requiring a token).
+
+### Behavior
+Reads the candidates YAML and writes Netflix ID (P1874) and IMDb ID (P345) claims to the corresponding Wikidata entities. Only `netflix.id`, `imdb.id`, and `wikidata.id` are used; all other fields are ignored apart from the `verified` flag.
+
+Each document is processed as follows:
+- Documents without `verified: true` are ignored.
+- A valid `wikidata.id` (`Q`-number) is required; the record is skipped with a warning otherwise.
+- A record with more than one `imdb` entry is skipped with a warning - the reviewer is expected to remove the incorrect entries first. A record with a single `imdb` entry contributes its `imdb.id` (validated as `tt`-number); a record with no `imdb` entry commits only the Netflix ID.
+- Existing P345/P1874 claims on the entity are read first (a public, unauthenticated request). If the entity already has an IMDb **or** Netflix ID that does not match the candidate, the whole record is skipped with a warning, since a mismatching identifier means the `wikidata.id` mapping is suspect.
+- Only missing claims are added, so re-running the script is idempotent. A record whose identifiers are already present is reported as up to date.
+
+Writes use the Action API (`wbcreateclaim`) with `assert=user` and `maxlag=5` (retrying on replication lag); a CSRF token is fetched lazily only when an edit is actually performed. Per-record failures are reported individually so a partial update (e.g. Netflix written but IMDb failed) is visible and corrected on the next run.
+
+
 ## PopulateNatively.ps1
 ### Usage
 ```powershell
