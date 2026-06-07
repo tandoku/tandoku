@@ -31,28 +31,8 @@ function Reorder-FilmEntry($film) {
 
 # --- Download IMDb data if needed ---
 
-if (-not (Test-Path $ImdbDataPath)) {
-    New-Item -ItemType Directory -Path $ImdbDataPath | Out-Null
-}
-
-$ImdbDataPath = Resolve-Path $ImdbDataPath
-$ratingsGzPath = Join-Path $ImdbDataPath 'title.ratings.tsv.gz'
-$ratingsTsvPath = Join-Path $ImdbDataPath 'title.ratings.tsv'
-
-if ($UpdateImdbData -or -not (Test-Path $ratingsTsvPath)) {
-    $ratingsUrl = 'https://datasets.imdbws.com/title.ratings.tsv.gz'
-    Write-Host "Downloading $ratingsUrl..."
-    Invoke-WebRequest -Uri $ratingsUrl -OutFile $ratingsGzPath
-
-    Write-Host "Extracting title.ratings.tsv..."
-    $gzIn = [System.IO.File]::OpenRead($ratingsGzPath)
-    $gzStream = [System.IO.Compression.GZipStream]::new($gzIn, [System.IO.Compression.CompressionMode]::Decompress)
-    $tsvOut = [System.IO.File]::Create($ratingsTsvPath)
-    $gzStream.CopyTo($tsvOut)
-    $tsvOut.Close()
-    $gzStream.Close()
-    $gzIn.Close()
-}
+$imdbData = & "$PSScriptRoot/UpdateIMDbData.ps1" -ImdbDataPath $ImdbDataPath -Datasets 'title.ratings' -UpdateImdbData:$UpdateImdbData
+$ratingsTsvPath = $imdbData['title.ratings']
 
 # --- Load IMDb ratings into lookup table ---
 
