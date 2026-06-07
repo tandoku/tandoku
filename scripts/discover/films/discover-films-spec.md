@@ -97,12 +97,12 @@ Iterates over each entry in films.yaml and populates data from Wikidata in two p
 ## UpdateIMDbData.ps1
 ### Usage
 ```powershell
-UpdateIMDbData.ps1 -ImdbDataPath <path> [-Datasets <names>] [-UpdateImdbData]
+UpdateIMDbData.ps1 -ImdbDataPath <path> -Datasets <names> [-UpdateImdbData]
 ```
 
 ### Parameters
 - `-ImdbDataPath` - Path to a local folder for storing IMDb data files downloaded from https://datasets.imdbws.com.
-- `-Datasets` - One or more IMDb dataset names to make available, given without the `.tsv.gz` suffix (e.g. `title.ratings`, `title.basics`, `title.akas`). Defaults to `title.ratings`.
+- `-Datasets` - One or more IMDb dataset names to make available, given without the `.tsv.gz` suffix (e.g. `title.ratings`, `title.basics`, `title.akas`).
 - `-UpdateImdbData` - When specified, re-downloads (and re-extracts) the data files even if they already exist locally.
 
 ### Behavior

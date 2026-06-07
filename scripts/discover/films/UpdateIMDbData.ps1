@@ -3,8 +3,8 @@ param(
     [Parameter(Mandatory)]
     [string]$ImdbDataPath,
 
-    [Parameter()]
-    [string[]]$Datasets = @('title.ratings'),
+    [Parameter(Mandatory)]
+    [string[]]$Datasets,
 
     [switch]$UpdateImdbData
 )
