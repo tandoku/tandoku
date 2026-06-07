@@ -125,13 +125,13 @@ Uses `UpdateIMDbData.ps1` to download `title.ratings.tsv.gz` from IMDb daily dat
 ## SuggestWikidataIdentifiers.ps1
 ### Usage
 ```powershell
-SuggestWikidataIdentifiers.ps1 -DatabasePath <films.yaml> -OutputPath <candidates.yaml> [-ImdbDataPath <path>] [-UpdateImdbData]
+SuggestWikidataIdentifiers.ps1 -DatabasePath <films.yaml> -OutputPath <candidates.yaml> -ImdbDataPath <path> [-UpdateImdbData]
 ```
 
 ### Parameters
 - `-DatabasePath` - Path to the films.yaml database file.
 - `-OutputPath` - Path to the YAML file to write proposed candidates to.
-- `-ImdbDataPath` - Path to a local folder for storing IMDb data files downloaded from https://datasets.imdbws.com. Defaults to a `tandoku-imdb` folder under the system temp directory.
+- `-ImdbDataPath` - Path to a local folder for storing IMDb data files downloaded from https://datasets.imdbws.com.
 - `-UpdateImdbData` - When specified, re-downloads IMDb data files even if they already exist locally.
 
 ### Behavior

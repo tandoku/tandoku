@@ -6,8 +6,8 @@ param(
     [Parameter(Mandatory)]
     [string]$OutputPath,
 
-    [Parameter()]
-    [string]$ImdbDataPath = (Join-Path ([IO.Path]::GetTempPath()) 'tandoku-imdb'),
+    [Parameter(Mandatory)]
+    [string]$ImdbDataPath,
 
     [switch]$UpdateImdbData
 )
