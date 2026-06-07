@@ -145,10 +145,11 @@ Uses `UpdateIMDbData.ps1` to fetch `title.akas`, `title.basics`, and `title.rati
 
 Candidate IMDb titles are kept when their `titleType` is a watchable type (`movie`, `tvMovie`, `tvSeries`, `tvMiniSeries`, `short`, `tvShort`, `tvSpecial`, `video`) **and** they carry a Japanese signal (from either the akas or the original title). For each film the best surviving candidate is chosen by preferred title type, then most votes, then lowest IMDb ID; a warning lists the alternatives whenever more than one candidate survives. The chosen IMDb IDs are then looked up on Wikidata in batches (property P345) to find any entity that already exists.
 
-Writes one YAML document per processed film to `-OutputPath`, omitting the `imdb` and/or `wikidata` sections when no match was found:
+Writes one YAML document per processed film to `-OutputPath`, omitting the `imdb` and/or `wikidata` sections when no match was found. Each document ends with `verified: false`, a placeholder for a future manual-review workflow:
 
 ```yaml
 netflix:
+  title: <netflix-title>
   id: <netflix-id>
   url: <netflix-title-url>
 imdb:
@@ -157,6 +158,7 @@ imdb:
 wikidata:
   id: <wikidata-id>
   url: <wikidata-entity-url>
+verified: false
 ---
 # one document per film in YAML stream
 ```

@@ -352,8 +352,9 @@ foreach ($film in $needsWikidata) {
     $netflixId = $film.providers.netflix.id
     $entry = [ordered]@{
         netflix = [ordered]@{
-            id  = $netflixId
-            url = "https://www.netflix.com/title/$netflixId"
+            title = [string]$film.providers.netflix.title
+            id    = $netflixId
+            url   = "https://www.netflix.com/title/$netflixId"
         }
     }
 
@@ -374,6 +375,8 @@ foreach ($film in $needsWikidata) {
             $withWikidata++
         }
     }
+
+    $entry['verified'] = $false
 
     $results.Add($entry)
 }
