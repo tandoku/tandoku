@@ -143,7 +143,9 @@ $imdbData = & "$PSScriptRoot/UpdateIMDbData.ps1" `
 
 # Candidate IMDb titles keyed by tconst.
 #   films          = set of Netflix films this tconst was title-matched to
+#   title          = IMDb primary title (from basics)
 #   titleType      = IMDb title type (from basics)
+#   year           = IMDb start year (from basics, $null when unknown)
 #   japaneseAka    = has an alternate title in Japanese (language 'ja' or CJK text)
 #   japaneseOrig   = basics originalTitle contains Japanese text
 #   votes          = IMDb vote count (tie-breaker)
@@ -153,7 +155,9 @@ function Add-Candidate([string]$tconst, $matchedFilms) {
     if (-not $candidates.ContainsKey($tconst)) {
         $candidates[$tconst] = [ordered]@{
             films        = [System.Collections.Generic.Dictionary[object, object]]::new()
+            title        = $null
             titleType    = $null
+            year         = $null
             japaneseAka  = $false
             japaneseOrig = $false
             votes        = 0
@@ -234,8 +238,8 @@ $lineCount = 0
 foreach ($line in [System.IO.File]::ReadLines($basicsPath)) {
     $lineCount++
     if ($lineCount -eq 1) { continue } # header
-    # tconst, titleType, primaryTitle, originalTitle, ...
-    $fields = $line.Split("`t", 5)
+    # tconst, titleType, primaryTitle, originalTitle, isAdult, startYear, ...
+    $fields = $line.Split("`t", 7)
     if ($fields.Count -lt 4) { continue }
     $tconst = $fields[0]
     $primaryTitle = $fields[2]
@@ -249,7 +253,12 @@ foreach ($line in [System.IO.File]::ReadLines($basicsPath)) {
     }
 
     if ($candidates.ContainsKey($tconst)) {
+        $candidates[$tconst].title = $primaryTitle
         $candidates[$tconst].titleType = $fields[1]
+        $startYear = if ($fields.Count -ge 6) { $fields[5] } else { '\N' }
+        if ($startYear -and $startYear -ne '\N') {
+            $candidates[$tconst].year = [int]$startYear
+        }
         $candidates[$tconst].japaneseOrig = Test-ContainsJapanese $originalTitle
     }
 }
@@ -287,8 +296,10 @@ foreach ($tconst in $candidates.Keys) {
     }
 }
 
-# Choose the best candidate per film: preferred title type, then most votes, then lowest tconst
+# Choose the best candidate per film: preferred title type, then most votes, then lowest tconst.
+# Keep the full ranked list (best first) so all candidates can be surfaced in the output.
 $bestImdbId = [System.Collections.Generic.Dictionary[object, string]]::new()
+$rankedByFilm = [System.Collections.Generic.Dictionary[object, object]]::new()
 foreach ($film in $filmCandidates.Keys) {
     # Wrap in @() so a single candidate isn't unwrapped (Sort-Object would otherwise return the
     # lone hashtable, whose .Count is its key count and whose [0] indexer is meaningless)
@@ -298,6 +309,7 @@ foreach ($film in $filmCandidates.Keys) {
         @{ Expression = { $_.tconst } })
     $best = $ranked[0]
     $bestImdbId[$film] = $best.tconst
+    $rankedByFilm[$film] = $ranked
 
     if ($ranked.Count -gt 1) {
         $alts = ($ranked | Select-Object -Skip 1 | ForEach-Object { "$($_.tconst) ($($_.data.titleType), $($_.data.votes) votes)" }) -join ', '
@@ -359,13 +371,24 @@ foreach ($film in $needsWikidata) {
     }
 
     if ($bestImdbId.ContainsKey($film)) {
-        $imdbId = $bestImdbId[$film]
-        $entry['imdb'] = [ordered]@{
-            id  = $imdbId
-            url = "https://www.imdb.com/title/$imdbId/"
+        $imdbList = [System.Collections.Generic.List[object]]::new()
+        foreach ($cand in $rankedByFilm[$film]) {
+            $imdbId = $cand.tconst
+            $item = [ordered]@{
+                title = [string]$cand.data.title
+                type  = [string]$cand.data.titleType
+            }
+            if ($null -ne $cand.data.year) {
+                $item['year'] = $cand.data.year
+            }
+            $item['id'] = $imdbId
+            $item['url'] = "https://www.imdb.com/title/$imdbId/"
+            $imdbList.Add($item)
         }
+        $entry['imdb'] = $imdbList
         $withImdb++
 
+        $imdbId = $bestImdbId[$film]
         if ($qidByImdbId.ContainsKey($imdbId)) {
             $qid = $qidByImdbId[$imdbId]
             $entry['wikidata'] = [ordered]@{
