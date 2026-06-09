@@ -207,7 +207,10 @@ foreach ($film in $films) {
         continue
     }
     if ($OriginalLanguage.Count -gt 0) {
-        $filmLanguages = @($film.originalLanguage)
+        $filmLanguages = @($film.originalLanguage | Where-Object { $_ })
+        if ($filmLanguages.Count -eq 0) {
+            Write-Warning "No originalLanguage for '$($film.title)' (wikidata=$($film.wikidata))"
+        }
         $hasLanguageMatch = $false
         foreach ($language in $filmLanguages) {
             if ($OriginalLanguage -contains $language) {
