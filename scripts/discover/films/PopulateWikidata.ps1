@@ -152,6 +152,7 @@ SELECT ?item
   (GROUP_CONCAT(DISTINCT ?typeLabel_; SEPARATOR="|") AS ?types)
   (GROUP_CONCAT(DISTINCT ?originCountryLabel_; SEPARATOR="|") AS ?originCountry)
   (GROUP_CONCAT(DISTINCT ?langCode_; SEPARATOR="|") AS ?originalLanguage)
+  (GROUP_CONCAT(DISTINCT ?fallbackLangCode_; SEPARATOR="|") AS ?fallbackLanguage)
   (SAMPLE(?startYear_) AS ?startYear)
   (SAMPLE(?pubYear_) AS ?pubYear)
   (GROUP_CONCAT(DISTINCT ?imdbId_; SEPARATOR="|") AS ?imdbId)
@@ -165,6 +166,7 @@ WHERE {
   OPTIONAL { ?item wdt:P31 ?type_ . ?type_ rdfs:label ?typeLabel_ . FILTER(LANG(?typeLabel_) = "en") }
   OPTIONAL { ?item wdt:P495 ?originCountry_ . ?originCountry_ rdfs:label ?originCountryLabel_ . FILTER(LANG(?originCountryLabel_) = "en") }
   OPTIONAL { ?item wdt:P364 ?lang_ . ?lang_ wdt:P424 ?langCode_ }
+  OPTIONAL { ?item wdt:P407 ?fallbackLang_ . ?fallbackLang_ wdt:P424 ?fallbackLangCode_ }
   OPTIONAL { ?item wdt:P345 ?imdbId_ }
   OPTIONAL { ?item wdt:P4086 ?malId_ }
   OPTIONAL { ?item wdt:P4947 ?tmdbMovieId_ }
@@ -209,8 +211,15 @@ GROUP BY ?item
                 } elseif ($Force) {
                     $film.Remove('originCountry')
                 }
-                if ($binding.originalLanguage.value) {
-                    $film['originalLanguage'] = @($binding.originalLanguage.value -split '\|')
+                # Prefer P364 (original language of film or TV show); fall back to
+                # P407 (language of work or name) when P364 is not set.
+                $originalLanguage = if ($binding.originalLanguage.value) {
+                    $binding.originalLanguage.value
+                } else {
+                    $binding.fallbackLanguage.value
+                }
+                if ($originalLanguage) {
+                    $film['originalLanguage'] = @($originalLanguage -split '\|')
                 } elseif ($Force) {
                     $film.Remove('originalLanguage')
                 }
