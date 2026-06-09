@@ -24,7 +24,7 @@ Import-Module "$PSScriptRoot/../../modules/tandoku-yaml.psm1"
 $nativelyLanguageCode = [System.Globalization.CultureInfo]::GetCultureInfo($NativelyLanguage).ThreeLetterISOLanguageName
 
 # Preferred key order for film entries
-$fieldOrder = @('wikidata', 'title', 'title-ja', 'type', 'originCountry', 'originalLanguage', 'year', 'imdb', 'myAnimeList', 'tmdb', 'natively', 'providers')
+$fieldOrder = @('wikidata', 'title', 'type', 'country', 'language', 'year', 'imdb', 'myAnimeList', 'tmdb', 'natively', 'availability')
 
 $nativelyBaseUrl = 'https://learnnatively.com'
 $nativelyHeaders = @{
@@ -46,6 +46,17 @@ function Reorder-FilmEntry($film) {
         }
     }
     return $ordered
+}
+
+# Title is a per-language dictionary (e.g. title.en, title.ja); prefer the English
+# title for display/search, falling back to any available language.
+function Get-DisplayTitle($film) {
+    if (-not $film.title) { return $null }
+    if ($film.title.en) { return $film.title.en }
+    foreach ($value in $film.title.Values) {
+        if ($value) { return $value }
+    }
+    return $null
 }
 
 function Format-NativelyLevel($rating) {
@@ -197,7 +208,7 @@ Write-Host "Read $($films.Count) entries from films database"
 
 # Filter to entries eligible for Natively data. Matching is done by TMDB id/kind,
 # so any entry with tmdb data is eligible. When -OriginalLanguage is supplied,
-# only entries whose originalLanguage includes at least one of those two-letter
+# only entries whose language includes at least one of those two-letter
 # codes are processed. Every eligible entry is (re)looked up on each run so
 # existing Natively metadata is refreshed against the current dataset, not just
 # entries that are missing it.
@@ -207,9 +218,9 @@ foreach ($film in $films) {
         continue
     }
     if ($OriginalLanguage.Count -gt 0) {
-        $filmLanguages = @($film.originalLanguage | Where-Object { $_ })
+        $filmLanguages = @($film.language | Where-Object { $_ })
         if ($filmLanguages.Count -eq 0) {
-            Write-Warning "No originalLanguage for '$($film.title)' (wikidata=$($film.wikidata))"
+            Write-Warning "No language for '$(Get-DisplayTitle $film)' (wikidata=$($film.wikidata))"
         }
         $hasLanguageMatch = $false
         foreach ($language in $filmLanguages) {
@@ -266,7 +277,7 @@ $matched = 0
 $notFound = 0
 
 foreach ($film in $needsNatively) {
-    $title = $film.title
+    $title = Get-DisplayTitle $film
     $tmdbId = [int]$film.tmdb.id
     $tmdbKind = $film.tmdb.kind
 

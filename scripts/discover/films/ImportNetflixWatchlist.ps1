@@ -28,8 +28,8 @@ Write-Host "Read $($films.Count) existing entries from films database"
 $filmsByNetflixId = @{}
 for ($i = 0; $i -lt $films.Count; $i++) {
     $film = $films[$i]
-    if ($film.providers -and $film.providers.netflix -and $null -ne $film.providers.netflix.id) {
-        $filmsByNetflixId[[string]$film.providers.netflix.id] = $i
+    if ($film.availability -and $film.availability.netflix -and $null -ne $film.availability.netflix.id) {
+        $filmsByNetflixId[[string]$film.availability.netflix.id] = $i
     }
 }
 
@@ -48,7 +48,7 @@ foreach ($item in $watchlist) {
     if ($filmsByNetflixId.ContainsKey($videoId)) {
         # Update existing entry
         $film = $films[$filmsByNetflixId[$videoId]]
-        $film['providers']['netflix'] = [ordered]@{
+        $film['availability']['netflix'] = [ordered]@{
             id        = [int]$videoId
             title     = $item.title
             watchlist = $true
@@ -57,7 +57,7 @@ foreach ($item in $watchlist) {
     } else {
         # Add new entry
         $newFilm = [ordered]@{
-            providers = [ordered]@{
+            availability = [ordered]@{
                 netflix = [ordered]@{
                     id        = [int]$videoId
                     title     = $item.title
@@ -74,10 +74,10 @@ foreach ($item in $watchlist) {
 # Mark removed watchlist items (in DB but no longer in imported watchlist)
 $unmarked = 0
 foreach ($film in $films) {
-    if ($film.providers -and $film.providers.netflix -and $film.providers.netflix.watchlist -eq $true) {
-        $netflixId = [string]$film.providers.netflix.id
+    if ($film.availability -and $film.availability.netflix -and $film.availability.netflix.watchlist -eq $true) {
+        $netflixId = [string]$film.availability.netflix.id
         if (-not $watchlistNetflixIds.Contains($netflixId)) {
-            $film.providers.netflix.watchlist = $false
+            $film.availability.netflix.watchlist = $false
             $unmarked++
         }
     }

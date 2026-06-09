@@ -107,9 +107,9 @@ Write-Host "Read $($films.Count) entries from films database"
 $filmsByTitle = @{}
 $needsWikidata = [System.Collections.Generic.List[object]]::new()
 foreach ($film in $films) {
-    if ($film.providers -and $film.providers.netflix -and $null -ne $film.providers.netflix.id -and -not $film.wikidata) {
+    if ($film.availability -and $film.availability.netflix -and $null -ne $film.availability.netflix.id -and -not $film.wikidata) {
         $needsWikidata.Add($film)
-        $norm = [TandokuTitle]::Normalize([string]$film.providers.netflix.title)
+        $norm = [TandokuTitle]::Normalize([string]$film.availability.netflix.title)
         if ($norm) {
             if (-not $filmsByTitle.ContainsKey($norm)) {
                 $filmsByTitle[$norm] = [System.Collections.Generic.List[object]]::new()
@@ -123,7 +123,7 @@ Write-Host "$($needsWikidata.Count) entries missing Wikidata identifier (with Ne
 
 foreach ($norm in $filmsByTitle.Keys) {
     if ($filmsByTitle[$norm].Count -gt 1) {
-        $ids = ($filmsByTitle[$norm] | ForEach-Object { $_.providers.netflix.id }) -join ', '
+        $ids = ($filmsByTitle[$norm] | ForEach-Object { $_.availability.netflix.id }) -join ', '
         Write-Warning "Multiple films share normalized title '$norm' (Netflix IDs: $ids); IMDb matches will apply to all of them"
     }
 }
@@ -313,7 +313,7 @@ foreach ($film in $filmCandidates.Keys) {
 
     if ($ranked.Count -gt 1) {
         $alts = ($ranked | Select-Object -Skip 1 | ForEach-Object { "$($_.tconst) ($($_.data.titleType), $($_.data.votes) votes)" }) -join ', '
-        Write-Warning "Netflix '$($film.providers.netflix.title)' ($($film.providers.netflix.id)) -> $($best.tconst); other candidates: $alts"
+        Write-Warning "Netflix '$($film.availability.netflix.title)' ($($film.availability.netflix.id)) -> $($best.tconst); other candidates: $alts"
     }
 }
 
@@ -361,10 +361,10 @@ $results = [System.Collections.Generic.List[object]]::new()
 $withImdb = 0
 $withWikidata = 0
 foreach ($film in $needsWikidata) {
-    $netflixId = $film.providers.netflix.id
+    $netflixId = $film.availability.netflix.id
     $entry = [ordered]@{
         netflix = [ordered]@{
-            title = [string]$film.providers.netflix.title
+            title = [string]$film.availability.netflix.title
             id    = $netflixId
             url   = "https://www.netflix.com/title/$netflixId"
         }

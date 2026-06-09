@@ -7,13 +7,14 @@ YAML file containing a stream of documets representing films (movie or TV series
 
 ```yaml
 wikidata: Q130305455
-title: The Fragrant Flower Blooms with Dignity
-title-ja: 薫る花は凛と咲く
+title:
+  en: The Fragrant Flower Blooms with Dignity
+  ja: 薫る花は凛と咲く
 type:
   - anime-television-series
-originCountry:
+country:
   - Japan
-originalLanguage:
+language:
   - ja
 year: 2025 # derived from wikidata 'start time'
 imdb:
@@ -29,20 +30,21 @@ natively:
   language: ja
   level: 21
   url: https://learnnatively.com/tv/66797d747a/
-providers:
+availability:
   netflix:
     id: 82024665
     title: The Fragrant Flower Blooms With Dignity
     watchlist: true
 ---
 wikidata: Q626942
-title: Good Luck!!
-title-ja: GOOD LUCK!!
+title:
+  en: Good Luck!!
+  ja: GOOD LUCK!!
 type:
   - japanese-television-drama
-originCountry:
+country:
   - Japan
-originalLanguage:
+language:
   - ja
 year: 2003
 imdb:
@@ -57,7 +59,7 @@ natively:
   level: 30
   temporaryLevel: true
   url: https://learnnatively.com/tv/8c14b5b860/
-providers:
+availability:
   netflix:
     id: 81922646
     title: Good Luck!!
@@ -76,23 +78,24 @@ ImportNetflixWatchlist.ps1 -Path <netflix-my-list.json> -DatabasePath <films.yam
 - `-DatabasePath` - Path to the films.yaml database file.
 
 ### Behavior
-Imports Netflix watch list into films.yaml by adding or updating entries matched by `providers.netflix.id`, including the following fields: `providers.netflix.id`, `providers.netflix.title`, and `providers.netflix.watchlist`. Additionally, any items in films.yaml with `providers.netflix.watchlist` set to `true` that are no longer in the imported watch list should be set to `false`.
+Imports Netflix watch list into films.yaml by adding or updating entries matched by `availability.netflix.id`, including the following fields: `availability.netflix.id`, `availability.netflix.title`, and `availability.netflix.watchlist`. Additionally, any items in films.yaml with `availability.netflix.watchlist` set to `true` that are no longer in the imported watch list should be set to `false`.
 
 ## PopulateWikidata.ps1
 ### Usage
 ```powershell
-PopulateWikidata.ps1 -DatabasePath <films.yaml> [-Force]
+PopulateWikidata.ps1 -DatabasePath <films.yaml> [-Language <code>] [-Force]
 ```
 
 ### Parameters
 - `-DatabasePath` - Path to the films.yaml database file.
+- `-Language` - Two-letter ISO 639-1 language code for the localized title fetched alongside the English title (defaults to `ja`). The `title` field is populated as a per-language dictionary (`title.en` plus `title.<Language>`).
 - `-Force` - When specified, re-runs both phases for every entry even if the data is already present, refreshing existing values and removing fields that Wikidata no longer returns. Without it, the script only fills in missing data.
 
 ### Behavior
 Iterates over each entry in films.yaml and populates data from Wikidata in two phases:
 
-1. **QID lookup** - For entries missing the `wikidata` field that have `providers.netflix.id`, looks up the Wikidata entity ID associated with the Netflix ID (using Wikidata property P1874). With `-Force`, re-resolves the QID for every entry that has a Netflix ID.
-2. **Details enrichment** - For entries that have a `wikidata` QID but are missing a `title`, queries Wikidata to populate additional fields: `title` (English label), `title-ja` (Japanese label), `type` (instance of / P31, kebab-cased, as a list of all values), `originCountry` (country of origin / P495, as a list of all values), `originalLanguage` (original language codes / P364 + P424, falling back to language of work or name / P407 + P424 when P364 is not set, as a list of all values), `year` (start time / P580, or publication date / P577), `imdb.id` (P345), `myAnimeList.id` (P4086), `tmdb.id` (TMDb movie P4947 or TV series P4983), and `tmdb.kind` (`movie` or `tv-series` to disambiguate the TMDb ID). When Wikidata returns multiple IDs for `imdb.id`, `myAnimeList.id`, or `tmdb.id`, the script warns and keeps the lowest value for stability; for `tmdb.id` it prefers a TV series ID over a movie ID (warning also when both movie and TV IDs are present). With `-Force`, enriches every entry that has a QID and overwrites each field, removing any field for which Wikidata no longer returns a value.
+1. **QID lookup** - For entries missing the `wikidata` field that have `availability.netflix.id`, looks up the Wikidata entity ID associated with the Netflix ID (using Wikidata property P1874). With `-Force`, re-resolves the QID for every entry that has a Netflix ID.
+2. **Details enrichment** - For entries that have a `wikidata` QID but are missing a `title`, queries Wikidata to populate additional fields: `title` (a per-language dictionary with the English label as `title.en` and the `-Language` label as `title.<Language>`), `type` (instance of / P31, kebab-cased, as a list of all values), `country` (country of origin / P495, as a list of all values), `language` (original language codes / P364 + P424, falling back to language of work or name / P407 + P424 when P364 is not set, as a list of all values), `year` (start time / P580, or publication date / P577), `imdb.id` (P345), `myAnimeList.id` (P4086), `tmdb.id` (TMDb movie P4947 or TV series P4983), and `tmdb.kind` (`movie` or `tv-series` to disambiguate the TMDb ID). When Wikidata returns multiple IDs for `imdb.id`, `myAnimeList.id`, or `tmdb.id`, the script warns and keeps the lowest value for stability; for `tmdb.id` it prefers a TV series ID over a movie ID (warning also when both movie and TV IDs are present). With `-Force`, enriches every entry that has a QID and overwrites each field, removing any field for which Wikidata no longer returns a value.
 
 ## UpdateIMDbData.ps1
 ### Usage
@@ -135,7 +138,7 @@ SuggestWikidataIdentifiers.ps1 -DatabasePath <films.yaml> -OutputPath <candidate
 - `-UpdateImdbData` - When specified, re-downloads IMDb data files even if they already exist locally.
 
 ### Behavior
-Proposes candidates for filling Wikidata data gaps. Considers every entry in films.yaml that has `providers.netflix.id` but no `wikidata` field, indexing them by a normalized form of `providers.netflix.title` (lower-cased, runs of non-letter/non-digit characters collapsed to a single space, trimmed); a warning is emitted when several films share the same normalized title.
+Proposes candidates for filling Wikidata data gaps. Considers every entry in films.yaml that has `availability.netflix.id` but no `wikidata` field, indexing them by a normalized form of `availability.netflix.title` (lower-cased, runs of non-letter/non-digit characters collapsed to a single space, trimmed); a warning is emitted when several films share the same normalized title.
 
 Uses `UpdateIMDbData.ps1` to fetch `title.akas`, `title.basics`, and `title.ratings`, then makes one streaming pass over each:
 
@@ -204,12 +207,12 @@ PopulateNatively.ps1 -DatabasePath <films.yaml> -NativelyDataPath <path> [-Updat
 - `-NativelyDataPath` - Path to a local folder for storing the Natively video catalog downloaded from [Natively](https://learnnatively.com).
 - `-UpdateNativelyData` - When specified, re-downloads the Natively catalog even if a local copy already exists.
 - `-NativelyLanguage` - Two-letter ISO 639-1 language code for the Natively catalog (defaults to `ja`). Converted internally to the three-letter ISO 639-2 code (e.g. `ja` → `jpn`) used for the Natively API and the local data file names.
-- `-OriginalLanguage` - Optional list of two-letter ISO 639-1 codes. When non-empty, only films whose `originalLanguage` includes at least one of these codes are processed.
+- `-OriginalLanguage` - Optional list of two-letter ISO 639-1 codes. When non-empty, only films whose `language` includes at least one of these codes are processed; a warning is emitted for any eligible film that has no `language` at all.
 
 ### Behavior
 Pre-fetches the Natively video catalog for the language in two slices - movies (`itype=movie`, `series=all_volumes`, expanding collections into individual movie volumes) and TV series (`itype=tv_season`, `series=series`, grouping seasons under their parent series) - paging through the search API with no `q=` filter and storing them as `natively-movies-<code>.json` and `natively-tv-<code>.json` in `-NativelyDataPath` (where `<code>` is the three-letter ISO 639-2 language code). Uses the existing local files unless they are missing or `-UpdateNativelyData` is specified. Each catalog entry is normalized to a TMDB id, a kind (`movie` or `tv-series`, distinguishing movies from TV series/seasons), difficulty level, and URL, and indexed by `tmdb.id` + `tmdb.kind`. When multiple catalog entries share the same key, the one with a usable level (and a non-season source) is preferred.
 
-For each entry in films.yaml that has `tmdb.id` (and, when `-OriginalLanguage` is supplied, whose `originalLanguage` includes at least one of those codes), matches against the local catalog index by `tmdb.id` and `tmdb.kind` directly. Every eligible entry is (re)looked up on each run, so existing `natively` metadata is refreshed against the current catalog rather than only filling in missing data. If a match with a usable level is found, populates `natively.language` (the `-NativelyLanguage` two-letter code), `natively.level` (difficulty level), `natively.temporaryLevel` (set to `true` when the level is a temporary rating), and `natively.url`. Warns if no matching catalog entry is found. The catalog download is skipped entirely when no entries need a lookup and `-UpdateNativelyData` is not specified.
+For each entry in films.yaml that has `tmdb.id` (and, when `-OriginalLanguage` is supplied, whose `language` includes at least one of those codes), matches against the local catalog index by `tmdb.id` and `tmdb.kind` directly. Every eligible entry is (re)looked up on each run, so existing `natively` metadata is refreshed against the current catalog rather than only filling in missing data. If a match with a usable level is found, populates `natively.language` (the `-NativelyLanguage` two-letter code), `natively.level` (difficulty level), `natively.temporaryLevel` (set to `true` when the level is a temporary rating), and `natively.url`. Warns if no matching catalog entry is found. The catalog download is skipped entirely when no entries need a lookup and `-UpdateNativelyData` is not specified.
 
 ## ExportFilms.ps1
 ### Usage
@@ -223,3 +226,17 @@ ExportFilms.ps1 -DatabasePath <films.yaml> [-OutputPath <films.json>]
 
 ### Behavior
 Exports films.yaml to a JSON file with the same structure, wrapping all film records in an outer JSON array.
+
+## MigrateFilmsDatabase.ps1
+### Usage
+```powershell
+MigrateFilmsDatabase.ps1 -DatabasePath <films.yaml> [-TitleLanguage <code>]
+```
+
+### Parameters
+- `-DatabasePath` - Path to the films.yaml database file to migrate in place.
+- `-TitleLanguage` - Two-letter ISO 639-1 language code used as the key for the old `title-ja` value in the new per-language `title` dictionary (defaults to `ja`).
+
+### Behavior
+Migrates an existing films.yaml from the legacy format to the current one, rewriting the file in place. For each entry it converts the scalar `title` / `title-ja` fields into a per-language `title` dictionary (`title.en` from `title`, `title.<TitleLanguage>` from `title-ja`) and renames `originCountry` → `country`, `originalLanguage` → `language`, and `providers` → `availability`. Entry keys are reordered to the canonical field order. The migration is idempotent: entries already in the new format are left unchanged.
+

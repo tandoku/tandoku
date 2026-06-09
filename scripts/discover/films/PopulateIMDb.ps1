@@ -12,7 +12,7 @@ param(
 Import-Module "$PSScriptRoot/../../modules/tandoku-yaml.psm1"
 
 # Preferred key order for film entries
-$fieldOrder = @('wikidata', 'title', 'title-ja', 'type', 'originCountry', 'originalLanguage', 'year', 'imdb', 'myAnimeList', 'tmdb', 'providers')
+$fieldOrder = @('wikidata', 'title', 'type', 'country', 'language', 'year', 'imdb', 'myAnimeList', 'tmdb', 'availability')
 
 function Reorder-FilmEntry($film) {
     $ordered = [ordered]@{}

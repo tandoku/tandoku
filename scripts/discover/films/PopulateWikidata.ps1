@@ -3,6 +3,8 @@ param(
     [Parameter(Mandatory)]
     [string]$DatabasePath,
 
+    [string]$Language = 'ja',
+
     [switch]$Force
 )
 
@@ -11,7 +13,7 @@ Import-Module "$PSScriptRoot/../../modules/tandoku-yaml.psm1"
 $sparqlHeaders = @{ "User-Agent" = "tandoku-discover/1.0 (https://github.com/tandoku)" }
 
 # Preferred key order for film entries
-$fieldOrder = @('wikidata', 'title', 'title-ja', 'type', 'originCountry', 'originalLanguage', 'year', 'imdb', 'myAnimeList', 'tmdb', 'providers')
+$fieldOrder = @('wikidata', 'title', 'type', 'country', 'language', 'year', 'imdb', 'myAnimeList', 'tmdb', 'availability')
 
 function Invoke-WikidataSparql($query) {
     $url = "https://query.wikidata.org/sparql?query=$([uri]::EscapeDataString($query))&format=json"
@@ -67,9 +69,9 @@ Write-Host "Read $($films.Count) entries from films database"
 
 $needsQid = @{}
 foreach ($film in $films) {
-    if ($film.providers -and $film.providers.netflix -and $null -ne $film.providers.netflix.id) {
+    if ($film.availability -and $film.availability.netflix -and $null -ne $film.availability.netflix.id) {
         if ($Force -or -not $film.wikidata) {
-            $needsQid[[string]$film.providers.netflix.id] = $film
+            $needsQid[[string]$film.availability.netflix.id] = $film
         }
     }
 }
@@ -147,11 +149,11 @@ if ($needsData.Count -gt 0) {
 
         $query = @"
 SELECT ?item
-  (SAMPLE(?title_) AS ?title)
-  (SAMPLE(?titleJa_) AS ?titleJa)
+  (SAMPLE(?titleEn_) AS ?titleEn)
+  (SAMPLE(?titleLang_) AS ?titleLang)
   (GROUP_CONCAT(DISTINCT ?typeLabel_; SEPARATOR="|") AS ?types)
-  (GROUP_CONCAT(DISTINCT ?originCountryLabel_; SEPARATOR="|") AS ?originCountry)
-  (GROUP_CONCAT(DISTINCT ?langCode_; SEPARATOR="|") AS ?originalLanguage)
+  (GROUP_CONCAT(DISTINCT ?countryLabel_; SEPARATOR="|") AS ?country)
+  (GROUP_CONCAT(DISTINCT ?langCode_; SEPARATOR="|") AS ?language)
   (GROUP_CONCAT(DISTINCT ?fallbackLangCode_; SEPARATOR="|") AS ?fallbackLanguage)
   (SAMPLE(?startYear_) AS ?startYear)
   (SAMPLE(?pubYear_) AS ?pubYear)
@@ -161,10 +163,10 @@ SELECT ?item
   (GROUP_CONCAT(DISTINCT ?tmdbTvId_; SEPARATOR="|") AS ?tmdbTvId)
 WHERE {
   VALUES ?item { $values }
-  OPTIONAL { ?item rdfs:label ?title_ . FILTER(LANG(?title_) = "en") }
-  OPTIONAL { ?item rdfs:label ?titleJa_ . FILTER(LANG(?titleJa_) = "ja") }
+  OPTIONAL { ?item rdfs:label ?titleEn_ . FILTER(LANG(?titleEn_) = "en") }
+  OPTIONAL { ?item rdfs:label ?titleLang_ . FILTER(LANG(?titleLang_) = "$Language") }
   OPTIONAL { ?item wdt:P31 ?type_ . ?type_ rdfs:label ?typeLabel_ . FILTER(LANG(?typeLabel_) = "en") }
-  OPTIONAL { ?item wdt:P495 ?originCountry_ . ?originCountry_ rdfs:label ?originCountryLabel_ . FILTER(LANG(?originCountryLabel_) = "en") }
+  OPTIONAL { ?item wdt:P495 ?country_ . ?country_ rdfs:label ?countryLabel_ . FILTER(LANG(?countryLabel_) = "en") }
   OPTIONAL { ?item wdt:P364 ?lang_ . ?lang_ wdt:P424 ?langCode_ }
   OPTIONAL { ?item wdt:P407 ?fallbackLang_ . ?fallbackLang_ wdt:P424 ?fallbackLangCode_ }
   OPTIONAL { ?item wdt:P345 ?imdbId_ }
@@ -183,15 +185,17 @@ GROUP BY ?item
                 $film = $needsData[$qid]
                 if (-not $film) { continue }
 
-                if ($binding.title.value) {
-                    $film['title'] = $binding.title.value
+                $title = [ordered]@{}
+                if ($binding.titleEn.value) {
+                    $title['en'] = $binding.titleEn.value
+                }
+                if ($Language -ne 'en' -and $binding.titleLang.value) {
+                    $title[$Language] = $binding.titleLang.value
+                }
+                if ($title.Count -gt 0) {
+                    $film['title'] = $title
                 } elseif ($Force) {
                     $film.Remove('title')
-                }
-                if ($binding.titleJa.value) {
-                    $film['title-ja'] = $binding.titleJa.value
-                } elseif ($Force) {
-                    $film.Remove('title-ja')
                 }
                 $type = $null
                 if ($binding.types.value) {
@@ -206,22 +210,22 @@ GROUP BY ?item
                 } elseif ($Force) {
                     $film.Remove('type')
                 }
-                if ($binding.originCountry.value) {
-                    $film['originCountry'] = @($binding.originCountry.value -split '\|')
+                if ($binding.country.value) {
+                    $film['country'] = @($binding.country.value -split '\|')
                 } elseif ($Force) {
-                    $film.Remove('originCountry')
+                    $film.Remove('country')
                 }
                 # Prefer P364 (original language of film or TV show); fall back to
                 # P407 (language of work or name) when P364 is not set.
-                $originalLanguage = if ($binding.originalLanguage.value) {
-                    $binding.originalLanguage.value
+                $language = if ($binding.language.value) {
+                    $binding.language.value
                 } else {
                     $binding.fallbackLanguage.value
                 }
-                if ($originalLanguage) {
-                    $film['originalLanguage'] = @($originalLanguage -split '\|')
+                if ($language) {
+                    $film['language'] = @($language -split '\|')
                 } elseif ($Force) {
-                    $film.Remove('originalLanguage')
+                    $film.Remove('language')
                 }
                 $year = if ($binding.startYear.value) { $binding.startYear.value } else { $binding.pubYear.value }
                 if ($year) {
