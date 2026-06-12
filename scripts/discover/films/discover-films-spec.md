@@ -174,13 +174,14 @@ verified: false
 ## CommitWikidataIdentifiers.ps1
 ### Usage
 ```powershell
-CommitWikidataIdentifiers.ps1 -CandidatesPath <candidates.yaml> [-AccessToken <token>] [-ApiUrl <url>] [-WhatIf]
+CommitWikidataIdentifiers.ps1 -CandidatesPath <candidates.yaml> [-AccessToken <token>] [-ApiUrl <url>] [-Prune] [-WhatIf]
 ```
 
 ### Parameters
 - `-CandidatesPath` - Path to the candidates YAML stream produced by `SuggestWikidataIdentifiers.ps1` (after manual review).
 - `-AccessToken` - Wikidata OAuth 2.0 owner-only access token used to authenticate edits. Falls back to the `WIKIDATA_ACCESS_TOKEN` environment variable. Only required when actually writing (not needed with `-WhatIf`).
 - `-ApiUrl` - Wikidata Action API endpoint. Defaults to `https://www.wikidata.org/w/api.php`.
+- `-Prune` - After processing, rewrites the candidates file with every entry that was already up to date (the target entity already had both identifiers) removed, leaving only records that still need attention. Honors `-WhatIf` (no file is written when previewing).
 - `-WhatIf` - Previews the claims that would be added without making any edits (and without requiring a token).
 
 ### Behavior
@@ -191,7 +192,7 @@ Each document is processed as follows:
 - The target entity is identified by `wikidata.id` (a `Q`-number). When a verified record has no `wikidata.id`, the script searches Wikidata for the entity carrying the record's `imdb.id` (P345) and uses that entity; the record is skipped with a warning if there is no `imdb.id` to search by, no matching entity is found, or the IMDb ID maps to more than one entity. A resolved or supplied `wikidata.id` that is not a valid `Q`-number is skipped with a warning.
 - A record with more than one `imdb` entry is skipped with a warning - the reviewer is expected to remove the incorrect entries first. A record with a single `imdb` entry contributes its `imdb.id` (validated as `tt`-number); a record with no `imdb` entry commits only the Netflix ID.
 - Existing P345/P1874 claims on the entity are read first (a public, unauthenticated request). If the entity already has an IMDb **or** Netflix ID that does not match the candidate, the whole record is skipped with a warning, since a mismatching identifier means the `wikidata.id` mapping is suspect.
-- Only missing claims are added, so re-running the script is idempotent. A record whose identifiers are already present is reported as up to date.
+- Only missing claims are added, so re-running the script is idempotent. A record whose identifiers are already present is reported as up to date. When `-Prune` is specified, these already-up-to-date entries are removed from the candidates file at the end of the run (skipped, non-verified, and still-pending records are preserved).
 
 Writes use the Action API (`wbcreateclaim`) with `assert=user` and `maxlag=5` (retrying on replication lag); a CSRF token is fetched lazily only when an edit is actually performed. Per-record failures are reported individually so a partial update (e.g. Netflix written but IMDb failed) is visible and corrected on the next run.
 

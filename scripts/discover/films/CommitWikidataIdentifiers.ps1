@@ -7,7 +7,10 @@ param(
     [string]$AccessToken,
 
     [Parameter()]
-    [string]$ApiUrl = 'https://www.wikidata.org/w/api.php'
+    [string]$ApiUrl = 'https://www.wikidata.org/w/api.php',
+
+    [Parameter()]
+    [switch]$Prune
 )
 
 Import-Module "$PSScriptRoot/../../modules/tandoku-yaml.psm1"
@@ -123,6 +126,7 @@ $verifiedCount = 0
 $skipped = 0
 $upToDate = 0
 $claimsAdded = 0
+$upToDateRecords = [System.Collections.Generic.List[object]]::new()
 
 foreach ($record in $candidates) {
     if ($record.verified -ne $true) {
@@ -235,6 +239,7 @@ foreach ($record in $candidates) {
     if ($toAdd.Count -eq 0) {
         Write-Host "$qid already up to date"
         $upToDate++
+        $upToDateRecords.Add($record)
         continue
     }
 
@@ -253,3 +258,16 @@ foreach ($record in $candidates) {
 }
 
 Write-Host "Done - $verifiedCount verified record(s): added $claimsAdded claim(s), $upToDate already up to date, $skipped skipped"
+
+# Optionally remove already-up-to-date entries from the candidates file so subsequent runs only
+# revisit records that still need work.
+if ($Prune) {
+    if ($upToDateRecords.Count -eq 0) {
+        Write-Host "Prune: no already-up-to-date entries to remove"
+    }
+    elseif ($PSCmdlet.ShouldProcess($CandidatesPath, "remove $($upToDateRecords.Count) already-up-to-date entry(ies)")) {
+        $remaining = @($candidates | Where-Object { $upToDateRecords -notcontains $_ })
+        $remaining | Export-Yaml -Path $CandidatesPath
+        Write-Host "Pruned $($upToDateRecords.Count) already-up-to-date entry(ies); $($remaining.Count) record(s) remain in $CandidatesPath"
+    }
+}
