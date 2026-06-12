@@ -13,7 +13,7 @@ Import-Module "$PSScriptRoot/../../modules/tandoku-yaml.psm1"
 $sparqlHeaders = @{ "User-Agent" = "tandoku-discover/1.0 (https://github.com/tandoku)" }
 
 # Preferred key order for film entries
-$fieldOrder = @('wikidata', 'title', 'type', 'country', 'language', 'year', 'imdb', 'myAnimeList', 'tmdb', 'availability')
+$fieldOrder = @('wikidata', 'title', 'type', 'country', 'language', 'year', 'imdb', 'myAnimeList', 'tmdb', 'natively', 'availability')
 
 function Invoke-WikidataSparql($query) {
     $url = "https://query.wikidata.org/sparql?query=$([uri]::EscapeDataString($query))&format=json"
@@ -200,7 +200,8 @@ GROUP BY ?item
                 $type = $null
                 if ($binding.types.value) {
                     $types = @($binding.types.value -split '\|' |
-                        ForEach-Object { ($_.ToLower() -replace ' ', '-') })
+                        ForEach-Object { ($_.ToLower() -replace ' ', '-') } |
+                        Sort-Object)
                     if ($types.Count -gt 0) {
                         $type = $types
                     }
@@ -238,7 +239,11 @@ GROUP BY ?item
                     if ($imdbIds.Count -gt 1) {
                         Write-Warning "$qid has multiple IMDb IDs: $($imdbIds -join ', '); using $($imdbIds[0])"
                     }
-                    $film['imdb'] = @{ id = $imdbIds[0] }
+                    if ($film['imdb'] -is [System.Collections.IDictionary]) {
+                        $film['imdb']['id'] = $imdbIds[0]
+                    } else {
+                        $film['imdb'] = [ordered]@{ id = $imdbIds[0] }
+                    }
                 } elseif ($Force) {
                     $film.Remove('imdb')
                 }
