@@ -42,6 +42,12 @@ function Invoke-WikidataSparql($query) {
     }
 }
 
+function Clean-Text($text) {
+    if ($null -eq $text) { return $text }
+    # Strip BOM / zero-width characters that occasionally appear in Wikidata labels
+    return ($text -replace '[\uFEFF\u200B\u200C\u200D]', '').Trim()
+}
+
 function Reorder-FilmEntry($film) {
     $ordered = [ordered]@{}
     foreach ($key in $fieldOrder) {
@@ -187,10 +193,10 @@ GROUP BY ?item
 
                 $title = [ordered]@{}
                 if ($binding.titleEn.value) {
-                    $title['en'] = $binding.titleEn.value
+                    $title['en'] = Clean-Text $binding.titleEn.value
                 }
                 if ($Language -ne 'en' -and $binding.titleLang.value) {
-                    $title[$Language] = $binding.titleLang.value
+                    $title[$Language] = Clean-Text $binding.titleLang.value
                 }
                 if ($title.Count -gt 0) {
                     $film['title'] = $title
