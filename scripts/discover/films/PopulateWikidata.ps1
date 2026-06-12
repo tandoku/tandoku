@@ -218,13 +218,13 @@ GROUP BY ?item
                 }
                 # Prefer P364 (original language of film or TV show); fall back to
                 # P407 (language of work or name) when P364 is not set.
-                $language = if ($binding.language.value) {
+                $langValue = if ($binding.language.value) {
                     $binding.language.value
                 } else {
                     $binding.fallbackLanguage.value
                 }
-                if ($language) {
-                    $film['language'] = @($language -split '\|')
+                if ($langValue) {
+                    $film['language'] = @($langValue -split '\|')
                 } elseif ($Force) {
                     $film.Remove('language')
                 }
