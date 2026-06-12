@@ -188,7 +188,7 @@ Reads the candidates YAML and writes Netflix ID (P1874) and IMDb ID (P345) claim
 
 Each document is processed as follows:
 - Documents without `verified: true` are ignored.
-- A valid `wikidata.id` (`Q`-number) is required; the record is skipped with a warning otherwise.
+- The target entity is identified by `wikidata.id` (a `Q`-number). When a verified record has no `wikidata.id`, the script searches Wikidata for the entity carrying the record's `imdb.id` (P345) and uses that entity; the record is skipped with a warning if there is no `imdb.id` to search by, no matching entity is found, or the IMDb ID maps to more than one entity. A resolved or supplied `wikidata.id` that is not a valid `Q`-number is skipped with a warning.
 - A record with more than one `imdb` entry is skipped with a warning - the reviewer is expected to remove the incorrect entries first. A record with a single `imdb` entry contributes its `imdb.id` (validated as `tt`-number); a record with no `imdb` entry commits only the Netflix ID.
 - Existing P345/P1874 claims on the entity are read first (a public, unauthenticated request). If the entity already has an IMDb **or** Netflix ID that does not match the candidate, the whole record is skipped with a warning, since a mismatching identifier means the `wikidata.id` mapping is suspect.
 - Only missing claims are added, so re-running the script is idempotent. A record whose identifiers are already present is reported as up to date.

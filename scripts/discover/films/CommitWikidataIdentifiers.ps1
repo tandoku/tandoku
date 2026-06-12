@@ -64,6 +64,23 @@ function Get-ClaimValues([string]$qid, [string]$property) {
     return $values
 }
 
+# Finds the Wikidata entity carrying a given IMDb ID (P345), or $null when there is no
+# (or more than one) match. Reads are public, so the SPARQL endpoint is queried unauthenticated.
+function Find-WikidataIdByImdbId([string]$imdbId) {
+    $query = "SELECT ?item WHERE { ?item wdt:P345 `"$imdbId`" . }"
+    $url = "https://query.wikidata.org/sparql?query=$([uri]::EscapeDataString($query))&format=json"
+    $bindings = @((Invoke-RestMethod -Uri $url -Headers $readHeaders).results.bindings)
+    $qids = @($bindings | ForEach-Object { $_.item.value -replace '.*/entity/', '' } | Sort-Object -Unique)
+    if ($qids.Count -eq 0) {
+        return $null
+    }
+    if ($qids.Count -gt 1) {
+        Write-Warning "IMDb ID $imdbId matches multiple Wikidata entities [$($qids -join ', ')]; cannot resolve unambiguously"
+        return $null
+    }
+    return $qids[0]
+}
+
 # Adds a string/external-id claim, retrying on Wikidata replication lag.
 function Add-StringClaim([string]$qid, [string]$property, [string]$value) {
     $body = @{
@@ -113,26 +130,14 @@ foreach ($record in $candidates) {
     }
     $verifiedCount++
 
-    $qid = if ($record.wikidata) { [string]$record.wikidata.id } else { $null }
     $netflixLabel = if ($record.netflix) { $record.netflix.id } else { '(no netflix id)' }
-
-    if (-not $qid) {
-        Write-Warning "Netflix $netflixLabel is verified but has no wikidata.id; skipping"
-        $skipped++
-        continue
-    }
-    if ($qid -notmatch '^Q[1-9][0-9]*$') {
-        Write-Warning "Netflix $netflixLabel has invalid wikidata.id '$qid'; skipping"
-        $skipped++
-        continue
-    }
 
     # Netflix ID (optional)
     $netflixId = $null
     if ($record.netflix -and $null -ne $record.netflix.id) {
         $netflixId = [string]$record.netflix.id
         if ($netflixId -notmatch '^[0-9]+$') {
-            Write-Warning "$qid has invalid netflix.id '$netflixId'; skipping"
+            Write-Warning "Netflix $netflixLabel has invalid netflix.id '$netflixId'; skipping"
             $skipped++
             continue
         }
@@ -145,7 +150,7 @@ foreach ($record in $candidates) {
         $imdbEntries = @($record.imdb)
     }
     if ($imdbEntries.Count -gt 1) {
-        Write-Warning "$qid (Netflix $netflixLabel) has $($imdbEntries.Count) IMDb candidates; remove the incorrect entries first. Skipping."
+        Write-Warning "Netflix $netflixLabel has $($imdbEntries.Count) IMDb candidates; remove the incorrect entries first. Skipping."
         $skipped++
         continue
     }
@@ -153,14 +158,44 @@ foreach ($record in $candidates) {
     if ($imdbEntries.Count -eq 1) {
         $imdbId = [string]$imdbEntries[0].id
         if ($imdbId -notmatch '^tt[0-9]+$') {
-            Write-Warning "$qid has invalid imdb.id '$imdbId'; skipping"
+            Write-Warning "Netflix $netflixLabel has invalid imdb.id '$imdbId'; skipping"
             $skipped++
             continue
         }
     }
 
     if (-not $netflixId -and -not $imdbId) {
-        Write-Warning "$qid has neither netflix.id nor imdb.id; skipping"
+        Write-Warning "Netflix $netflixLabel has neither netflix.id nor imdb.id; skipping"
+        $skipped++
+        continue
+    }
+
+    # Resolve the Wikidata entity. A record may omit wikidata.id; in that case fall back to
+    # locating the entity by its IMDb ID (P345) so verified records can still be committed.
+    $qid = if ($record.wikidata) { [string]$record.wikidata.id } else { $null }
+    if (-not $qid) {
+        if (-not $imdbId) {
+            Write-Warning "Netflix $netflixLabel is verified but has no wikidata.id and no imdb.id to search by; skipping"
+            $skipped++
+            continue
+        }
+        try {
+            $qid = Find-WikidataIdByImdbId $imdbId
+        }
+        catch {
+            Write-Warning "Failed to search Wikidata for IMDb ID $imdbId (Netflix $netflixLabel): $_. Skipping."
+            $skipped++
+            continue
+        }
+        if (-not $qid) {
+            Write-Warning "Netflix $netflixLabel is verified but has no wikidata.id and no Wikidata entity was found for IMDb ID $imdbId; skipping"
+            $skipped++
+            continue
+        }
+        Write-Host "Netflix ${netflixLabel}: resolved wikidata.id $qid from IMDb ID $imdbId"
+    }
+    if ($qid -notmatch '^Q[1-9][0-9]*$') {
+        Write-Warning "Netflix $netflixLabel has invalid wikidata.id '$qid'; skipping"
         $skipped++
         continue
     }
