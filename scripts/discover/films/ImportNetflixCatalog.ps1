@@ -9,7 +9,9 @@ param(
 
     [string]$SubtitleLanguage,
 
-    [int]$MaxResults = 0,
+    [string]$CachePath,
+
+    [int]$RequestLimit = 100,
 
     [string]$ApiKey = $env:RAPIDAPI_KEY
 )
@@ -25,6 +27,26 @@ $script:ApiHost = 'unogsng.p.rapidapi.com'
 $script:ApiHeaders = @{
     'x-rapidapi-key'  = $ApiKey
     'x-rapidapi-host' = $script:ApiHost
+}
+
+# Tracks uNoGS API usage so a run stays within -RequestLimit. Cached lookups do
+# not count; only requests actually sent to the API are tallied.
+$script:RequestCount = 0
+$script:RequestLimit = $RequestLimit
+$script:RequestLimitWarned = $false
+
+# Returns $true while the API request budget has not been exhausted. Emits a
+# single warning the first time the limit is reached so callers can skip the
+# remaining work and resume on a later run (helped along by the cache).
+function Test-RequestAllowed {
+    if ($script:RequestLimit -gt 0 -and $script:RequestCount -ge $script:RequestLimit) {
+        if (-not $script:RequestLimitWarned) {
+            Write-Warning "Reached uNoGS request limit ($script:RequestLimit) - skipping further API requests. Re-run to continue."
+            $script:RequestLimitWarned = $true
+        }
+        return $false
+    }
+    return $true
 }
 
 # Maps a lower-cased base language name (as returned by Netflix audio/subtitle
@@ -55,6 +77,8 @@ foreach ($alias in $languageAliases.Keys) {
 }
 
 # Calls a uNoGS endpoint, URL-encoding query values and retrying on HTTP 429.
+# Returns $null (without sending a request) once the -RequestLimit budget is
+# spent.
 function Invoke-UnogsApi {
     param(
         [Parameter(Mandatory)]
@@ -62,6 +86,11 @@ function Invoke-UnogsApi {
 
         [hashtable]$Query = @{}
     )
+
+    if (-not (Test-RequestAllowed)) {
+        return $null
+    }
+    $script:RequestCount++
 
     $pairs = foreach ($key in $Query.Keys) {
         $value = $Query[$key]
@@ -169,8 +198,75 @@ function New-NetflixRecord($existing, $id, $title, $type, $year, $countryDetails
     return $record
 }
 
+# Cache state. countries.json stores the raw Countries response; titlecountries.json
+# stores a netflix-id-keyed map of Title Countries responses (kept sorted by id
+# for stable diffs). Both files are only used when -CachePath is supplied.
+$script:CountriesCacheFile = $null
+$script:TitleCountriesCacheFile = $null
+$script:TitleCountriesCache = [ordered]@{}
+if ($CachePath) {
+    if (-not (Test-Path -LiteralPath $CachePath)) {
+        New-Item -ItemType Directory -Path $CachePath -Force | Out-Null
+    }
+    $script:CountriesCacheFile = Join-Path $CachePath 'countries.json'
+    $script:TitleCountriesCacheFile = Join-Path $CachePath 'titlecountries.json'
+    if (Test-Path -LiteralPath $script:TitleCountriesCacheFile) {
+        $loaded = Get-Content -LiteralPath $script:TitleCountriesCacheFile -Raw | ConvertFrom-Json -AsHashtable
+        foreach ($key in ($loaded.Keys | Sort-Object { [long]$_ })) {
+            $script:TitleCountriesCache[[string]$key] = $loaded[$key]
+        }
+    }
+}
+
+# Writes the titlecountries cache to disk, sorted by netflix id for stability.
+function Save-TitleCountriesCache {
+    if (-not $script:TitleCountriesCacheFile) {
+        return
+    }
+    $sorted = [ordered]@{}
+    foreach ($key in ($script:TitleCountriesCache.Keys | Sort-Object { [long]$_ })) {
+        $sorted[$key] = $script:TitleCountriesCache[$key]
+    }
+    $sorted | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $script:TitleCountriesCacheFile
+}
+
+# Returns the Countries response, reading from / populating the cache when
+# -CachePath is supplied.
+function Get-CountriesData {
+    if ($script:CountriesCacheFile -and (Test-Path -LiteralPath $script:CountriesCacheFile)) {
+        return Get-Content -LiteralPath $script:CountriesCacheFile -Raw | ConvertFrom-Json
+    }
+    $result = Invoke-UnogsApi -Endpoint 'countries'
+    if ($null -eq $result) {
+        throw 'Unable to retrieve country list (uNoGS request limit reached). Increase -RequestLimit or cache the countries list.'
+    }
+    if ($script:CountriesCacheFile) {
+        $result | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $script:CountriesCacheFile
+    }
+    return $result
+}
+
+# Returns the Title Countries results for a netflix id, reading from / populating
+# the cache. Returns $null when the data is uncached and the request budget is
+# spent.
+function Get-TitleCountries([string]$netflixId) {
+    if ($script:TitleCountriesCache.Contains($netflixId)) {
+        return $script:TitleCountriesCache[$netflixId].results
+    }
+    $response = Invoke-UnogsApi -Endpoint 'titlecountries' -Query @{ netflixid = $netflixId }
+    if ($null -eq $response) {
+        return $null
+    }
+    $script:TitleCountriesCache[$netflixId] = [ordered]@{
+        results   = $response.results
+        timestamp = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+    }
+    Save-TitleCountriesCache
+    return $response.results
+}
+
 # Resolve the requested country codes to uNoGS numeric country IDs.
-$countriesResult = Invoke-UnogsApi -Endpoint 'countries'
+$countriesResult = Get-CountriesData
 $countryIdByCode = @{}
 foreach ($entry in $countriesResult.results) {
     $countryIdByCode[$entry.countrycode.ToUpperInvariant()] = $entry.id
@@ -213,6 +309,9 @@ $searchResults = [System.Collections.Generic.List[object]]::new()
 $total = $null
 while ($true) {
     $response = Invoke-UnogsApi -Endpoint 'search' -Query $searchQuery
+    if ($null -eq $response) {
+        break
+    }
     if ($null -eq $total) {
         $total = $response.total
         Write-Host "Found $total matching titles"
@@ -220,16 +319,10 @@ while ($true) {
     foreach ($result in $response.results) {
         $searchResults.Add($result)
     }
-    if ($MaxResults -gt 0 -and $searchResults.Count -ge $MaxResults) {
-        break
-    }
     $searchQuery['offset'] = [int]$searchQuery['offset'] + [int]$searchQuery['limit']
     if ([int]$searchQuery['offset'] -ge [int]$total) {
         break
     }
-}
-if ($MaxResults -gt 0 -and $searchResults.Count -gt $MaxResults) {
-    $searchResults = [System.Collections.Generic.List[object]]($searchResults | Select-Object -First $MaxResults)
 }
 
 # Read existing films database.
@@ -248,14 +341,21 @@ for ($i = 0; $i -lt $films.Count; $i++) {
 # Process each matching title.
 $added = 0
 $updated = 0
+$skipped = 0
 $processed = 0
 foreach ($result in $searchResults) {
     $netflixId = [string]$result.nfid
     $processed++
     Write-Host "[$processed/$($searchResults.Count)] $($result.title) ($netflixId)"
 
-    # Retrieve per-country availability details.
-    $titleCountries = (Invoke-UnogsApi -Endpoint 'titlecountries' -Query @{ netflixid = $netflixId }).results
+    # Retrieve per-country availability details (cached when possible).
+    $titleCountries = Get-TitleCountries $netflixId
+    if ($null -eq $titleCountries) {
+        # Request budget spent and no cached details - leave this title for a
+        # later run.
+        $skipped++
+        continue
+    }
     $countryDetails = [ordered]@{}
     foreach ($code in $countryCodes) {
         $detail = $titleCountries | Where-Object { $_.cc -eq $code } | Select-Object -First 1
@@ -298,4 +398,4 @@ foreach ($result in $searchResults) {
 # Write films.yaml
 $films | Export-Yaml -Path $DatabasePath
 
-Write-Host "Done: $added added, $updated updated - $($films.Count) total entries"
+Write-Host "Done: $added added, $updated updated, $skipped skipped - $($films.Count) total entries ($($script:RequestCount) API requests)"

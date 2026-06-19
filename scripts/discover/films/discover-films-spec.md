@@ -88,7 +88,7 @@ Imports Netflix watch list into films.yaml by adding or updating entries matched
 ## ImportNetflixCatalog.ps1
 ### Usage
 ```powershell
-ImportNetflixCatalog.ps1 -DatabasePath <films.yaml> [-Country <codes>] [-AudioLanguage <code>] [-SubtitleLanguage <code>] [-MaxResults <n>] [-ApiKey <key>]
+ImportNetflixCatalog.ps1 -DatabasePath <films.yaml> [-Country <codes>] [-AudioLanguage <code>] [-SubtitleLanguage <code>] [-CachePath <dir>] [-RequestLimit <n>] [-ApiKey <key>]
 ```
 
 ### Parameters
@@ -96,13 +96,16 @@ ImportNetflixCatalog.ps1 -DatabasePath <films.yaml> [-Country <codes>] [-AudioLa
 - `-Country` - One or more ISO 3166-1 alpha-2 country codes (defaults to `US`). Titles available in at least one of these countries are imported, and per-country availability details are retrieved for each of them.
 - `-AudioLanguage` - Two-letter ISO 639-1 audio language code to filter on (defaults to `ja`). Pass an empty string to skip the audio filter.
 - `-SubtitleLanguage` - Two-letter ISO 639-1 subtitle language code to filter on (no default). When both `-AudioLanguage` and `-SubtitleLanguage` are specified, titles must match both (AND filter).
-- `-MaxResults` - Optional cap on the number of titles processed (defaults to `0`, meaning no limit). Useful for testing.
+- `-CachePath` - Optional folder for caching uNoGS responses across runs. The Countries response is cached to `countries.json`, and Title Countries responses to `titlecountries.json` (a Netflix-id-keyed map, sorted by id, where each entry has `results` and a `timestamp`). Cached lookups do not count against `-RequestLimit`.
+- `-RequestLimit` - Maximum number of requests sent to the uNoGS API across all endpoints in a single run (defaults to `100`; `0` means no limit). Once the limit is reached the script emits a single warning and skips all remaining requests, leaving the rest for a later run. Combined with `-CachePath`, a large catalog can be imported incrementally across multiple runs.
 - `-ApiKey` - uNoGS RapidAPI key. Falls back to the `RAPIDAPI_KEY` environment variable.
 
 ### Behavior
 Queries the [uNoGS API](https://rapidapi.com/unogs/api/unogsng) for Netflix titles and imports them into films.yaml by adding or updating entries matched by `availability.netflix.id`. Uses the Search endpoint (resolving country codes to uNoGS country IDs via the Countries endpoint) to find titles available in the requested countries with the requested audio/subtitle languages, paging through all results. For each matching title it calls the Title Countries endpoint to retrieve per-country availability details.
 
 Populates `availability.netflix` with `id`, `title`, `type` (`movie` or `series`), `year`, and a `countryDetails` dictionary keyed by country code, each holding `seasonDetails` (omitted when empty), `newDate`, `expireDate` (omitted when not set), and `audio`/`subtitle` lists of ISO 639 language codes (Netflix language names are normalized, deduplicated, and sorted). Existing entries are updated in place, preserving other fields such as `watchlist`, and `netflix` is added to the entry's `origin` list.
+
+API usage is capped by `-RequestLimit`; uncached lookups are skipped once it is reached (titles without availability details are left untouched for a later run). With `-CachePath`, Countries and Title Countries responses are cached so successive runs make fewer requests and can resume where a previous run stopped, making it practical to import a large catalog incrementally.
 
 ```yaml
 availability:
