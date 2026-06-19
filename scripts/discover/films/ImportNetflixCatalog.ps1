@@ -48,6 +48,7 @@ $languageAliases = @{
     'cantonese' = 'zh'
     'flemish'   = 'nl'
     'farsi'     = 'fa'
+    'tagalog'   = 'tl'
 }
 foreach ($alias in $languageAliases.Keys) {
     $script:LanguageCodeByName[$alias] = $languageAliases[$alias]
