@@ -35,6 +35,9 @@ $script:RequestCount = 0
 $script:RequestLimit = $RequestLimit
 $script:RequestLimitWarned = $false
 
+# Single timestamp for the whole run, recorded on each Title Countries cache entry.
+$script:RunTimestamp = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+
 # Returns $true while the API request budget has not been exhausted. Emits a
 # single warning the first time the limit is reached so callers can skip the
 # remaining work and resume on a later run (helped along by the cache).
@@ -259,7 +262,7 @@ function Get-TitleCountries([string]$netflixId) {
     }
     $script:TitleCountriesCache[$netflixId] = [ordered]@{
         results   = $response.results
-        timestamp = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+        timestamp = $script:RunTimestamp
     }
     Save-TitleCountriesCache
     return $response.results
