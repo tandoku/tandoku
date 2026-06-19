@@ -67,6 +67,11 @@ availability:
 ```
 
 # Scripts
+The scripts in this folder share helpers through the `tandoku-discover-films.psm1`
+module (e.g. `Read-FilmsDatabase`, `Format-FilmEntry`, `Add-Origin`). Functions
+used by more than one script belong in this module rather than being copied into
+each script.
+
 ## ImportNetflixWatchlist.ps1
 ### Usage
 ```powershell
@@ -79,6 +84,41 @@ ImportNetflixWatchlist.ps1 -Path <netflix-my-list.json> -DatabasePath <films.yam
 
 ### Behavior
 Imports Netflix watch list into films.yaml by adding or updating entries matched by `availability.netflix.id`, including the following fields: `availability.netflix.id`, `availability.netflix.title`, and `availability.netflix.watchlist`. Additionally, any items in films.yaml with `availability.netflix.watchlist` set to `true` that are no longer in the imported watch list should be set to `false`.
+
+## ImportNetflixCatalog.ps1
+### Usage
+```powershell
+ImportNetflixCatalog.ps1 -DatabasePath <films.yaml> [-Country <codes>] [-AudioLanguage <code>] [-SubtitleLanguage <code>] [-MaxResults <n>] [-ApiKey <key>]
+```
+
+### Parameters
+- `-DatabasePath` - Path to the films.yaml database file.
+- `-Country` - One or more ISO 3166-1 alpha-2 country codes (defaults to `US`). Titles available in at least one of these countries are imported, and per-country availability details are retrieved for each of them.
+- `-AudioLanguage` - Two-letter ISO 639-1 audio language code to filter on (defaults to `ja`). Pass an empty string to skip the audio filter.
+- `-SubtitleLanguage` - Two-letter ISO 639-1 subtitle language code to filter on (no default). When both `-AudioLanguage` and `-SubtitleLanguage` are specified, titles must match both (AND filter).
+- `-MaxResults` - Optional cap on the number of titles processed (defaults to `0`, meaning no limit). Useful for testing.
+- `-ApiKey` - uNoGS RapidAPI key. Falls back to the `RAPIDAPI_KEY` environment variable.
+
+### Behavior
+Queries the [uNoGS API](https://rapidapi.com/unogs/api/unogsng) for Netflix titles and imports them into films.yaml by adding or updating entries matched by `availability.netflix.id`. Uses the Search endpoint (resolving country codes to uNoGS country IDs via the Countries endpoint) to find titles available in the requested countries with the requested audio/subtitle languages, paging through all results. For each matching title it calls the Title Countries endpoint to retrieve per-country availability details.
+
+Populates `availability.netflix` with `id`, `title`, `type` (`movie` or `series`), `year`, and a `countryDetails` dictionary keyed by country code, each holding `seasonDetails` (omitted when empty), `newDate`, `expireDate` (omitted when not set), and `audio`/`subtitle` lists of ISO 639 language codes (Netflix language names are normalized, deduplicated, and sorted). Existing entries are updated in place, preserving other fields such as `watchlist`, and `netflix` is added to the entry's `origin` list.
+
+```yaml
+availability:
+  netflix:
+    id: 81249833
+    title: VINLAND SAGA
+    type: series
+    year: 2019
+    countryDetails:
+      US:
+        seasonDetails: "S1:24,S2:24"
+        newDate: 2022-07-10
+        audio: [de, en, es, fr, ja]
+        subtitle: [en, es, ja, zh]
+origin: [netflix]
+```
 
 ## PopulateWikidata.ps1
 ### Usage

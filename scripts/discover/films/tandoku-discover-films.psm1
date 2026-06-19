@@ -66,6 +66,19 @@ function Format-FilmEntry($film) {
     return $ordered
 }
 
+# Adds an origin tag to a film entry's `origin` list (creating it if needed),
+# keeping the list de-duplicated and sorted.
+function Add-Origin($film, [string]$origin) {
+    $existing = @()
+    if ($film.Contains('origin') -and $film['origin']) {
+        $existing = @($film['origin'])
+    }
+    if ($existing -notcontains $origin) {
+        $existing += $origin
+    }
+    $film['origin'] = @($existing | Sort-Object)
+}
+
 # Title is a per-language dictionary (e.g. title.en, title.ja); prefer the English
 # title for display/search, falling back to any available language.
 function Get-DisplayTitle($film) {
@@ -98,4 +111,4 @@ function Read-FilmsDatabase {
     return , $films
 }
 
-Export-ModuleMember -Function Get-WikidataUserAgent, Invoke-WikidataSparql, ConvertTo-WikidataQid, Format-FilmEntry, Get-DisplayTitle, Read-FilmsDatabase
+Export-ModuleMember -Function Get-WikidataUserAgent, Invoke-WikidataSparql, ConvertTo-WikidataQid, Format-FilmEntry, Get-DisplayTitle, Read-FilmsDatabase, Add-Origin

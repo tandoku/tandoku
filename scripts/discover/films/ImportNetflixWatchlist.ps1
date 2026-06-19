@@ -10,17 +10,6 @@ param(
 Import-Module "$PSScriptRoot/../../modules/tandoku-yaml.psm1"
 Import-Module "$PSScriptRoot/tandoku-discover-films.psm1"
 
-function Add-Origin($film, [string]$origin) {
-    $existing = @()
-    if ($film.Contains('origin') -and $film['origin']) {
-        $existing = @($film['origin'])
-    }
-    if ($existing -notcontains $origin) {
-        $existing += $origin
-    }
-    $film['origin'] = @($existing | Sort-Object)
-}
-
 # Read Netflix watchlist
 $watchlist = Get-Content -Path $Path -Raw | ConvertFrom-Json
 
