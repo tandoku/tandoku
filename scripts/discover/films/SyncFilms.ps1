@@ -2,6 +2,8 @@
 param(
     [string]$Path = '.',
     [switch]$Force,
+    [switch]$NetflixCatalog,
+    [int]$NetflixMaxResults,
     [switch]$UpdateImdbData,
     [switch]$UpdateNativelyData
 )
@@ -18,6 +20,10 @@ $dbJsonPath = "$Path/films.json"
 $sources = "$Path/sources"
 
 & "$PSScriptRoot/ImportNetflixWatchlist.ps1" -Path "$sources/netflix/netflix-my-list.json" -DatabasePath $dbPath
+
+if ($NetflixCatalog) {
+    & "$PSScriptRoot/ImportNetflixCatalog.ps1" -DatabasePath $dbPath -SubtitleLanguage ja -MaxResults $NetflixMaxResults
+}
 
 & "$PSScriptRoot/PopulateWikidata.ps1" -DatabasePath $dbPath -Force:$Force
 
