@@ -211,8 +211,8 @@ if ($CachePath) {
     if (-not (Test-Path -LiteralPath $CachePath)) {
         New-Item -ItemType Directory -Path $CachePath -Force | Out-Null
     }
-    $script:CountriesCacheFile = Join-Path $CachePath 'countries.json'
-    $script:TitleCountriesCacheFile = Join-Path $CachePath 'titlecountries.json'
+    $script:CountriesCacheFile = Join-Path $CachePath 'catalog-countries.json'
+    $script:TitleCountriesCacheFile = Join-Path $CachePath 'catalog-titlecountries.json'
     if (Test-Path -LiteralPath $script:TitleCountriesCacheFile) {
         $loaded = Get-Content -LiteralPath $script:TitleCountriesCacheFile -Raw | ConvertFrom-Json -AsHashtable
         foreach ($key in ($loaded.Keys | Sort-Object { [long]$_ })) {
