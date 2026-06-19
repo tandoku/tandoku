@@ -7,34 +7,17 @@ param(
 )
 
 Import-Module "$PSScriptRoot/../../modules/tandoku-yaml.psm1"
+Import-Module "$PSScriptRoot/tandoku-discover-films.psm1"
 
 # Ensure UTF-8 encoding for yq compatibility
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 [Console]::InputEncoding = [System.Text.Encoding]::UTF8
-
-# Preferred key order for migrated film entries
-$fieldOrder = @('wikidata', 'title', 'type', 'country', 'language', 'year', 'imdb', 'myAnimeList', 'tmdb', 'natively', 'availability')
 
 # Old field names mapped to their new names (1:1 renames)
 $renames = [ordered]@{
     originCountry    = 'country'
     originalLanguage = 'language'
     providers        = 'availability'
-}
-
-function Reorder-FilmEntry($film) {
-    $ordered = [ordered]@{}
-    foreach ($key in $fieldOrder) {
-        if ($film.Contains($key)) {
-            $ordered[$key] = $film[$key]
-        }
-    }
-    foreach ($key in @($film.Keys)) {
-        if (-not $ordered.Contains($key)) {
-            $ordered[$key] = $film[$key]
-        }
-    }
-    return $ordered
 }
 
 # Convert a single old-format entry to the new format. Returns the number of
@@ -77,10 +60,7 @@ function Migrate-FilmEntry($film) {
 
 # --- Read films database ---
 
-$films = [System.Collections.Generic.List[object]]::new()
-foreach ($doc in @(Import-Yaml -LiteralPath $DatabasePath)) {
-    $films.Add($doc)
-}
+$films = Read-FilmsDatabase -LiteralPath $DatabasePath
 
 Write-Host "Read $($films.Count) entries from films database"
 
@@ -92,7 +72,7 @@ for ($i = 0; $i -lt $films.Count; $i++) {
     if ($changes -gt 0) {
         $migrated++
     }
-    $films[$i] = Reorder-FilmEntry $films[$i]
+    $films[$i] = Format-FilmEntry $films[$i]
 }
 
 $films | Export-Yaml -Path $DatabasePath

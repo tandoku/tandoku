@@ -9,38 +9,7 @@ param(
 )
 
 Import-Module "$PSScriptRoot/../../modules/tandoku-yaml.psm1"
-
-$sparqlHeaders = @{ "User-Agent" = "tandoku-discover/1.0 (https://github.com/tandoku)" }
-
-# Preferred key order for film entries
-$fieldOrder = @('wikidata', 'title', 'type', 'country', 'language', 'year', 'imdb', 'myAnimeList', 'tmdb', 'natively', 'availability')
-
-function Invoke-WikidataSparql($query) {
-    $url = "https://query.wikidata.org/sparql?query=$([uri]::EscapeDataString($query))&format=json"
-    $maxRetries = 3
-    for ($attempt = 1; $attempt -le $maxRetries; $attempt++) {
-        try {
-            return (Invoke-RestMethod -Uri $url -Headers $sparqlHeaders).results.bindings
-        }
-        catch {
-            $retrySeconds = 0
-            if ($_.Exception.Response.StatusCode -eq 429 -or $_ -match '429') {
-                if ($_ -match 'retry in (\d+) seconds') {
-                    $retrySeconds = [int]$Matches[1]
-                } else {
-                    $retrySeconds = 120
-                }
-            }
-
-            if ($retrySeconds -gt 0 -and $attempt -lt $maxRetries) {
-                Write-Warning "Rate limited (429) - waiting $retrySeconds seconds before retry $attempt/$maxRetries..."
-                Start-Sleep -Seconds $retrySeconds
-            } else {
-                throw
-            }
-        }
-    }
-}
+Import-Module "$PSScriptRoot/tandoku-discover-films.psm1"
 
 function Clean-Text($text) {
     if ($null -eq $text) { return $text }
@@ -48,26 +17,8 @@ function Clean-Text($text) {
     return ($text -replace '[\uFEFF\u200B\u200C\u200D]', '').Trim()
 }
 
-function Reorder-FilmEntry($film) {
-    $ordered = [ordered]@{}
-    foreach ($key in $fieldOrder) {
-        if ($film.ContainsKey($key)) {
-            $ordered[$key] = $film[$key]
-        }
-    }
-    foreach ($key in @($film.Keys)) {
-        if (-not $ordered.Contains($key)) {
-            $ordered[$key] = $film[$key]
-        }
-    }
-    return $ordered
-}
-
 # Read existing films database
-$films = [System.Collections.Generic.List[object]]::new()
-foreach ($doc in @(Import-Yaml -LiteralPath $DatabasePath)) {
-    $films.Add($doc)
-}
+$films = Read-FilmsDatabase -LiteralPath $DatabasePath
 
 Write-Host "Read $($films.Count) entries from films database"
 
@@ -98,7 +49,7 @@ if ($needsQid.Count -gt 0) {
         try {
             $batchResults = @{}
             foreach ($binding in (Invoke-WikidataSparql $query)) {
-                $qid = $binding.item.value -replace '.*/entity/', ''
+                $qid = ConvertTo-WikidataQid $binding.item.value
                 $netflixId = $binding.netflixId.value
                 if (-not $batchResults.ContainsKey($netflixId)) {
                     $batchResults[$netflixId] = [System.Collections.Generic.List[string]]::new()
@@ -187,7 +138,7 @@ GROUP BY ?item
 
         try {
             foreach ($binding in (Invoke-WikidataSparql $query)) {
-                $qid = $binding.item.value -replace '.*/entity/', ''
+                $qid = ConvertTo-WikidataQid $binding.item.value
                 $film = $needsData[$qid]
                 if (-not $film) { continue }
 
@@ -304,7 +255,7 @@ GROUP BY ?item
 
 # Reorder keys and write films.yaml
 for ($i = 0; $i -lt $films.Count; $i++) {
-    $films[$i] = Reorder-FilmEntry $films[$i]
+    $films[$i] = Format-FilmEntry $films[$i]
 }
 $films | Export-Yaml -Path $DatabasePath
 

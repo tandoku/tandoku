@@ -13,8 +13,7 @@ param(
 )
 
 Import-Module "$PSScriptRoot/../../modules/tandoku-yaml.psm1"
-
-$sparqlHeaders = @{ "User-Agent" = "tandoku-discover/1.0 (https://github.com/tandoku)" }
+Import-Module "$PSScriptRoot/tandoku-discover-films.psm1"
 
 # IMDb title types that represent watchable films / series (excludes tvEpisode, videoGame, etc.)
 $allowedTitleTypes = [System.Collections.Generic.HashSet[string]]::new(
@@ -30,33 +29,6 @@ $titleTypeRank = @{
     video        = 3
     short        = 4
     tvShort      = 4
-}
-
-function Invoke-WikidataSparql($query) {
-    $url = "https://query.wikidata.org/sparql?query=$([uri]::EscapeDataString($query))&format=json"
-    $maxRetries = 3
-    for ($attempt = 1; $attempt -le $maxRetries; $attempt++) {
-        try {
-            return (Invoke-RestMethod -Uri $url -Headers $sparqlHeaders).results.bindings
-        }
-        catch {
-            $retrySeconds = 0
-            if ($_.Exception.Response.StatusCode -eq 429 -or $_ -match '429') {
-                if ($_ -match 'retry in (\d+) seconds') {
-                    $retrySeconds = [int]$Matches[1]
-                } else {
-                    $retrySeconds = 120
-                }
-            }
-
-            if ($retrySeconds -gt 0 -and $attempt -lt $maxRetries) {
-                Write-Warning "Rate limited (429) - waiting $retrySeconds seconds before retry $attempt/$maxRetries..."
-                Start-Sleep -Seconds $retrySeconds
-            } else {
-                throw
-            }
-        }
-    }
 }
 
 # Title normalization runs once per row across the full IMDb akas/basics datasets (tens of
@@ -96,10 +68,7 @@ function Test-ContainsJapanese([string]$title) {
 
 # --- Read films database, collect entries that need a Wikidata identifier ---
 
-$films = [System.Collections.Generic.List[object]]::new()
-foreach ($doc in @(Import-Yaml -LiteralPath $DatabasePath)) {
-    $films.Add($doc)
-}
+$films = Read-FilmsDatabase -LiteralPath $DatabasePath
 
 Write-Host "Read $($films.Count) entries from films database"
 
@@ -334,7 +303,7 @@ if ($imdbIds.Count -gt 0) {
 
         try {
             foreach ($binding in (Invoke-WikidataSparql $query)) {
-                $qid = $binding.item.value -replace '.*/entity/', ''
+                $qid = ConvertTo-WikidataQid $binding.item.value
                 $imdbId = $binding.imdbId.value
                 if (-not $qidByImdbId.ContainsKey($imdbId)) {
                     $qidByImdbId[$imdbId] = $qid

@@ -10,42 +10,11 @@ param(
 )
 
 Import-Module "$PSScriptRoot/../../modules/tandoku-yaml.psm1"
-
-# Title is a per-language dictionary (e.g. title.en, title.ja); prefer the English
-# title for display, falling back to any available language.
-function Get-DisplayTitle($film) {
-    if (-not $film.title) { return $null }
-    if ($film.title.en) { return $film.title.en }
-    foreach ($value in $film.title.Values) {
-        if ($value) { return $value }
-    }
-    return $null
-}
-
-# Preferred key order for film entries
-$fieldOrder = @('wikidata', 'title', 'type', 'country', 'language', 'year', 'imdb', 'myAnimeList', 'tmdb', 'availability')
-
-function Reorder-FilmEntry($film) {
-    $ordered = [ordered]@{}
-    foreach ($key in $fieldOrder) {
-        if ($film.Contains($key)) {
-            $ordered[$key] = $film[$key]
-        }
-    }
-    foreach ($key in @($film.Keys)) {
-        if (-not $ordered.Contains($key)) {
-            $ordered[$key] = $film[$key]
-        }
-    }
-    return $ordered
-}
+Import-Module "$PSScriptRoot/tandoku-discover-films.psm1"
 
 # --- Read films database ---
 
-$films = [System.Collections.Generic.List[object]]::new()
-foreach ($doc in @(Import-Yaml -LiteralPath $DatabasePath)) {
-    $films.Add($doc)
-}
+$films = Read-FilmsDatabase -LiteralPath $DatabasePath
 
 Write-Host "Read $($films.Count) entries from films database"
 
@@ -207,7 +176,7 @@ Write-Host "Updated $updated, no IMDb ID $noImdbId, not found in data $notFound"
 
 # Reorder keys and write films.yaml
 for ($i = 0; $i -lt $films.Count; $i++) {
-    $films[$i] = Reorder-FilmEntry $films[$i]
+    $films[$i] = Format-FilmEntry $films[$i]
 }
 $films | Export-Yaml -Path $DatabasePath
 

@@ -14,12 +14,13 @@ param(
 )
 
 Import-Module "$PSScriptRoot/../../modules/tandoku-yaml.psm1"
+Import-Module "$PSScriptRoot/tandoku-discover-films.psm1"
 
 # Wikidata properties for the external identifiers we commit
 $netflixProperty = 'P1874'
 $imdbProperty = 'P345'
 
-$userAgent = 'tandoku-discover/1.0 (https://github.com/tandoku)'
+$userAgent = Get-WikidataUserAgent
 
 # OAuth 2.0 owner-only access token - parameter takes precedence, otherwise environment variable.
 # Reading existing claims is public, so a token is only required when actually writing.
@@ -71,9 +72,8 @@ function Get-ClaimValues([string]$qid, [string]$property) {
 # (or more than one) match. Reads are public, so the SPARQL endpoint is queried unauthenticated.
 function Find-WikidataIdByImdbId([string]$imdbId) {
     $query = "SELECT ?item WHERE { ?item wdt:P345 `"$imdbId`" . }"
-    $url = "https://query.wikidata.org/sparql?query=$([uri]::EscapeDataString($query))&format=json"
-    $bindings = @((Invoke-RestMethod -Uri $url -Headers $readHeaders).results.bindings)
-    $qids = @($bindings | ForEach-Object { $_.item.value -replace '.*/entity/', '' } | Sort-Object -Unique)
+    $bindings = @(Invoke-WikidataSparql $query)
+    $qids = @($bindings | ForEach-Object { ConvertTo-WikidataQid $_.item.value } | Sort-Object -Unique)
     if ($qids.Count -eq 0) {
         return $null
     }

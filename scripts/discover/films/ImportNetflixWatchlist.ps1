@@ -8,6 +8,7 @@ param(
 )
 
 Import-Module "$PSScriptRoot/../../modules/tandoku-yaml.psm1"
+Import-Module "$PSScriptRoot/tandoku-discover-films.psm1"
 
 function Add-Origin($film, [string]$origin) {
     $existing = @()
@@ -26,12 +27,7 @@ $watchlist = Get-Content -Path $Path -Raw | ConvertFrom-Json
 Write-Host "Read $($watchlist.Count) items from Netflix watchlist"
 
 # Read existing films database
-$films = [System.Collections.Generic.List[object]]::new()
-if (Test-Path $DatabasePath) {
-    foreach ($doc in @(Import-Yaml -LiteralPath $DatabasePath)) {
-        $films.Add($doc)
-    }
-}
+$films = Read-FilmsDatabase -LiteralPath $DatabasePath -AllowMissing
 
 Write-Host "Read $($films.Count) existing entries from films database"
 
