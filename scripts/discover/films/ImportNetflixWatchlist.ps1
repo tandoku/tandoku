@@ -42,13 +42,13 @@ foreach ($item in $watchlist) {
     $videoId = $item.videoId
 
     if ($filmsByNetflixId.ContainsKey($videoId)) {
-        # Update existing entry
+        # Update existing entry, preserving other netflix fields (e.g. type,
+        # year, countryDetails added by ImportNetflixCatalog.ps1)
         $film = $films[$filmsByNetflixId[$videoId]]
-        $film['availability']['netflix'] = [ordered]@{
-            id        = [int]$videoId
-            title     = $item.title
-            watchlist = $true
-        }
+        $netflix = $film['availability']['netflix']
+        $netflix['id'] = [int]$videoId
+        $netflix['title'] = $item.title
+        $netflix['watchlist'] = $true
         Add-Origin $film 'netflix'
         $updated++
     } else {
