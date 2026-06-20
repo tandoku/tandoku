@@ -178,7 +178,9 @@ function ConvertTo-LanguageCodes([string]$value) {
             }
         }
     }
-    return @($codes | Sort-Object)
+    # Return as a typed array via the unary comma so a single code is not
+    # unrolled into a scalar (which would serialize as a string, not a list).
+    return , [string[]]@($codes | Sort-Object)
 }
 
 # Builds the availability.netflix record, preserving any extra keys (e.g.
