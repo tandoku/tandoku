@@ -168,6 +168,16 @@ foreach ($film in $films) {
         $imdb['votes'] = $rating.votes
     }
 
+    # Preserve any existing imdb fields this script doesn't manage (e.g. `lists`
+    # populated by ImportIMDbList.ps1) so repeated runs don't smash them.
+    if ($film.imdb) {
+        foreach ($key in @($film.imdb.Keys)) {
+            if (-not $imdb.Contains($key)) {
+                $imdb[$key] = $film.imdb[$key]
+            }
+        }
+    }
+
     $film['imdb'] = $imdb
     $updated++
 }
