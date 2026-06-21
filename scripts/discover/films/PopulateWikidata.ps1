@@ -22,6 +22,17 @@ $films = Read-FilmsDatabase -LiteralPath $DatabasePath
 
 Write-Host "Read $($films.Count) entries from films database"
 
+# A record's origins drive Wikidata lookup; records that have lost all of their
+# origins (e.g. an IMDb-list-only film pruned out of every list) are skipped.
+function Test-FilmHasOrigin($film) {
+    return ($film.Contains('origin') -and $film['origin'] -and @($film['origin']).Count -gt 0)
+}
+
+$noOriginCount = @($films | Where-Object { -not (Test-FilmHasOrigin $_) }).Count
+if ($noOriginCount -gt 0) {
+    Write-Warning "$noOriginCount film record(s) have no origin and will be skipped; run PruneFilms.ps1 to remove these stale records."
+}
+
 # Batched lookup of Wikidata QIDs by an external-identifier property (e.g.
 # P1874 = Netflix ID, P345 = IMDb ID). Returns a hashtable mapping each id to a
 # list of matching QIDs (ids with no match are absent).
@@ -183,6 +194,7 @@ if ($mergedAway.Count -gt 0) {
 
 $needsData = @{}
 foreach ($film in $films) {
+    if (-not (Test-FilmHasOrigin $film)) { continue }
     if ($film.wikidata -and ($Force -or -not $film.title)) {
         $qid = [string]$film.wikidata
         if (-not $needsData.ContainsKey($qid)) {

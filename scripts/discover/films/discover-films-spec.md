@@ -178,6 +178,20 @@ Iterates over each entry in films.yaml and populates data from Wikidata. Lookup 
 2. **Merge duplicates** - Different origins can create separate entries for the same work (e.g. a Netflix import and an IMDb list import). Once both resolve to the same QID, the entries are merged into one: `origin` lists and `imdb.lists` are unioned and any field present on only one entry is carried over. If the entries carry conflicting values for an owned identifier (e.g. different Netflix or IMDb IDs), the merge is skipped and an error is emitted so they can be resolved manually.
 3. **Details enrichment** - For entries that have a `wikidata` QID but are missing a `title`, queries Wikidata to populate additional fields: `title` (a per-language dictionary with the English label as `title.en` and the `-Language` label as `title.<Language>`), `type` (instance of / P31, kebab-cased, as a list of all values), `country` (country of origin / P495, as a list of all values), `language` (original language codes / P364 + P424, falling back to language of work or name / P407 + P424 when P364 is not set, as a list of all values), `year` (start time / P580, or publication date / P577), `imdb.id` (P345), `myAnimeList.id` (P4086), `tmdb.id` (TMDb movie P4947 or TV series P4983), and `tmdb.kind` (`movie` or `tv-series` to disambiguate the TMDb ID). When Wikidata returns multiple IDs for `imdb.id`, `myAnimeList.id`, or `tmdb.id`, the script warns and keeps the lowest value for stability; for `tmdb.id` it prefers a TV series ID over a movie ID (warning also when both movie and TV IDs are present). Owned identifiers are only **verified** here, never written: if the entry owns its IMDb (or Netflix) ID and Wikidata reports a different value, the script emits an error and leaves the entry's value untouched. A non-owned `imdb.id` (e.g. on a Netflix-only entry) is still filled in as a cross-reference, preserving any existing `imdb.lists`. With `-Force`, enriches every entry that has a QID and overwrites each non-owned field, removing any field for which Wikidata no longer returns a value.
 
+Records that have no origin (e.g. an IMDb-list-only film pruned out of every list) are skipped entirely, since lookups are driven by origin-owned identifiers. The script emits a warning when any such records are present, with a hint to run `PruneFilms.ps1` to remove them.
+
+## PruneFilms.ps1
+### Usage
+```powershell
+PruneFilms.ps1 -DatabasePath <films.yaml>
+```
+
+### Parameters
+- `-DatabasePath` - Path to the films.yaml database file.
+
+### Behavior
+Removes stale film records that no longer have any origin (a missing or empty `origin` list). A record can lose its origins when, for example, an IMDb-list-only film is pruned out of every list it belonged to (see `ImportIMDbList.ps1`); such a record no longer corresponds to any source. Each removed record is logged, and the database is only rewritten when at least one record is removed.
+
 ## UpdateIMDbData.ps1
 ### Usage
 ```powershell
