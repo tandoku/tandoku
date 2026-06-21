@@ -21,6 +21,9 @@ imdb:
   id: tt36592690
   rating: 8.3
   votes: 12000
+  lists:
+    queue-japanese: 3
+    completed-japanese-intensive-immersion: 12
 myAnimeList:
   id: 59845
 tmdb:
@@ -122,6 +125,38 @@ availability:
         subtitle: [en, es, ja, zh]
 origin: [netflix]
 ```
+
+## DownloadIMDbLists.ps1
+### Usage
+```powershell
+DownloadIMDbLists.ps1 -IMDbExportsPath <imdb-exports.html> -CsvPath <dir>
+```
+
+### Parameters
+- `-IMDbExportsPath` - Path to a saved IMDb exports page (`https://www.imdb.com/exports/`). IMDb only serves this page behind a JavaScript/anti-bot challenge, so it must be saved from a logged-in browser session rather than fetched directly.
+- `-CsvPath` - Path to a directory the downloaded list CSV files are written to (created if it does not exist).
+
+### Behavior
+Parses the saved exports page's embedded `__NEXT_DATA__` JSON to find every ready title-list export (`exportType` `LIST`, `listType` `TITLES`, `status` `READY`), keeping the most recent export per list id. For each list it downloads the export's CSV from the presigned download URL embedded in the page and saves it as `<kebab-cased list name>.csv` under `-CsvPath`, so the file name doubles as the list name when imported by `ImportIMDbList.ps1`.
+
+Lists are processed in a stable order (sorted by slug, then list id) so that when two distinct list names reduce to the same kebab-cased slug, the collision suffixes (`<slug>.csv`, `<slug>-2.csv`, ...) are assigned deterministically across runs; a warning is emitted for each collision.
+
+> **Note:** the presigned CSV download URLs embedded in the exports page expire a few minutes after the page is loaded. Save the exports page and run this script promptly; if the downloads fail with an expired/forbidden error, re-save the page and try again.
+
+## ImportIMDbList.ps1
+### Usage
+```powershell
+ImportIMDbList.ps1 -DatabasePath <films.yaml> -CsvPath <paths>
+```
+
+### Parameters
+- `-DatabasePath` - Path to the films.yaml database file.
+- `-CsvPath` - One or more paths to import list CSVs from. Each element may be a directory (all `*.csv` files within it are used), a single CSV file, or a wildcard pattern (e.g. `lists-*.csv`). Resolved files are deduplicated.
+
+### Behavior
+Imports one or more IMDb list CSV exports (as produced by `DownloadIMDbLists.ps1`) into films.yaml. Each CSV's file name (without the `.csv` extension) is used as the list name recorded under `imdb.lists.<list-name>: <rank>`, where the rank comes from the CSV `Position` column and the IMDb ID from the `Const` column. Entries are matched by `imdb.id` (creating a new entry when none exists), `imdb` (the title) is populated/refreshed, and `imdb` is added to the entry's `origin` list.
+
+Repeated runs merge without smashing other lists or fields: only the importing list's entry under `imdb.lists` is set, leaving any other lists and `imdb` fields intact. A warning is emitted when two distinct CSV files resolve to the same list name (their `imdb.lists` ranks would otherwise overwrite each other).
 
 ## PopulateWikidata.ps1
 ### Usage
