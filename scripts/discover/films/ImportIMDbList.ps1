@@ -104,6 +104,23 @@ function Import-ListRows($listName, $rows) {
 
 # --- Import each CSV ---
 
+# Warn when two distinct CSV files share a base name, since they map to the same
+# imdb.lists entry and the later import would overwrite the earlier one's ranks.
+$listNameSources = @{}
+foreach ($file in $csvFiles) {
+    $listName = [System.IO.Path]::GetFileNameWithoutExtension($file)
+    if (-not $listNameSources.ContainsKey($listName)) {
+        $listNameSources[$listName] = [System.Collections.Generic.List[string]]::new()
+    }
+    $listNameSources[$listName].Add($file)
+}
+foreach ($listName in $listNameSources.Keys) {
+    $sources = $listNameSources[$listName]
+    if ($sources.Count -gt 1) {
+        Write-Warning "Multiple CSV files map to list '$listName' (later imports overwrite earlier ranks): $($sources -join ', ')"
+    }
+}
+
 $totalAdded = 0
 $totalUpdated = 0
 foreach ($file in $csvFiles) {
