@@ -262,7 +262,10 @@ GROUP BY ?item
                         $type = $types
                     }
                 }
-                $country = if ($binding.country.value) { @($binding.country.value -split '\|') } else { $null }
+                $country = $null
+                if ($binding.country.value) {
+                    $country = @($binding.country.value -split '\|')
+                }
                 # Prefer P364 (original language of film or TV show); fall back to
                 # P407 (language of work or name) when P364 is not set.
                 $langValue = if ($binding.language.value) {
@@ -270,7 +273,10 @@ GROUP BY ?item
                 } else {
                     $binding.fallbackLanguage.value
                 }
-                $language = if ($langValue) { @($langValue -split '\|') } else { $null }
+                $languageCodes = $null
+                if ($langValue) {
+                    $languageCodes = @($langValue -split '\|')
+                }
                 $year = if ($binding.startYear.value) { $binding.startYear.value } else { $binding.pubYear.value }
 
                 $imdbIds = @()
@@ -317,8 +323,8 @@ GROUP BY ?item
                     } elseif ($Force) {
                         $film.Remove('country')
                     }
-                    if ($language) {
-                        $film['language'] = $language
+                    if ($languageCodes) {
+                        $film['language'] = $languageCodes
                     } elseif ($Force) {
                         $film.Remove('language')
                     }
