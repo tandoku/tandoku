@@ -4,6 +4,7 @@ param(
     [switch]$Force,
     [switch]$NetflixCatalog,
     [int]$NetflixRequestLimit = 100,
+    [string]$IMDbExportsPath,
     [switch]$UpdateImdbData,
     [switch]$UpdateNativelyData
 )
@@ -23,6 +24,11 @@ $sources = "$Path/sources"
 
 if ($NetflixCatalog) {
     & "$PSScriptRoot/ImportNetflixCatalog.ps1" -DatabasePath $dbPath -CachePath "$sources/netflix" -RequestLimit $NetflixRequestLimit
+}
+
+if ($IMDbExportsPath) {
+    & "$PSScriptRoot/DownloadIMDbLists.ps1" -IMDbExportsPath $IMDbExportsPath -CsvPath "$sources/imdb/lists"
+    & "$PSScriptRoot/ImportIMDbList.ps1" -DatabasePath $dbPath -CsvPath "$sources/imdb/lists"
 }
 
 & "$PSScriptRoot/PopulateWikidata.ps1" -DatabasePath $dbPath -Force:$Force
