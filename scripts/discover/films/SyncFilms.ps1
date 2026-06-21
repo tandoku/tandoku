@@ -28,8 +28,8 @@ if ($NetflixCatalog) {
 
 if ($IMDbExportsPath) {
     & "$PSScriptRoot/DownloadIMDbLists.ps1" -IMDbExportsPath $IMDbExportsPath -CsvPath "$sources/imdb/lists"
-    & "$PSScriptRoot/ImportIMDbList.ps1" -DatabasePath $dbPath -CsvPath "$sources/imdb/lists"
 }
+& "$PSScriptRoot/ImportIMDbList.ps1" -DatabasePath $dbPath -CsvPath "$sources/imdb/lists"
 
 & "$PSScriptRoot/PopulateWikidata.ps1" -DatabasePath $dbPath -Force:$Force
 
