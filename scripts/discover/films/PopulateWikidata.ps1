@@ -25,7 +25,7 @@ Write-Host "Read $($films.Count) entries from films database"
 # Batched lookup of Wikidata QIDs by an external-identifier property (e.g.
 # P1874 = Netflix ID, P345 = IMDb ID). Returns a hashtable mapping each id to a
 # list of matching QIDs (ids with no match are absent).
-function Resolve-WikidataQidsByProperty([string]$property, [string[]]$ids) {
+function Resolve-WikidataQidsByProperty([string]$property, [string[]]$ids, [string]$label = $property) {
     $result = @{}
     $batchSize = 50
     for ($i = 0; $i -lt $ids.Count; $i += $batchSize) {
@@ -47,10 +47,10 @@ function Resolve-WikidataQidsByProperty([string]$property, [string[]]$ids) {
             }
         }
         catch {
-            Write-Warning "Failed to query Wikidata QIDs for $property batch at index ${i}: $_"
+            Write-Warning "Failed to query Wikidata QIDs for $label batch at index ${i}: $_"
         }
 
-        Write-Host "QID lookup ($property): $([Math]::Min($i + $batchSize, $ids.Count))/$($ids.Count)"
+        Write-Host "QID lookup ($label): $([Math]::Min($i + $batchSize, $ids.Count))/$($ids.Count)"
 
         if ($i + $batchSize -lt $ids.Count) {
             Start-Sleep -Milliseconds 1000
@@ -93,8 +93,8 @@ if ($needsQid.Count -gt 0) {
     }
     $qidByPropertyId = @{}
     foreach ($property in $idsByProperty.Keys) {
-        $map = Resolve-WikidataQidsByProperty $property @($idsByProperty[$property])
         $propertyName = if ($originByProperty.ContainsKey($property)) { $originByProperty[$property] } else { $property }
+        $map = Resolve-WikidataQidsByProperty $property @($idsByProperty[$property]) $propertyName
         foreach ($id in $map.Keys) {
             $qids = $map[$id]
             if ($qids.Count -gt 1) {
