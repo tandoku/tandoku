@@ -87,13 +87,18 @@ if ($needsQid.Count -gt 0) {
     }
 
     # Resolve QIDs for each property and index by "property|id".
+    $originByProperty = @{}
+    foreach ($entry in (Get-FilmOriginRegistry)) {
+        $originByProperty[$entry.WikidataProp] = $entry.Origin
+    }
     $qidByPropertyId = @{}
     foreach ($property in $idsByProperty.Keys) {
         $map = Resolve-WikidataQidsByProperty $property @($idsByProperty[$property])
+        $propertyName = if ($originByProperty.ContainsKey($property)) { $originByProperty[$property] } else { $property }
         foreach ($id in $map.Keys) {
             $qids = $map[$id]
             if ($qids.Count -gt 1) {
-                Write-Warning "$property identifier $id matches multiple Wikidata entities: $($qids -join ', ')"
+                Write-Warning "$propertyName identifier $id matches multiple Wikidata entities: $($qids -join ', ')"
             }
             $qidByPropertyId["$property|$id"] = $qids
         }
