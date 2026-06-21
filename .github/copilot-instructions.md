@@ -104,6 +104,20 @@ The PowerShell scripts in `scripts/` are **prototypes** that often predate the
 equivalent .NET command. When porting a script to .NET, the script is the
 behavioral spec; keep the script working until the .NET version reaches parity.
 
+## PowerShell gotchas
+
+- **Variable names are case-insensitive**, so a local like `$language` is the
+  *same variable* as a `$Language` parameter. Introducing such a local silently
+  clobbers the parameter (this has caused real title/language corruption in
+  `PopulateWikidata.ps1`). Never shadow a parameter with a differently-cased
+  local — give locals a clearly distinct name (e.g. `$languageCodes`).
+- **Assigning an array via an `if`/`foreach` expression enumerates it**, so a
+  single-element array collapses to a scalar: `$x = if (...) { @($v) }` makes
+  `$x` a string, not a one-element array. When a field must stay an array
+  (e.g. `country`, `language`, `type`), assign inside the block
+  (`$x = $null; if (...) { $x = @($v) }`) or wrap with `@(...)`/`,` so the array
+  type is preserved.
+
 ## Things to avoid
 
 - Don't add projects to `tandoku.slnx` from `legacy/` — that code is kept for
