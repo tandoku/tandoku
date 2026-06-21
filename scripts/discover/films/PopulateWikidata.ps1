@@ -22,59 +22,106 @@ $films = Read-FilmsDatabase -LiteralPath $DatabasePath
 
 Write-Host "Read $($films.Count) entries from films database"
 
+# Batched lookup of Wikidata QIDs by an external-identifier property (e.g.
+# P1874 = Netflix ID, P345 = IMDb ID). Returns a hashtable mapping each id to a
+# list of matching QIDs (ids with no match are absent).
+function Resolve-WikidataQidsByProperty([string]$property, [string[]]$ids) {
+    $result = @{}
+    $batchSize = 50
+    for ($i = 0; $i -lt $ids.Count; $i += $batchSize) {
+        $end = [Math]::Min($i + $batchSize - 1, $ids.Count - 1)
+        $batch = $ids[$i..$end]
+        $values = ($batch | ForEach-Object { "`"$_`"" }) -join " "
+        $query = "SELECT ?item ?id WHERE { VALUES ?id { $values } ?item wdt:$property ?id . }"
+
+        try {
+            foreach ($binding in (Invoke-WikidataSparql $query)) {
+                $qid = ConvertTo-WikidataQid $binding.item.value
+                $id = $binding.id.value
+                if (-not $result.ContainsKey($id)) {
+                    $result[$id] = [System.Collections.Generic.List[string]]::new()
+                }
+                if ($result[$id] -notcontains $qid) {
+                    $result[$id].Add($qid)
+                }
+            }
+        }
+        catch {
+            Write-Warning "Failed to query Wikidata QIDs for $property batch at index ${i}: $_"
+        }
+
+        Write-Host "QID lookup ($property): $([Math]::Min($i + $batchSize, $ids.Count))/$($ids.Count)"
+
+        if ($i + $batchSize -lt $ids.Count) {
+            Start-Sleep -Milliseconds 1000
+        }
+    }
+    return $result
+}
+
 # --- Phase 1: Look up Wikidata QIDs for entries missing them ---
 
-$needsQid = @{}
+# Each origin owns an external identifier mirrored on Wikidata; resolve the QID
+# from whichever identifiers a record owns and require them to agree.
+$needsQid = [System.Collections.Generic.List[object]]::new()
 foreach ($film in $films) {
-    if ($film.availability -and $film.availability.netflix -and $null -ne $film.availability.netflix.id) {
-        if ($Force -or -not $film.wikidata) {
-            $needsQid[[string]$film.availability.netflix.id] = $film
-        }
+    if (-not ($Force -or -not $film.wikidata)) { continue }
+    $owned = Get-FilmOwnedIdentifiers $film
+    if ($owned.Count -gt 0) {
+        $needsQid.Add([pscustomobject]@{ Film = $film; Owned = $owned })
     }
 }
 
 if ($needsQid.Count -gt 0) {
     Write-Host "$($needsQid.Count) entries need Wikidata QID lookup"
 
-    $batchSize = 50
-    $netflixIds = @($needsQid.Keys)
+    # Collect the distinct owned identifiers per Wikidata property.
+    $idsByProperty = @{}
+    foreach ($req in $needsQid) {
+        foreach ($owned in $req.Owned) {
+            if (-not $idsByProperty.ContainsKey($owned.WikidataProp)) {
+                $idsByProperty[$owned.WikidataProp] = [System.Collections.Generic.HashSet[string]]::new()
+            }
+            [void]$idsByProperty[$owned.WikidataProp].Add([string]$owned.Id)
+        }
+    }
+
+    # Resolve QIDs for each property and index by "property|id".
+    $qidByPropertyId = @{}
+    foreach ($property in $idsByProperty.Keys) {
+        $map = Resolve-WikidataQidsByProperty $property @($idsByProperty[$property])
+        foreach ($id in $map.Keys) {
+            $qids = $map[$id]
+            if ($qids.Count -gt 1) {
+                Write-Warning "$property identifier $id matches multiple Wikidata entities: $($qids -join ', ')"
+            }
+            $qidByPropertyId["$property|$id"] = $qids
+        }
+    }
+
+    # Assign a QID per record, requiring all of its owned identifiers to agree.
     $qidMatched = 0
-
-    for ($i = 0; $i -lt $netflixIds.Count; $i += $batchSize) {
-        $end = [Math]::Min($i + $batchSize - 1, $netflixIds.Count - 1)
-        $batch = $netflixIds[$i..$end]
-        $values = ($batch | ForEach-Object { "`"$_`"" }) -join " "
-        $query = "SELECT ?item ?netflixId WHERE { VALUES ?netflixId { $values } ?item wdt:P1874 ?netflixId . }"
-
-        try {
-            $batchResults = @{}
-            foreach ($binding in (Invoke-WikidataSparql $query)) {
-                $qid = ConvertTo-WikidataQid $binding.item.value
-                $netflixId = $binding.netflixId.value
-                if (-not $batchResults.ContainsKey($netflixId)) {
-                    $batchResults[$netflixId] = [System.Collections.Generic.List[string]]::new()
-                }
-                $batchResults[$netflixId].Add($qid)
-            }
-            foreach ($netflixId in $batchResults.Keys) {
-                $qids = $batchResults[$netflixId]
-                if ($qids.Count -gt 1) {
-                    Write-Warning "Netflix ID $netflixId matches multiple Wikidata entities: $($qids -join ', ')"
-                }
-                if ($Force -or -not $needsQid[$netflixId].Contains('wikidata')) {
-                    $needsQid[$netflixId]['wikidata'] = $qids[0]
-                    $qidMatched++
-                }
+    foreach ($req in $needsQid) {
+        $film = $req.Film
+        $resolved = [System.Collections.Generic.HashSet[string]]::new()
+        foreach ($owned in $req.Owned) {
+            $key = "$($owned.WikidataProp)|$($owned.Id)"
+            if ($qidByPropertyId.ContainsKey($key)) {
+                foreach ($qid in $qidByPropertyId[$key]) { [void]$resolved.Add($qid) }
             }
         }
-        catch {
-            Write-Warning "Failed to query Wikidata QIDs for batch at index ${i}: $_"
+
+        if ($resolved.Count -eq 0) { continue }
+
+        if ($resolved.Count -gt 1) {
+            $idDesc = ($req.Owned | ForEach-Object { "$($_.Origin)=$($_.Id)" }) -join ', '
+            Write-Error "Film with identifiers [$idDesc] resolves to multiple Wikidata entities: $(@($resolved) -join ', '). Leaving wikidata unset."
+            continue
         }
 
-        Write-Host "QID lookup: $([Math]::Min($i + $batchSize, $netflixIds.Count))/$($netflixIds.Count)"
-
-        if ($i + $batchSize -lt $netflixIds.Count) {
-            Start-Sleep -Milliseconds 1000
+        if ($Force -or -not $film.Contains('wikidata') -or -not $film['wikidata']) {
+            $film['wikidata'] = @($resolved)[0]
+            $qidMatched++
         }
     }
 
@@ -83,17 +130,66 @@ if ($needsQid.Count -gt 0) {
     Write-Host "All entries already have Wikidata QIDs"
 }
 
+# --- Phase 1.5: Merge duplicate records that resolve to the same entity ---
+
+# Different origins can create separate records for the same work (e.g. a Netflix
+# import and an IMDb list import); once both resolve to the same QID they must be
+# merged into a single record.
+$byQid = @{}
+for ($i = 0; $i -lt $films.Count; $i++) {
+    $film = $films[$i]
+    if ($film.Contains('wikidata') -and $film['wikidata']) {
+        $qid = [string]$film['wikidata']
+        if (-not $byQid.ContainsKey($qid)) {
+            $byQid[$qid] = [System.Collections.Generic.List[int]]::new()
+        }
+        $byQid[$qid].Add($i)
+    }
+}
+
+$mergedAway = [System.Collections.Generic.HashSet[int]]::new()
+$mergeCount = 0
+foreach ($qid in $byQid.Keys) {
+    $indices = $byQid[$qid]
+    if ($indices.Count -lt 2) { continue }
+
+    $primary = $films[$indices[0]]
+    for ($j = 1; $j -lt $indices.Count; $j++) {
+        $secondaryIdx = $indices[$j]
+        if (Merge-FilmRecords $primary $films[$secondaryIdx]) {
+            [void]$mergedAway.Add($secondaryIdx)
+            $mergeCount++
+        }
+    }
+}
+
+if ($mergedAway.Count -gt 0) {
+    $merged = [System.Collections.Generic.List[object]]::new()
+    for ($i = 0; $i -lt $films.Count; $i++) {
+        if (-not $mergedAway.Contains($i)) {
+            $merged.Add($films[$i])
+        }
+    }
+    $films = $merged
+    Write-Host "Merged $mergeCount duplicate record(s); $($films.Count) entries remain"
+}
+
 # --- Phase 2: Populate additional fields from Wikidata ---
 
 $needsData = @{}
 foreach ($film in $films) {
     if ($film.wikidata -and ($Force -or -not $film.title)) {
-        $needsData[$film.wikidata] = $film
+        $qid = [string]$film.wikidata
+        if (-not $needsData.ContainsKey($qid)) {
+            $needsData[$qid] = [System.Collections.Generic.List[object]]::new()
+        }
+        $needsData[$qid].Add($film)
     }
 }
 
 if ($needsData.Count -gt 0) {
-    Write-Host "$($needsData.Count) entries need Wikidata details"
+    $needsDataFilmCount = ($needsData.Values | ForEach-Object { $_.Count } | Measure-Object -Sum).Sum
+    Write-Host "$needsDataFilmCount entries need Wikidata details"
 
     $batchSize = 50
     $qids = @($needsData.Keys)
@@ -115,6 +211,7 @@ SELECT ?item
   (SAMPLE(?startYear_) AS ?startYear)
   (SAMPLE(?pubYear_) AS ?pubYear)
   (GROUP_CONCAT(DISTINCT ?imdbId_; SEPARATOR="|") AS ?imdbId)
+  (GROUP_CONCAT(DISTINCT ?netflixId_; SEPARATOR="|") AS ?netflixId)
   (GROUP_CONCAT(DISTINCT ?malId_; SEPARATOR="|") AS ?malId)
   (GROUP_CONCAT(DISTINCT ?tmdbMovieId_; SEPARATOR="|") AS ?tmdbMovieId)
   (GROUP_CONCAT(DISTINCT ?tmdbTvId_; SEPARATOR="|") AS ?tmdbTvId)
@@ -127,6 +224,7 @@ WHERE {
   OPTIONAL { ?item wdt:P364 ?lang_ . ?lang_ wdt:P424 ?langCode_ }
   OPTIONAL { ?item wdt:P407 ?fallbackLang_ . ?fallbackLang_ wdt:P424 ?fallbackLangCode_ }
   OPTIONAL { ?item wdt:P345 ?imdbId_ }
+  OPTIONAL { ?item wdt:P1874 ?netflixId_ }
   OPTIONAL { ?item wdt:P4086 ?malId_ }
   OPTIONAL { ?item wdt:P4947 ?tmdbMovieId_ }
   OPTIONAL { ?item wdt:P4983 ?tmdbTvId_ }
@@ -139,8 +237,9 @@ GROUP BY ?item
         try {
             foreach ($binding in (Invoke-WikidataSparql $query)) {
                 $qid = ConvertTo-WikidataQid $binding.item.value
-                $film = $needsData[$qid]
-                if (-not $film) { continue }
+                if (-not $needsData.ContainsKey($qid)) { continue }
+
+                # --- Parse the Wikidata values once for this entity ---
 
                 $title = [ordered]@{}
                 if ($binding.titleEn.value) {
@@ -148,11 +247,6 @@ GROUP BY ?item
                 }
                 if ($Language -ne 'en' -and $binding.titleLang.value) {
                     $title[$Language] = Clean-Text $binding.titleLang.value
-                }
-                if ($title.Count -gt 0) {
-                    $film['title'] = $title
-                } elseif ($Force) {
-                    $film.Remove('title')
                 }
                 $type = $null
                 if ($binding.types.value) {
@@ -163,16 +257,7 @@ GROUP BY ?item
                         $type = $types
                     }
                 }
-                if ($type) {
-                    $film['type'] = $type
-                } elseif ($Force) {
-                    $film.Remove('type')
-                }
-                if ($binding.country.value) {
-                    $film['country'] = @($binding.country.value -split '\|')
-                } elseif ($Force) {
-                    $film.Remove('country')
-                }
+                $country = if ($binding.country.value) { @($binding.country.value -split '\|') } else { $null }
                 # Prefer P364 (original language of film or TV show); fall back to
                 # P407 (language of work or name) when P364 is not set.
                 $langValue = if ($binding.language.value) {
@@ -180,38 +265,20 @@ GROUP BY ?item
                 } else {
                     $binding.fallbackLanguage.value
                 }
-                if ($langValue) {
-                    $film['language'] = @($langValue -split '\|')
-                } elseif ($Force) {
-                    $film.Remove('language')
-                }
+                $language = if ($langValue) { @($langValue -split '\|') } else { $null }
                 $year = if ($binding.startYear.value) { $binding.startYear.value } else { $binding.pubYear.value }
-                if ($year) {
-                    $film['year'] = [int]$year
-                } elseif ($Force) {
-                    $film.Remove('year')
-                }
+
+                $imdbIds = @()
                 if ($binding.imdbId.value) {
                     $imdbIds = @($binding.imdbId.value -split '\|' | Sort-Object)
-                    if ($imdbIds.Count -gt 1) {
-                        Write-Warning "$qid has multiple IMDb IDs: $($imdbIds -join ', '); using $($imdbIds[0])"
-                    }
-                    if ($film['imdb'] -is [System.Collections.IDictionary]) {
-                        $film['imdb']['id'] = $imdbIds[0]
-                    } else {
-                        $film['imdb'] = [ordered]@{ id = $imdbIds[0] }
-                    }
-                } elseif ($Force) {
-                    $film.Remove('imdb')
                 }
+                $netflixIds = @()
+                if ($binding.netflixId.value) {
+                    $netflixIds = @($binding.netflixId.value -split '\|')
+                }
+                $malIds = @()
                 if ($binding.malId.value) {
                     $malIds = @($binding.malId.value -split '\|' | ForEach-Object { [int]$_ } | Sort-Object)
-                    if ($malIds.Count -gt 1) {
-                        Write-Warning "$qid has multiple MyAnimeList IDs: $($malIds -join ', '); using $($malIds[0])"
-                    }
-                    $film['myAnimeList'] = @{ id = $malIds[0] }
-                } elseif ($Force) {
-                    $film.Remove('myAnimeList')
                 }
                 $tmdbMovieIds = @()
                 if ($binding.tmdbMovieId.value) {
@@ -221,20 +288,104 @@ GROUP BY ?item
                 if ($binding.tmdbTvId.value) {
                     $tmdbTvIds = @($binding.tmdbTvId.value -split '\|' | ForEach-Object { [int]$_ } | Sort-Object)
                 }
-                if ($tmdbMovieIds.Count + $tmdbTvIds.Count -gt 1) {
-                    $tmdbDesc = @()
-                    if ($tmdbMovieIds.Count -gt 0) { $tmdbDesc += "movie: $($tmdbMovieIds -join ', ')" }
-                    if ($tmdbTvIds.Count -gt 0) { $tmdbDesc += "tv-series: $($tmdbTvIds -join ', ')" }
-                    Write-Warning "$qid has multiple TMDB IDs ($($tmdbDesc -join '; ')); preferring tv-series over movie and lowest ID"
+
+                # --- Apply to every record resolved to this entity ---
+
+                foreach ($film in $needsData[$qid]) {
+                    $origins = @()
+                    if ($film.Contains('origin') -and $film['origin']) {
+                        $origins = @($film['origin'])
+                    }
+
+                    if ($title.Count -gt 0) {
+                        $film['title'] = $title
+                    } elseif ($Force) {
+                        $film.Remove('title')
+                    }
+                    if ($type) {
+                        $film['type'] = $type
+                    } elseif ($Force) {
+                        $film.Remove('type')
+                    }
+                    if ($country) {
+                        $film['country'] = $country
+                    } elseif ($Force) {
+                        $film.Remove('country')
+                    }
+                    if ($language) {
+                        $film['language'] = $language
+                    } elseif ($Force) {
+                        $film.Remove('language')
+                    }
+                    if ($year) {
+                        $film['year'] = [int]$year
+                    } elseif ($Force) {
+                        $film.Remove('year')
+                    }
+
+                    # IMDb ID is owned by the 'imdb' origin: when owned it is
+                    # authoritative and must never be overwritten from Wikidata -
+                    # a mismatch is an error. When not owned (e.g. a Netflix-only
+                    # record) the IMDb ID is a cross-reference we fill in.
+                    if ($origins -contains 'imdb') {
+                        $currentImdbId = $null
+                        if ($film.Contains('imdb') -and $film['imdb']) {
+                            $currentImdbId = $film['imdb']['id']
+                        }
+                        if ($imdbIds.Count -gt 0 -and $currentImdbId -and ($imdbIds -notcontains $currentImdbId)) {
+                            Write-Error "${qid}: Wikidata IMDb ID(s) [$($imdbIds -join ', ')] do not match owned imdb.id '$currentImdbId'; not overwriting."
+                        }
+                    } elseif ($imdbIds.Count -gt 0) {
+                        if ($imdbIds.Count -gt 1) {
+                            Write-Warning "$qid has multiple IMDb IDs: $($imdbIds -join ', '); using $($imdbIds[0])"
+                        }
+                        if ($film['imdb'] -is [System.Collections.IDictionary]) {
+                            $film['imdb']['id'] = $imdbIds[0]
+                        } else {
+                            $film['imdb'] = [ordered]@{ id = $imdbIds[0] }
+                        }
+                    } elseif ($Force) {
+                        $film.Remove('imdb')
+                    }
+
+                    # Netflix ID is owned by the 'netflix' origin and is never
+                    # populated from Wikidata; verify consistency and error on a
+                    # mismatch.
+                    if (($origins -contains 'netflix') -and $netflixIds.Count -gt 0) {
+                        $currentNetflixId = $null
+                        if ($film.Contains('availability') -and $film['availability'] -and
+                            $film['availability'].Contains('netflix') -and $film['availability']['netflix']) {
+                            $currentNetflixId = $film['availability']['netflix']['id']
+                        }
+                        if ($currentNetflixId -and ($netflixIds -notcontains "$currentNetflixId")) {
+                            Write-Error "${qid}: Wikidata Netflix ID(s) [$($netflixIds -join ', ')] do not match owned netflix.id '$currentNetflixId'; not overwriting."
+                        }
+                    }
+
+                    if ($malIds.Count -gt 0) {
+                        if ($malIds.Count -gt 1) {
+                            Write-Warning "$qid has multiple MyAnimeList IDs: $($malIds -join ', '); using $($malIds[0])"
+                        }
+                        $film['myAnimeList'] = @{ id = $malIds[0] }
+                    } elseif ($Force) {
+                        $film.Remove('myAnimeList')
+                    }
+
+                    if ($tmdbMovieIds.Count + $tmdbTvIds.Count -gt 1) {
+                        $tmdbDesc = @()
+                        if ($tmdbMovieIds.Count -gt 0) { $tmdbDesc += "movie: $($tmdbMovieIds -join ', ')" }
+                        if ($tmdbTvIds.Count -gt 0) { $tmdbDesc += "tv-series: $($tmdbTvIds -join ', ')" }
+                        Write-Warning "$qid has multiple TMDB IDs ($($tmdbDesc -join '; ')); preferring tv-series over movie and lowest ID"
+                    }
+                    if ($tmdbTvIds.Count -gt 0) {
+                        $film['tmdb'] = [ordered]@{ id = $tmdbTvIds[0]; kind = 'tv-series' }
+                    } elseif ($tmdbMovieIds.Count -gt 0) {
+                        $film['tmdb'] = [ordered]@{ id = $tmdbMovieIds[0]; kind = 'movie' }
+                    } elseif ($Force) {
+                        $film.Remove('tmdb')
+                    }
+                    $enriched++
                 }
-                if ($tmdbTvIds.Count -gt 0) {
-                    $film['tmdb'] = [ordered]@{ id = $tmdbTvIds[0]; kind = 'tv-series' }
-                } elseif ($tmdbMovieIds.Count -gt 0) {
-                    $film['tmdb'] = [ordered]@{ id = $tmdbMovieIds[0]; kind = 'movie' }
-                } elseif ($Force) {
-                    $film.Remove('tmdb')
-                }
-                $enriched++
             }
         }
         catch {
@@ -248,7 +399,7 @@ GROUP BY ?item
         }
     }
 
-    Write-Host "Enriched $enriched/$($needsData.Count) entries with Wikidata details"
+    Write-Host "Enriched $enriched/$needsDataFilmCount entries with Wikidata details"
 } else {
     Write-Host "All entries already have Wikidata details"
 }

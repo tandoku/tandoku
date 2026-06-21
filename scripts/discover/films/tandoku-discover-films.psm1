@@ -111,4 +111,150 @@ function Read-FilmsDatabase {
     return , $films
 }
 
-Export-ModuleMember -Function Get-WikidataUserAgent, Invoke-WikidataSparql, ConvertTo-WikidataQid, Format-FilmEntry, Get-DisplayTitle, Read-FilmsDatabase, Add-Origin
+# Registry of the external sources ("origins") a film record can come from. Each
+# origin "owns" exactly one external identifier (a path within the film record)
+# that uniquely identifies the work for that source and is mirrored on Wikidata
+# under a known property. This drives origin-aware Wikidata lookup and the rule
+# that an origin-owned identifier is authoritative and must never be silently
+# overwritten from Wikidata. Add a new origin here to extend support (e.g. a
+# future tmdb or myAnimeList origin) rather than special-casing it in scripts.
+$script:FilmOriginRegistry = @(
+    [pscustomobject]@{
+        Origin        = 'netflix'
+        # Wikidata property mirroring this identifier (P1874 = Netflix ID).
+        WikidataProp  = 'P1874'
+        # Alias used for this identifier in PopulateWikidata's details query.
+        WikidataField = 'netflixId'
+        # Reads the identifier value from a film record (or $null when absent).
+        GetId         = {
+            param($film)
+            if ($film.Contains('availability') -and $film['availability'] -and
+                $film['availability'].Contains('netflix') -and $film['availability']['netflix']) {
+                return $film['availability']['netflix']['id']
+            }
+            return $null
+        }
+    },
+    [pscustomobject]@{
+        Origin        = 'imdb'
+        # P345 = IMDb ID.
+        WikidataProp  = 'P345'
+        WikidataField = 'imdbId'
+        GetId         = {
+            param($film)
+            if ($film.Contains('imdb') -and $film['imdb']) {
+                return $film['imdb']['id']
+            }
+            return $null
+        }
+    }
+)
+
+# Returns the origin registry (see $script:FilmOriginRegistry).
+function Get-FilmOriginRegistry {
+    return $script:FilmOriginRegistry
+}
+
+# Returns the registry entry for a given origin name, or $null when the origin
+# is not in the registry.
+function Get-FilmOriginInfo([string]$origin) {
+    foreach ($entry in $script:FilmOriginRegistry) {
+        if ($entry.Origin -eq $origin) { return $entry }
+    }
+    return $null
+}
+
+# Reads the identifier value an origin owns from a film record (regardless of
+# whether the origin is listed in the record's `origin` field). Returns $null
+# when the origin is unknown or the identifier is absent.
+function Get-FilmIdentifier($film, [string]$origin) {
+    $info = Get-FilmOriginInfo $origin
+    if (-not $info) { return $null }
+    return (& $info.GetId $film)
+}
+
+# Returns the set of identifiers a film record actually owns: one entry per
+# registry origin that is listed in the record's `origin` field AND has a
+# non-null identifier value. Each entry has Origin, WikidataProp, WikidataField
+# and Id.
+function Get-FilmOwnedIdentifiers($film) {
+    $origins = @()
+    if ($film.Contains('origin') -and $film['origin']) {
+        $origins = @($film['origin'])
+    }
+    $owned = [System.Collections.Generic.List[object]]::new()
+    foreach ($entry in $script:FilmOriginRegistry) {
+        if ($origins -notcontains $entry.Origin) { continue }
+        $id = & $entry.GetId $film
+        if ($null -eq $id -or $id -eq '') { continue }
+        $owned.Add([pscustomobject]@{
+            Origin        = $entry.Origin
+            WikidataProp  = $entry.WikidataProp
+            WikidataField = $entry.WikidataField
+            Id            = $id
+        })
+    }
+    return $owned
+}
+
+# Deep-merges the $secondary film record into $primary (modifying $primary in
+# place) when they represent the same work (e.g. one created from a Netflix
+# import and another from an IMDb list import that resolve to the same Wikidata
+# entity). Unions origins and `imdb.lists`, and fills any field present on
+# $secondary but missing on $primary.
+#
+# Returns $true on success. If the two records carry conflicting values for any
+# origin-owned identifier (e.g. different netflix.id or imdb.id), no merge is
+# performed and $false is returned after writing a non-terminating error, so the
+# caller can leave both records in place for manual resolution.
+function Merge-FilmRecords($primary, $secondary) {
+    # Detect conflicting owned identifiers before mutating anything.
+    foreach ($entry in $script:FilmOriginRegistry) {
+        $a = & $entry.GetId $primary
+        $b = & $entry.GetId $secondary
+        if ($null -ne $a -and $a -ne '' -and $null -ne $b -and $b -ne '' -and "$a" -ne "$b") {
+            Write-Error "Cannot merge film records: conflicting $($entry.Origin) identifier ('$a' vs '$b'). Leaving records unmerged."
+            return $false
+        }
+    }
+
+    foreach ($key in @($secondary.Keys)) {
+        if ($key -eq 'origin') {
+            foreach ($origin in @($secondary['origin'])) {
+                Add-Origin $primary $origin
+            }
+            continue
+        }
+
+        if (-not $primary.Contains($key) -or $null -eq $primary[$key]) {
+            # Field only on the secondary record - take it as-is.
+            $primary[$key] = $secondary[$key]
+            continue
+        }
+
+        # Both records have the key; merge dictionaries field-by-field, otherwise
+        # keep the primary's value (Wikidata-derived fields are refreshed later).
+        if ($primary[$key] -is [System.Collections.IDictionary] -and $secondary[$key] -is [System.Collections.IDictionary]) {
+            Merge-FilmSubDictionary $primary[$key] $secondary[$key]
+        }
+    }
+
+    return $true
+}
+
+# Helper for Merge-FilmRecords: merges $secondary dictionary into $primary,
+# filling missing keys and unioning nested `lists`/dictionaries.
+function Merge-FilmSubDictionary($primary, $secondary) {
+    foreach ($key in @($secondary.Keys)) {
+        if (-not $primary.Contains($key) -or $null -eq $primary[$key]) {
+            $primary[$key] = $secondary[$key]
+        }
+        elseif ($primary[$key] -is [System.Collections.IDictionary] -and $secondary[$key] -is [System.Collections.IDictionary]) {
+            # e.g. imdb.lists or availability.netflix - union nested entries,
+            # preferring the primary's value on overlap.
+            Merge-FilmSubDictionary $primary[$key] $secondary[$key]
+        }
+    }
+}
+
+Export-ModuleMember -Function Get-WikidataUserAgent, Invoke-WikidataSparql, ConvertTo-WikidataQid, Format-FilmEntry, Get-DisplayTitle, Read-FilmsDatabase, Add-Origin, Get-FilmOriginRegistry, Get-FilmOriginInfo, Get-FilmIdentifier, Get-FilmOwnedIdentifiers, Merge-FilmRecords
