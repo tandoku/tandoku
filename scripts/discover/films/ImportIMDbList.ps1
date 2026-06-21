@@ -66,13 +66,19 @@ for ($i = 0; $i -lt $films.Count; $i++) {
 
 # Merges a single list's CSV rows into the database. Matches existing entries by
 # imdb.id (creating new ones if absent) and records the title's rank under
-# imdb.lists.<list-name> without disturbing other lists or fields.
+# imdb.lists.<list-name> without disturbing other lists or fields. Acts as the
+# authoritative source for the list it imports: titles previously recorded under
+# this list name but absent from the CSV have their imdb.lists.<list-name> entry
+# removed (and imdb.lists dropped entirely once empty).
 function Import-ListRows($listName, $rows) {
     $added = 0
     $updated = 0
+    $removed = 0
+    $idsInList = [System.Collections.Generic.HashSet[string]]::new()
     foreach ($row in $rows) {
         $id = $row.Const
         if (-not $id) { continue }
+        [void]$idsInList.Add([string]$id)
         $title = $row.Title
         $rank = if ($row.Position) { [int]$row.Position } else { $null }
 
@@ -99,7 +105,28 @@ function Import-ListRows($listName, $rows) {
 
         Add-Origin $film 'imdb'
     }
-    return [pscustomobject]@{ Added = $added; Updated = $updated }
+
+    # Prune stale membership: any film still carrying this list whose IMDb ID is
+    # no longer in the CSV is removed from the list, dropping imdb.lists when it
+    # becomes empty.
+    foreach ($film in $films) {
+        if (-not ($film.Contains('imdb') -and $film['imdb'])) { continue }
+        $imdb = $film['imdb']
+        if (-not ($imdb.Contains('lists') -and $imdb['lists'] -and $imdb['lists'].Contains($listName))) { continue }
+        if (-not $idsInList.Contains([string]$imdb['id'])) {
+            $imdb['lists'].Remove($listName)
+            if ($imdb['lists'].Count -eq 0) {
+                $imdb.Remove('lists')
+                # The film is no longer a member of any imdb list, so the imdb
+                # origin tag no longer applies (the imdb id/title cross-reference
+                # fields are kept).
+                Remove-Origin $film 'imdb'
+            }
+            $removed++
+        }
+    }
+
+    return [pscustomobject]@{ Added = $added; Updated = $updated; Removed = $removed }
 }
 
 # --- Import each CSV ---
@@ -123,15 +150,17 @@ foreach ($listName in $listNameSources.Keys) {
 
 $totalAdded = 0
 $totalUpdated = 0
+$totalRemoved = 0
 foreach ($file in $csvFiles) {
     $listName = [System.IO.Path]::GetFileNameWithoutExtension($file)
     Write-Host "Importing list '$listName' from $(Split-Path -Leaf $file)..."
 
     $rows = Import-Csv -LiteralPath $file
     $result = Import-ListRows $listName $rows
-    Write-Host "  $($rows.Count) title(s): $($result.Added) added, $($result.Updated) updated"
+    Write-Host "  $($rows.Count) title(s): $($result.Added) added, $($result.Updated) updated, $($result.Removed) removed"
     $totalAdded += $result.Added
     $totalUpdated += $result.Updated
+    $totalRemoved += $result.Removed
 }
 
 # --- Reorder keys and write films.yaml ---
@@ -141,4 +170,4 @@ for ($i = 0; $i -lt $films.Count; $i++) {
 }
 $films | Export-Yaml -Path $DatabasePath
 
-Write-Host "Done: $totalAdded added, $totalUpdated updated across $($csvFiles.Count) list(s) - $($films.Count) total entries in $DatabasePath"
+Write-Host "Done: $totalAdded added, $totalUpdated updated, $totalRemoved removed across $($csvFiles.Count) list(s) - $($films.Count) total entries in $DatabasePath"

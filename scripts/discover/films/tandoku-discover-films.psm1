@@ -79,6 +79,20 @@ function Add-Origin($film, [string]$origin) {
     $film['origin'] = @($existing | Sort-Object)
 }
 
+# Removes an origin tag from a film entry's `origin` list, dropping the `origin`
+# key entirely once no origins remain.
+function Remove-Origin($film, [string]$origin) {
+    if (-not ($film.Contains('origin') -and $film['origin'])) {
+        return
+    }
+    $remaining = @(@($film['origin']) | Where-Object { $_ -ne $origin } | Sort-Object)
+    if ($remaining.Count -eq 0) {
+        $film.Remove('origin')
+    } else {
+        $film['origin'] = $remaining
+    }
+}
+
 # Title is a per-language dictionary (e.g. title.en, title.ja); prefer the English
 # title for display/search, falling back to any available language.
 function Get-DisplayTitle($film) {
@@ -257,4 +271,4 @@ function Merge-FilmSubDictionary($primary, $secondary) {
     }
 }
 
-Export-ModuleMember -Function Get-WikidataUserAgent, Invoke-WikidataSparql, ConvertTo-WikidataQid, Format-FilmEntry, Get-DisplayTitle, Read-FilmsDatabase, Add-Origin, Get-FilmOriginRegistry, Get-FilmOriginInfo, Get-FilmIdentifier, Get-FilmOwnedIdentifiers, Merge-FilmRecords
+Export-ModuleMember -Function Get-WikidataUserAgent, Invoke-WikidataSparql, ConvertTo-WikidataQid, Format-FilmEntry, Get-DisplayTitle, Read-FilmsDatabase, Add-Origin, Remove-Origin, Get-FilmOriginRegistry, Get-FilmOriginInfo, Get-FilmIdentifier, Get-FilmOwnedIdentifiers, Merge-FilmRecords

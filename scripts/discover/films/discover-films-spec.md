@@ -158,6 +158,8 @@ Imports one or more IMDb list CSV exports (as produced by `DownloadIMDbLists.ps1
 
 Repeated runs merge without smashing other lists or fields: only the importing list's entry under `imdb.lists` is set, leaving any other lists and `imdb` fields intact. A warning is emitted when two distinct CSV files resolve to the same list name (their `imdb.lists` ranks would otherwise overwrite each other).
 
+Each imported list is treated as authoritative for its own membership: a title previously recorded under a list name that is absent from that list's CSV has its `imdb.lists.<list-name>` entry removed. When this empties a film's `imdb.lists`, the `lists` key is dropped and the `imdb` origin tag is removed (the `imdb.id`/`imdb.title` cross-reference fields are kept). Only lists actually imported in the run are pruned; lists not present in the run are left untouched.
+
 ## PopulateWikidata.ps1
 ### Usage
 ```powershell
