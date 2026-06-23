@@ -68,9 +68,11 @@ function GenerateEpub($markdownFiles, [string]$targetPath, [string]$title) {
 
     # Move epub to target path only after applying fixes
     # so any cloud upload does not start on pre-fixed epub
+
     if (Test-Path $targetPath) {
         Remove-Item $targetPath
     }
+    CreateDirectoryIfNotExists (Split-Path $targetPath -Parent)
     
     # TODO - currently output of pandoc and ApplyEpubFixes is also returned
     # so caller cannot do anything useful with this output
