@@ -3,6 +3,7 @@
 using System.IO.Abstractions;
 using System.IO.Abstractions.TestingHelpers;
 using Scriban.Runtime;
+using Scriban.Syntax;
 using Tandoku.Markdown;
 
 public class MarkdownExporterTests
@@ -95,6 +96,52 @@ public class MarkdownExporterTests
         markdown.Should().Contain("[00:00:01]");
         markdown.Should().Contain("[00:00:05]");
         markdown.Should().Contain("[00:00:09]");
+    }
+
+    [Test]
+    public async Task Export_BlockLimit_ThrowsWhenExceeded()
+    {
+        var fs = new MockFileSystem();
+        var inputDir = fs.GetCurrentDirectory().CreateSubdirectory("in");
+        WriteSampleResource(fs, inputDir.GetFile("ep01.content.yaml"), "ep01.content.yaml");
+        var outDir = fs.GetCurrentDirectory().CreateSubdirectory("out");
+
+        var templatePath = fs.Path.Combine(fs.GetCurrentDirectory().FullName, "content.scriban-md");
+        fs.AddFile(templatePath, new MockFileData("{{ for b in blocks }}x{{ end }}"));
+
+        var exporter = new MarkdownExporter(new MarkdownExportSettings
+        {
+            TemplatePath = templatePath,
+            BlockLimit = 1,
+        }, fs);
+
+        var export = () => exporter.ExportAsync(inputDir.FullName, outDir.FullName);
+
+        await export.Should().ThrowAsync<ScriptRuntimeException>()
+            .WithMessage("*iteration limit `1`*");
+    }
+
+    [Test]
+    public async Task Export_BlockLimit_AllowsWithinLimit()
+    {
+        var fs = new MockFileSystem();
+        var inputDir = fs.GetCurrentDirectory().CreateSubdirectory("in");
+        WriteSampleResource(fs, inputDir.GetFile("ep01.content.yaml"), "ep01.content.yaml");
+        var outDir = fs.GetCurrentDirectory().CreateSubdirectory("out");
+
+        var templatePath = fs.Path.Combine(fs.GetCurrentDirectory().FullName, "content.scriban-md");
+        fs.AddFile(templatePath, new MockFileData("{{ for b in blocks }}x{{ end }}"));
+
+        var exporter = new MarkdownExporter(new MarkdownExportSettings
+        {
+            TemplatePath = templatePath,
+            BlockLimit = 1000,
+        }, fs);
+        var written = await exporter.ExportAsync(inputDir.FullName, outDir.FullName);
+
+        written.Should().HaveCount(1);
+        var markdown = fs.File.ReadAllText(written[0]);
+        markdown.Should().Be("xxx");
     }
 
     private async Task RunAndVerifyAsync(MarkdownExportSettings settings)

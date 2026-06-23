@@ -131,6 +131,7 @@ public sealed partial class MarkdownExporter
             StrictVariables = false,
             EnableRelaxedTargetAccess = true,
             NewLine = "\n",
+            LoopLimit = this.settings.BlockLimit ?? 10000,
         };
         context.PushGlobal(scriptObject);
         return this.template.Render(context);

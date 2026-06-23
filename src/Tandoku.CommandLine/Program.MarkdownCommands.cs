@@ -58,6 +58,10 @@ public sealed partial class Program
         {
             Description = "Path to a custom Scriban template file to use for rendering content",
         }.AcceptLegalFilePathsOnly();
+        var blockLimitOption = new Option<int?>("--block-limit")
+        {
+            Description = "Maximum number of blocks the template may iterate over per content file",
+        };
 
         var command = new Command("export", "Exports tandoku content to markdown")
         {
@@ -71,6 +75,7 @@ public sealed partial class Program
             refLabelsOption,
             quirksOption,
             templateOption,
+            blockLimitOption,
         };
 
         // TODO - port -OutputPrefix from the PS script, or (preferred) introduce a general-purpose
@@ -90,6 +95,7 @@ public sealed partial class Program
                 ReferenceLabels = parseResult.GetValue(refLabelsOption),
                 Quirks = parseResult.GetValue(quirksOption),
                 TemplatePath = parseResult.GetValue(templateOption)?.FullName,
+                BlockLimit = parseResult.GetValue(blockLimitOption),
                 CustomOptions = ParseCustomOptions(parseResult.GetValue(optionOption)),
             };
 

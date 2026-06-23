@@ -39,6 +39,7 @@ public sealed record MarkdownExportSettings
     public MarkdownReferenceLabels ReferenceLabels { get; init; }
     public MarkdownQuirks Quirks { get; init; }
     public string? TemplatePath { get; init; }
+    public int? BlockLimit { get; init; }
 
     // Arbitrary template-only options imported directly into the Scriban context.
     public ScriptObject CustomOptions { get; init; } = new();
