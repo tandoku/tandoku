@@ -30,7 +30,7 @@ if ($Target -eq "epub") {
         Write-Error "Missing configuration for targets.$configTarget"
         return
     }
-    if (-not [System.IO.Path]::IsPathRooted($epubTargetPath)) {
+    if (-not $epubTargetPath.StartsWith('~') -and -not (Split-Path $epubTargetPath -IsAbsolute)) {
         $epubTargetPath = Join-Path $volumePath $epubTargetPath
     }
 }
