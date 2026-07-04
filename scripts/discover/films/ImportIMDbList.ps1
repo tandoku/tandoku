@@ -4,11 +4,19 @@ param(
     [string]$DatabasePath,
 
     [Parameter(Mandatory)]
-    [string[]]$CsvPath
+    [string[]]$CsvPath,
+
+    [string]$LogPath
 )
 
 Import-Module "$PSScriptRoot/../../modules/tandoku-yaml.psm1"
 Import-Module "$PSScriptRoot/tandoku-discover-films.psm1"
+Import-Module "$PSScriptRoot/../../modules/tandoku-log.psm1"
+
+# When -LogPath is supplied, additionally record warnings and errors (including
+# uncaught terminating errors) to that file. See tandoku-log.psm1.
+Initialize-TandokuLog -LogPath $LogPath
+trap { Write-TandokuLogEntry 'ERROR' $_; break }
 
 # Imports one or more IMDb list CSV exports into the films database. Each CSV's
 # file name (without the .csv extension) is used as the list name recorded under

@@ -6,11 +6,19 @@ param(
     [Parameter(Mandatory)]
     [string]$ImdbDataPath,
 
-    [switch]$UpdateImdbData
+    [switch]$UpdateImdbData,
+
+    [string]$LogPath
 )
 
 Import-Module "$PSScriptRoot/../../modules/tandoku-yaml.psm1"
 Import-Module "$PSScriptRoot/tandoku-discover-films.psm1"
+Import-Module "$PSScriptRoot/../../modules/tandoku-log.psm1"
+
+# When -LogPath is supplied, additionally record warnings and errors (including
+# uncaught terminating errors) to that file. See tandoku-log.psm1.
+Initialize-TandokuLog -LogPath $LogPath
+trap { Write-TandokuLogEntry 'ERROR' $_; break }
 
 # --- Read films database ---
 

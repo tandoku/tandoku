@@ -4,10 +4,18 @@ param(
     [string]$IMDbExportsPath,
 
     [Parameter(Mandatory)]
-    [string]$CsvPath
+    [string]$CsvPath,
+
+    [string]$LogPath
 )
 
 Import-Module "$PSScriptRoot/../../modules/tandoku-utils.psm1"
+Import-Module "$PSScriptRoot/../../modules/tandoku-log.psm1"
+
+# When -LogPath is supplied, additionally record warnings and errors (including
+# uncaught terminating errors) to that file. See tandoku-log.psm1.
+Initialize-TandokuLog -LogPath $LogPath
+trap { Write-TandokuLogEntry 'ERROR' $_; break }
 
 # Parses a saved IMDb exports page (https://www.imdb.com/exports/) and downloads
 # every ready title-list export as a CSV file under $CsvPath. Each list is saved

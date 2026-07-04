@@ -5,11 +5,19 @@ param(
 
     [string]$Language = 'ja',
 
-    [switch]$Force
+    [switch]$Force,
+
+    [string]$LogPath
 )
 
 Import-Module "$PSScriptRoot/../../modules/tandoku-yaml.psm1"
 Import-Module "$PSScriptRoot/tandoku-discover-films.psm1"
+Import-Module "$PSScriptRoot/../../modules/tandoku-log.psm1"
+
+# When -LogPath is supplied, additionally record warnings and errors (including
+# uncaught terminating errors) to that file. See tandoku-log.psm1.
+Initialize-TandokuLog -LogPath $LogPath
+trap { Write-TandokuLogEntry 'ERROR' $_; break }
 
 function Clean-Text($text) {
     if ($null -eq $text) { return $text }

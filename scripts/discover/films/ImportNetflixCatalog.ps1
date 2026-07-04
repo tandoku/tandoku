@@ -13,11 +13,19 @@ param(
 
     [int]$RequestLimit = 100,
 
-    [string]$ApiKey = $env:RAPIDAPI_KEY
+    [string]$ApiKey = $env:RAPIDAPI_KEY,
+
+    [string]$LogPath
 )
 
 Import-Module "$PSScriptRoot/../../modules/tandoku-yaml.psm1"
 Import-Module "$PSScriptRoot/tandoku-discover-films.psm1"
+Import-Module "$PSScriptRoot/../../modules/tandoku-log.psm1"
+
+# When -LogPath is supplied, additionally record warnings and errors (including
+# uncaught terminating errors) to that file. See tandoku-log.psm1.
+Initialize-TandokuLog -LogPath $LogPath
+trap { Write-TandokuLogEntry 'ERROR' $_; break }
 
 if (-not $ApiKey) {
     throw 'A uNoGS RapidAPI key is required. Pass -ApiKey or set the RAPIDAPI_KEY environment variable.'

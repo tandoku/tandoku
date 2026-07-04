@@ -10,11 +10,19 @@ param(
 
     [string]$NativelyLanguage = 'ja',
 
-    [string[]]$OriginalLanguage = @()
+    [string[]]$OriginalLanguage = @(),
+
+    [string]$LogPath
 )
 
 Import-Module "$PSScriptRoot/../../modules/tandoku-yaml.psm1"
 Import-Module "$PSScriptRoot/tandoku-discover-films.psm1"
+Import-Module "$PSScriptRoot/../../modules/tandoku-log.psm1"
+
+# When -LogPath is supplied, additionally record warnings and errors (including
+# uncaught terminating errors) to that file. See tandoku-log.psm1.
+Initialize-TandokuLog -LogPath $LogPath
+trap { Write-TandokuLogEntry 'ERROR' $_; break }
 
 # Ensure UTF-8 encoding for yq compatibility
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
