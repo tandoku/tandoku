@@ -285,7 +285,7 @@ GROUP BY ?item
                 }
                 $country = $null
                 if ($binding.country.value) {
-                    $country = @($binding.country.value -split '\|')
+                    $country = @($binding.country.value -split '\|' | Sort-Object)
                 }
                 # Prefer P364 (original language of film or TV show); fall back to
                 # P407 (language of work or name) when P364 is not set.
@@ -296,7 +296,7 @@ GROUP BY ?item
                 }
                 $languageCodes = $null
                 if ($langValue) {
-                    $languageCodes = @($langValue -split '\|')
+                    $languageCodes = @($langValue -split '\|' | Sort-Object)
                 }
                 $year = if ($binding.startYear.value) { $binding.startYear.value } else { $binding.pubYear.value }
 
