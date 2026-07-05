@@ -167,11 +167,13 @@ function Resolve-LanguageCode([string]$name) {
 
 # Parses a Netflix audio/subtitle list (e.g. 'English,Japanese [Original],
 # Spanish (Latin America) - Audio Description') into a sorted, de-duplicated list
-# of ISO 639 language codes.
-function ConvertTo-LanguageCodes([string]$value) {
+# of ISO 639 language codes. When -OriginalOnly is specified, only entries marked
+# with the ' [Original]' suffix are included.
+function ConvertTo-LanguageCodes([string]$value, [switch]$OriginalOnly) {
     $codes = [System.Collections.Generic.HashSet[string]]::new()
     if ($value) {
         foreach ($part in $value -split ',') {
+            if ($OriginalOnly -and $part -notmatch '\[Original\]\s*$') { continue }
             $name = $part -replace '\s*-\s*Audio Description\s*$', ''
             $name = $name -replace '\s*\[Original\]\s*$', ''
             $name = $name -replace '\s*\(.*\)\s*$', ''
@@ -381,6 +383,7 @@ foreach ($result in $searchResults) {
             if ($null -ne $detail.expiredate -and $detail.expiredate -ne '') {
                 $countryDetail['expireDate'] = $detail.expiredate
             }
+            $countryDetail['originalAudio'] = ConvertTo-LanguageCodes $detail.audio -OriginalOnly
             $countryDetail['audio'] = ConvertTo-LanguageCodes $detail.audio
             $countryDetail['subtitle'] = ConvertTo-LanguageCodes $detail.subtitle
             $countryDetails[$code] = $countryDetail
