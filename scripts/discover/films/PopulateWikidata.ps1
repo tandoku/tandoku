@@ -256,7 +256,8 @@ WHERE {
     ?malStmt_ ps:P4086 ?malIdVal_ .
     FILTER NOT EXISTS { ?malStmt_ wikibase:rank wikibase:DeprecatedRank }
     OPTIONAL { ?malStmt_ pq:P1545 ?malOrd_ }
-    BIND(CONCAT(?malIdVal_, IF(BOUND(?malOrd_), CONCAT("@", STR(?malOrd_)), "")) AS ?malIdOrd_)
+    BIND(EXISTS { ?malStmt_ pq:P1810 ?malNamedAs_ } AS ?malHasNamedAs_)
+    BIND(CONCAT(?malIdVal_, "~", IF(BOUND(?malOrd_), STR(?malOrd_), ""), "~", IF(?malHasNamedAs_, "1", "0")) AS ?malIdOrd_)
   }
   OPTIONAL { ?item wdt:P4947 ?tmdbMovieId_ }
   OPTIONAL { ?item wdt:P4983 ?tmdbTvId_ }
@@ -318,10 +319,11 @@ GROUP BY ?item
                 $malEntries = @()
                 if ($binding.malId.value) {
                     $malEntries = @($binding.malId.value -split '\|' | ForEach-Object {
-                        $idPart, $ordPart = $_ -split '@', 2
+                        $idPart, $ordPart, $namedPart = $_ -split '~', 3
                         [pscustomobject]@{
                             Id = [int]$idPart
                             Ordinal = if ($null -ne $ordPart -and $ordPart -ne '') { [int]$ordPart } else { $null }
+                            HasNamedAs = ($namedPart -eq '1')
                         }
                     })
                     $malIds = @($malEntries | ForEach-Object { $_.Id } | Sort-Object)
@@ -409,19 +411,34 @@ GROUP BY ?item
                     }
 
                     if ($malEntries.Count -gt 0) {
-                        # Multiple MyAnimeList IDs are valid when they are disambiguated
-                        # by a 'series ordinal' (P1545) qualifier; in that case use the
-                        # ID with the lowest ordinal and don't warn.
-                        $allHaveOrdinal = @($malEntries | Where-Object { $null -eq $_.Ordinal }).Count -eq 0
-                        if ($malEntries.Count -gt 1 -and $allHaveOrdinal) {
-                            $selectedMalId = ($malEntries | Sort-Object Ordinal, Id | Select-Object -First 1).Id
-                        } else {
-                            if ($malEntries.Count -gt 1) {
+                        if ($malEntries.Count -gt 1) {
+                            # When multiple IDs are present, ignore any tagged with a
+                            # 'subject named as' (P1810) qualifier, which typically marks
+                            # alternate/related entries. If every ID is so tagged, the
+                            # entry is genuinely ambiguous, so warn with all IDs.
+                            $candidates = @($malEntries | Where-Object { -not $_.HasNamedAs })
+                            if ($candidates.Count -eq 0) {
                                 Write-Warning "$qid has multiple MyAnimeList IDs: $($malIds -join ', '); using $($malIds[0])"
+                                $film['myAnimeList'] = @{ id = $malIds[0] }
+                            } else {
+                                $candidateIds = @($candidates | ForEach-Object { $_.Id } | Sort-Object)
+                                # Multiple candidates are valid when disambiguated by a
+                                # 'series ordinal' (P1545); use the lowest ordinal without
+                                # warning.
+                                $allHaveOrdinal = @($candidates | Where-Object { $null -eq $_.Ordinal }).Count -eq 0
+                                if ($candidates.Count -gt 1 -and $allHaveOrdinal) {
+                                    $selectedMalId = ($candidates | Sort-Object Ordinal, Id | Select-Object -First 1).Id
+                                } else {
+                                    if ($candidates.Count -gt 1) {
+                                        Write-Warning "$qid has multiple MyAnimeList IDs: $($candidateIds -join ', '); using $($candidateIds[0])"
+                                    }
+                                    $selectedMalId = $candidateIds[0]
+                                }
+                                $film['myAnimeList'] = @{ id = $selectedMalId }
                             }
-                            $selectedMalId = $malIds[0]
+                        } else {
+                            $film['myAnimeList'] = @{ id = $malIds[0] }
                         }
-                        $film['myAnimeList'] = @{ id = $selectedMalId }
                     } elseif ($Force) {
                         $film.Remove('myAnimeList')
                     }
