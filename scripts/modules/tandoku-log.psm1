@@ -52,7 +52,7 @@ function Write-TandokuLogEntry {
     )
     process {
         if ($script:LogPath) {
-            Add-Content -LiteralPath $script:LogPath -Value "$(Get-Date -Format s) $Level $Message"
+            Add-Content -LiteralPath $script:LogPath -Value "$Level $Message"
         }
     }
 }
