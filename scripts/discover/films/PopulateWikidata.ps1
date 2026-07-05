@@ -238,7 +238,7 @@ SELECT ?item
   (SAMPLE(?pubYear_) AS ?pubYear)
   (GROUP_CONCAT(DISTINCT ?imdbId_; SEPARATOR="|") AS ?imdbId)
   (GROUP_CONCAT(DISTINCT ?netflixId_; SEPARATOR="|") AS ?netflixId)
-  (GROUP_CONCAT(DISTINCT ?malId_; SEPARATOR="|") AS ?malId)
+  (GROUP_CONCAT(DISTINCT ?malIdOrd_; SEPARATOR="|") AS ?malId)
   (GROUP_CONCAT(DISTINCT ?tmdbMovieId_; SEPARATOR="|") AS ?tmdbMovieId)
   (GROUP_CONCAT(DISTINCT ?tmdbTvId_; SEPARATOR="|") AS ?tmdbTvId)
 WHERE {
@@ -251,7 +251,13 @@ WHERE {
   OPTIONAL { ?item wdt:P407 ?fallbackLang_ . ?fallbackLang_ wdt:P424 ?fallbackLangCode_ }
   OPTIONAL { ?item wdt:P345 ?imdbId_ }
   OPTIONAL { ?item wdt:P1874 ?netflixId_ }
-  OPTIONAL { ?item wdt:P4086 ?malId_ }
+  OPTIONAL {
+    ?item p:P4086 ?malStmt_ .
+    ?malStmt_ ps:P4086 ?malIdVal_ .
+    FILTER NOT EXISTS { ?malStmt_ wikibase:rank wikibase:DeprecatedRank }
+    OPTIONAL { ?malStmt_ pq:P1545 ?malOrd_ }
+    BIND(CONCAT(?malIdVal_, IF(BOUND(?malOrd_), CONCAT("@", STR(?malOrd_)), "")) AS ?malIdOrd_)
+  }
   OPTIONAL { ?item wdt:P4947 ?tmdbMovieId_ }
   OPTIONAL { ?item wdt:P4983 ?tmdbTvId_ }
   OPTIONAL { ?item wdt:P580 ?startTime_ . BIND(YEAR(?startTime_) AS ?startYear_) }
@@ -309,8 +315,16 @@ GROUP BY ?item
                     $netflixIds = @($binding.netflixId.value -split '\|')
                 }
                 $malIds = @()
+                $malEntries = @()
                 if ($binding.malId.value) {
-                    $malIds = @($binding.malId.value -split '\|' | ForEach-Object { [int]$_ } | Sort-Object)
+                    $malEntries = @($binding.malId.value -split '\|' | ForEach-Object {
+                        $idPart, $ordPart = $_ -split '@', 2
+                        [pscustomobject]@{
+                            Id = [int]$idPart
+                            Ordinal = if ($null -ne $ordPart -and $ordPart -ne '') { [int]$ordPart } else { $null }
+                        }
+                    })
+                    $malIds = @($malEntries | ForEach-Object { $_.Id } | Sort-Object)
                 }
                 $tmdbMovieIds = @()
                 if ($binding.tmdbMovieId.value) {
@@ -394,11 +408,20 @@ GROUP BY ?item
                         }
                     }
 
-                    if ($malIds.Count -gt 0) {
-                        if ($malIds.Count -gt 1) {
-                            Write-Warning "$qid has multiple MyAnimeList IDs: $($malIds -join ', '); using $($malIds[0])"
+                    if ($malEntries.Count -gt 0) {
+                        # Multiple MyAnimeList IDs are valid when they are disambiguated
+                        # by a 'series ordinal' (P1545) qualifier; in that case use the
+                        # ID with the lowest ordinal and don't warn.
+                        $allHaveOrdinal = @($malEntries | Where-Object { $null -eq $_.Ordinal }).Count -eq 0
+                        if ($malEntries.Count -gt 1 -and $allHaveOrdinal) {
+                            $selectedMalId = ($malEntries | Sort-Object Ordinal, Id | Select-Object -First 1).Id
+                        } else {
+                            if ($malEntries.Count -gt 1) {
+                                Write-Warning "$qid has multiple MyAnimeList IDs: $($malIds -join ', '); using $($malIds[0])"
+                            }
+                            $selectedMalId = $malIds[0]
                         }
-                        $film['myAnimeList'] = @{ id = $malIds[0] }
+                        $film['myAnimeList'] = @{ id = $selectedMalId }
                     } elseif ($Force) {
                         $film.Remove('myAnimeList')
                     }
