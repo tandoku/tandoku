@@ -43,7 +43,8 @@ $script:RequestCount = 0
 $script:RequestLimit = $RequestLimit
 $script:RequestLimitWarned = $false
 
-# Single timestamp for the whole run, recorded on each Title Countries cache entry.
+# Single timestamp for the whole run, recorded on each cache entry (title
+# countries, title details, and title genres).
 $script:RunTimestamp = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
 
 # Returns $true while the API request budget has not been exhausted. Emits a
@@ -195,14 +196,23 @@ function ConvertTo-LanguageCodes([string]$value, [switch]$OriginalOnly) {
 
 # Builds the availability.netflix record, preserving any extra keys (e.g.
 # watchlist) already present on the existing record.
-function New-NetflixRecord($existing, $id, $title, $type, $year, $countryDetails) {
+function New-NetflixRecord($existing, $id, $title, $type, $year, $matlabel, $images, $genres, $countryDetails) {
     $record = [ordered]@{
         id             = $id
         title          = $title
         type           = $type
         year           = $year
-        countryDetails = $countryDetails
     }
+    if ($null -ne $matlabel -and $matlabel -ne '') {
+        $record['matlabel'] = $matlabel
+    }
+    if ($images) {
+        $record['images'] = $images
+    }
+    if ($genres) {
+        $record['genres'] = @($genres)
+    }
+    $record['countryDetails'] = $countryDetails
     if ($existing) {
         foreach ($key in $existing.Keys) {
             if (-not $record.Contains($key)) {
@@ -214,21 +224,41 @@ function New-NetflixRecord($existing, $id, $title, $type, $year, $countryDetails
 }
 
 # Cache state. countries.json stores the raw Countries response; titlecountries.json
-# stores a netflix-id-keyed map of Title Countries responses (kept sorted by id
-# for stable diffs). Both files are only used when -CachePath is supplied.
+# stores a netflix-id-keyed map of Title Countries responses; titles.json stores a
+# netflix-id-keyed map of Title Details responses; titlegenres.json stores a
+# netflix-id-keyed map of Title Genres responses. All id-keyed maps are kept sorted
+# by id for stable diffs. These files are only used when -CachePath is supplied.
 $script:CountriesCacheFile = $null
 $script:TitleCountriesCacheFile = $null
 $script:TitleCountriesCache = [ordered]@{}
+$script:TitleCacheFile = $null
+$script:TitleCache = [ordered]@{}
+$script:TitleGenresCacheFile = $null
+$script:TitleGenresCache = [ordered]@{}
 if ($CachePath) {
     if (-not (Test-Path -LiteralPath $CachePath)) {
         New-Item -ItemType Directory -Path $CachePath -Force | Out-Null
     }
     $script:CountriesCacheFile = Join-Path $CachePath 'netflix-catalog-countries.json'
     $script:TitleCountriesCacheFile = Join-Path $CachePath 'netflix-catalog-titlecountries.json'
+    $script:TitleCacheFile = Join-Path $CachePath 'netflix-catalog-titles.json'
+    $script:TitleGenresCacheFile = Join-Path $CachePath 'netflix-catalog-titlegenres.json'
     if (Test-Path -LiteralPath $script:TitleCountriesCacheFile) {
         $loaded = Get-Content -LiteralPath $script:TitleCountriesCacheFile -Raw | ConvertFrom-Json -AsHashtable
         foreach ($key in ($loaded.Keys | Sort-Object { [long]$_ })) {
             $script:TitleCountriesCache[[string]$key] = $loaded[$key]
+        }
+    }
+    if (Test-Path -LiteralPath $script:TitleCacheFile) {
+        $loaded = Get-Content -LiteralPath $script:TitleCacheFile -Raw | ConvertFrom-Json -AsHashtable
+        foreach ($key in ($loaded.Keys | Sort-Object { [long]$_ })) {
+            $script:TitleCache[[string]$key] = $loaded[$key]
+        }
+    }
+    if (Test-Path -LiteralPath $script:TitleGenresCacheFile) {
+        $loaded = Get-Content -LiteralPath $script:TitleGenresCacheFile -Raw | ConvertFrom-Json -AsHashtable
+        foreach ($key in ($loaded.Keys | Sort-Object { [long]$_ })) {
+            $script:TitleGenresCache[[string]$key] = $loaded[$key]
         }
     }
 }
@@ -243,6 +273,30 @@ function Save-TitleCountriesCache {
         $sorted[$key] = $script:TitleCountriesCache[$key]
     }
     $sorted | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $script:TitleCountriesCacheFile
+}
+
+# Writes the titles cache to disk, sorted by netflix id for stability.
+function Save-TitleCache {
+    if (-not $script:TitleCacheFile) {
+        return
+    }
+    $sorted = [ordered]@{}
+    foreach ($key in ($script:TitleCache.Keys | Sort-Object { [long]$_ })) {
+        $sorted[$key] = $script:TitleCache[$key]
+    }
+    $sorted | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $script:TitleCacheFile
+}
+
+# Writes the titlegenres cache to disk, sorted by netflix id for stability.
+function Save-TitleGenresCache {
+    if (-not $script:TitleGenresCacheFile) {
+        return
+    }
+    $sorted = [ordered]@{}
+    foreach ($key in ($script:TitleGenresCache.Keys | Sort-Object { [long]$_ })) {
+        $sorted[$key] = $script:TitleGenresCache[$key]
+    }
+    $sorted | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $script:TitleGenresCacheFile
 }
 
 # Returns the Countries response, reading from / populating the cache when
@@ -277,6 +331,45 @@ function Get-TitleCountries([string]$netflixId) {
         timestamp = $script:RunTimestamp
     }
     Save-TitleCountriesCache
+    return $response.results
+}
+
+# Returns the Title Details result for a netflix id, reading from / populating the
+# cache. The uNoGS Title endpoint wraps a single title in a results array; the
+# first element is returned. Returns $null when the data is uncached and the
+# request budget is spent.
+function Get-TitleDetails([string]$netflixId) {
+    if ($script:TitleCache.Contains($netflixId)) {
+        return $script:TitleCache[$netflixId].results | Select-Object -First 1
+    }
+    $response = Invoke-UnogsApi -Endpoint 'title' -Query @{ netflixid = $netflixId }
+    if ($null -eq $response) {
+        return $null
+    }
+    $script:TitleCache[$netflixId] = [ordered]@{
+        results   = $response.results
+        timestamp = $script:RunTimestamp
+    }
+    Save-TitleCache
+    return $response.results | Select-Object -First 1
+}
+
+# Returns the Title Genres results (an array of { nfid, genre }) for a netflix id,
+# reading from / populating the cache. Returns $null when the data is uncached and
+# the request budget is spent.
+function Get-TitleGenres([string]$netflixId) {
+    if ($script:TitleGenresCache.Contains($netflixId)) {
+        return $script:TitleGenresCache[$netflixId].results
+    }
+    $response = Invoke-UnogsApi -Endpoint 'titlegenres' -Query @{ netflixid = $netflixId }
+    if ($null -eq $response) {
+        return $null
+    }
+    $script:TitleGenresCache[$netflixId] = [ordered]@{
+        results   = $response.results
+        timestamp = $script:RunTimestamp
+    }
+    Save-TitleGenresCache
     return $response.results
 }
 
@@ -371,6 +464,32 @@ foreach ($result in $searchResults) {
         $skipped++
         continue
     }
+
+    # Retrieve title details (matlabel, images) and genres (cached when possible).
+    $titleDetails = Get-TitleDetails $netflixId
+    if ($null -eq $titleDetails) {
+        $skipped++
+        continue
+    }
+    $titleGenres = Get-TitleGenres $netflixId
+    if ($null -eq $titleGenres) {
+        $skipped++
+        continue
+    }
+
+    $images = [ordered]@{
+        small = $titleDetails.img
+        large = $titleDetails.lgimg
+    }
+    $genres = foreach ($genre in $titleGenres) {
+        [ordered]@{
+            nfid  = [int]$genre.nfid
+            genre = $genre.genre
+        }
+    }
+    # Force an array so a single genre is not unrolled into a scalar.
+    $genres = @($genres)
+
     $countryDetails = [ordered]@{}
     foreach ($code in $countryCodes) {
         $detail = $titleCountries | Where-Object { $_.cc -eq $code } | Select-Object -First 1
@@ -394,14 +513,16 @@ foreach ($result in $searchResults) {
         # Update existing entry, preserving other fields (e.g. watchlist).
         $film = $films[$filmsByNetflixId[$netflixId]]
         $film['availability']['netflix'] = New-NetflixRecord `
-            $film['availability']['netflix'] ([int]$result.nfid) $result.title $result.vtype $result.year $countryDetails
+            $film['availability']['netflix'] ([int]$result.nfid) $result.title $result.vtype $result.year `
+            $titleDetails.matlabel $images $genres $countryDetails
         Add-Origin $film 'netflix'
         $updated++
     } else {
         # Add new entry.
         $newFilm = [ordered]@{
             availability = [ordered]@{
-                netflix = New-NetflixRecord $null ([int]$result.nfid) $result.title $result.vtype $result.year $countryDetails
+                netflix = New-NetflixRecord $null ([int]$result.nfid) $result.title $result.vtype $result.year `
+                    $titleDetails.matlabel $images $genres $countryDetails
             }
         }
         Add-Origin $newFilm 'netflix'
