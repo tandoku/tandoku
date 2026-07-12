@@ -7,6 +7,11 @@ param(
 
     [string]$AudioLanguage = 'ja',
 
+    # By default only titles whose -AudioLanguage is an Original audio track are
+    # added; -AnyAudio relaxes this to include titles where the language is
+    # present as any audio track (e.g. a dub), matching the raw search filter.
+    [switch]$AnyAudio,
+
     [string]$SubtitleLanguage,
 
     [string]$CachePath,
@@ -407,7 +412,11 @@ if ($AudioLanguage -and $SubtitleLanguage) {
 }
 
 $filterParts = @()
-if ($AudioLanguage) { $filterParts += "audio=$AudioLanguage" }
+if ($AudioLanguage) {
+    $audioDesc = "audio=$AudioLanguage"
+    $audioDesc += if ($AnyAudio) { ' (any)' } else { ' (original)' }
+    $filterParts += $audioDesc
+}
 if ($SubtitleLanguage) { $filterParts += "subtitle=$SubtitleLanguage" }
 $filterDesc = if ($filterParts) { $filterParts -join ', ' } else { '(no language filter)' }
 Write-Host "Searching Netflix catalog in $($countryCodes -join ', ') with $filterDesc"
@@ -450,6 +459,7 @@ for ($i = 0; $i -lt $films.Count; $i++) {
 $added = 0
 $updated = 0
 $skipped = 0
+$filtered = 0
 $processed = 0
 foreach ($result in $searchResults) {
     $netflixId = [string]$result.nfid
@@ -463,6 +473,27 @@ foreach ($result in $searchResults) {
         # later run.
         $skipped++
         continue
+    }
+
+    # The uNoGS search audio filter matches any audio track (including dubs), so
+    # by default restrict to titles where -AudioLanguage is an Original audio
+    # track for one of the requested countries. -AnyAudio keeps the raw search
+    # behavior. This runs before fetching title details / genres so filtered-out
+    # titles don't consume the API request budget.
+    if ($AudioLanguage -and -not $AnyAudio) {
+        $hasOriginalAudio = $false
+        foreach ($code in $countryCodes) {
+            $detail = $titleCountries | Where-Object { $_.cc -eq $code } | Select-Object -First 1
+            if ($detail -and ((ConvertTo-LanguageCodes $detail.audio -OriginalOnly) -contains $AudioLanguage)) {
+                $hasOriginalAudio = $true
+                break
+            }
+        }
+        if (-not $hasOriginalAudio) {
+            Write-Host "  Filtered out (no Original $AudioLanguage audio)"
+            $filtered++
+            continue
+        }
     }
 
     # Retrieve title details (matlabel, images) and genres (cached when possible).
@@ -535,4 +566,4 @@ foreach ($result in $searchResults) {
 # Write films.yaml
 $films | Export-Yaml -Path $DatabasePath
 
-Write-Host "Done: $added added, $updated updated, $skipped skipped - $($films.Count) total entries ($($script:RequestCount) API requests)"
+Write-Host "Done: $added added, $updated updated, $skipped skipped, $filtered filtered - $($films.Count) total entries ($($script:RequestCount) API requests)"
