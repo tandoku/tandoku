@@ -52,6 +52,14 @@ $script:RequestLimitWarned = $false
 # countries, title details, and title genres).
 $script:RunTimestamp = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
 
+# Sentinel returned by the Get-Title* helpers when data can't be retrieved
+# because the uNoGS request budget is spent (as opposed to the API legitimately
+# returning null/empty results, e.g. a title with no genres). The main loop
+# skips only titles that yield this sentinel so they resume on a later run;
+# an empty-but-valid response is processed normally. Compare with
+# [object]::ReferenceEquals so a real result is never mistaken for the sentinel.
+$script:RequestBudgetExhausted = [object]::new()
+
 # Returns $true while the API request budget has not been exhausted. Emits a
 # single warning the first time the limit is reached so callers can skip the
 # remaining work and resume on a later run (helped along by the cache).
@@ -341,15 +349,15 @@ function Get-CountriesData {
 }
 
 # Returns the Title Countries results for a netflix id, reading from / populating
-# the cache. Returns $null when the data is uncached and the request budget is
-# spent.
+# the cache. Returns the $script:RequestBudgetExhausted sentinel when the data is
+# uncached and the request budget is spent (a valid empty response returns null).
 function Get-TitleCountries([string]$netflixId) {
     if ($script:TitleCountriesCache.Contains($netflixId)) {
         return $script:TitleCountriesCache[$netflixId].results
     }
     $response = Invoke-UnogsApi -Endpoint 'titlecountries' -Query @{ netflixid = $netflixId }
     if ($null -eq $response) {
-        return $null
+        return $script:RequestBudgetExhausted
     }
     $script:TitleCountriesCache[$netflixId] = [ordered]@{
         results   = $response.results
@@ -361,15 +369,15 @@ function Get-TitleCountries([string]$netflixId) {
 
 # Returns the Title Details result for a netflix id, reading from / populating the
 # cache. The uNoGS Title endpoint wraps a single title in a results array; the
-# first element is returned. Returns $null when the data is uncached and the
-# request budget is spent.
+# first element is returned. Returns the $script:RequestBudgetExhausted sentinel
+# when the data is uncached and the request budget is spent.
 function Get-TitleDetails([string]$netflixId) {
     if ($script:TitleCache.Contains($netflixId)) {
         return $script:TitleCache[$netflixId].results | Select-Object -First 1
     }
     $response = Invoke-UnogsApi -Endpoint 'title' -Query @{ netflixid = $netflixId }
     if ($null -eq $response) {
-        return $null
+        return $script:RequestBudgetExhausted
     }
     $script:TitleCache[$netflixId] = [ordered]@{
         results   = $response.results
@@ -380,15 +388,16 @@ function Get-TitleDetails([string]$netflixId) {
 }
 
 # Returns the Title Genres results (an array of { nfid, genre }) for a netflix id,
-# reading from / populating the cache. Returns $null when the data is uncached and
-# the request budget is spent.
+# reading from / populating the cache. Returns the $script:RequestBudgetExhausted
+# sentinel when the data is uncached and the request budget is spent; a title with
+# no genres returns a valid null/empty result and is processed normally.
 function Get-TitleGenres([string]$netflixId) {
     if ($script:TitleGenresCache.Contains($netflixId)) {
         return $script:TitleGenresCache[$netflixId].results
     }
     $response = Invoke-UnogsApi -Endpoint 'titlegenres' -Query @{ netflixid = $netflixId }
     if ($null -eq $response) {
-        return $null
+        return $script:RequestBudgetExhausted
     }
     $script:TitleGenresCache[$netflixId] = [ordered]@{
         results   = $response.results
@@ -488,7 +497,7 @@ foreach ($result in $searchResults) {
 
     # Retrieve per-country availability details (cached when possible).
     $titleCountries = Get-TitleCountries $netflixId
-    if ($null -eq $titleCountries) {
+    if ([object]::ReferenceEquals($titleCountries, $script:RequestBudgetExhausted)) {
         # Request budget spent and no cached details - leave this title for a
         # later run.
         $skipped++
@@ -518,12 +527,12 @@ foreach ($result in $searchResults) {
 
     # Retrieve title details (matlabel, images) and genres (cached when possible).
     $titleDetails = Get-TitleDetails $netflixId
-    if ($null -eq $titleDetails) {
+    if ([object]::ReferenceEquals($titleDetails, $script:RequestBudgetExhausted)) {
         $skipped++
         continue
     }
     $titleGenres = Get-TitleGenres $netflixId
-    if ($null -eq $titleGenres) {
+    if ([object]::ReferenceEquals($titleGenres, $script:RequestBudgetExhausted)) {
         $skipped++
         continue
     }

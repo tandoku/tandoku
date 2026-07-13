@@ -6,7 +6,9 @@ param(
     [Parameter(Mandatory)]
     [string]$DatabasePath,
 
-    [string]$LogPath
+    [string]$LogPath,
+
+    [switch]$Force
 )
 
 Import-Module "$PSScriptRoot/../../modules/tandoku-yaml.psm1"
@@ -46,6 +48,7 @@ foreach ($item in $watchlist) {
 # Process each Netflix watchlist item
 $added = 0
 $updated = 0
+$skipped = 0
 foreach ($item in $watchlist) {
     $videoId = $item.videoId
 
@@ -54,12 +57,11 @@ foreach ($item in $watchlist) {
         # year, countryDetails added by ImportNetflixCatalog.ps1)
         $film = $films[$filmsByNetflixId[$videoId]]
         $netflix = $film['availability']['netflix']
-        $netflix['id'] = [int]$videoId
-        $netflix['title'] = $item.title
+        if ($item.title -and $Force) { $netflix['title'] = $item.title }
         $netflix['watchlist'] = $true
         Add-Origin $film 'netflix'
         $updated++
-    } else {
+    } elseif ($Force) {
         # Add new entry
         $newFilm = [ordered]@{
             availability = [ordered]@{
@@ -74,6 +76,9 @@ foreach ($item in $watchlist) {
         $films.Add($newFilm)
         $filmsByNetflixId[$videoId] = $films.Count - 1
         $added++
+    } else {
+        Write-Warning "Skipping $($item.title) ($videoId) not present in database and -Force not specified"
+        $skipped++
     }
 }
 
@@ -92,4 +97,4 @@ foreach ($film in $films) {
 # Write films.yaml
 $films | Export-Yaml -Path $DatabasePath
 
-Write-Host "Done: $added added, $updated updated, $unmarked unmarked - $($films.Count) total entries"
+Write-Host "Done: $added added, $updated updated, $skipped skipped, $unmarked unmarked - $($films.Count) total entries"
