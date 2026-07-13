@@ -201,7 +201,7 @@ function ConvertTo-LanguageCodes([string]$value, [switch]$OriginalOnly) {
 
 # Builds the availability.netflix record, preserving any extra keys (e.g.
 # watchlist) already present on the existing record.
-function New-NetflixRecord($existing, $id, $title, $type, $year, $matlabel, $images, $genres, $countryDetails) {
+function New-NetflixRecord($existing, $id, $title, $type, $year, $matlabel, $images, $genres, $countryDetails, $runCountryCodes) {
     $record = [ordered]@{
         id             = $id
         title          = $title
@@ -217,7 +217,27 @@ function New-NetflixRecord($existing, $id, $title, $type, $year, $matlabel, $ima
     if ($genres) {
         $record['genres'] = @($genres)
     }
-    $record['countryDetails'] = $countryDetails
+    # Preserve countryDetails for countries outside the current run so a run
+    # scoped to (e.g.) US does not drop previously-imported KR details. The
+    # freshly-built $countryDetails only covers this run's countries; carry over
+    # any existing entry whose country code is not in $runCountryCodes.
+    $mergedCountryDetails = [ordered]@{}
+    if ($existing -and $existing.Contains('countryDetails') -and $existing['countryDetails']) {
+        foreach ($code in $existing['countryDetails'].Keys) {
+            if ($runCountryCodes -notcontains $code) {
+                $mergedCountryDetails[$code] = $existing['countryDetails'][$code]
+            }
+        }
+    }
+    foreach ($code in $countryDetails.Keys) {
+        $mergedCountryDetails[$code] = $countryDetails[$code]
+    }
+    # Sort country codes by name for stable diffs (e.g. KR before US).
+    $sortedCountryDetails = [ordered]@{}
+    foreach ($code in ($mergedCountryDetails.Keys | Sort-Object)) {
+        $sortedCountryDetails[$code] = $mergedCountryDetails[$code]
+    }
+    $record['countryDetails'] = $sortedCountryDetails
     if ($existing) {
         foreach ($key in $existing.Keys) {
             if (-not $record.Contains($key)) {
@@ -545,7 +565,7 @@ foreach ($result in $searchResults) {
         $film = $films[$filmsByNetflixId[$netflixId]]
         $film['availability']['netflix'] = New-NetflixRecord `
             $film['availability']['netflix'] ([int]$result.nfid) $result.title $result.vtype $result.year `
-            $titleDetails.matlabel $images $genres $countryDetails
+            $titleDetails.matlabel $images $genres $countryDetails $countryCodes
         Add-Origin $film 'netflix'
         $updated++
     } else {
@@ -553,7 +573,7 @@ foreach ($result in $searchResults) {
         $newFilm = [ordered]@{
             availability = [ordered]@{
                 netflix = New-NetflixRecord $null ([int]$result.nfid) $result.title $result.vtype $result.year `
-                    $titleDetails.matlabel $images $genres $countryDetails
+                    $titleDetails.matlabel $images $genres $countryDetails $countryCodes
             }
         }
         Add-Origin $newFilm 'netflix'
