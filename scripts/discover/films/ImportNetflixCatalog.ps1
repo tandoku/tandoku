@@ -33,7 +33,7 @@ Initialize-TandokuLog -LogPath $LogPath
 trap { Write-TandokuLogEntry 'ERROR' $_; break }
 
 if (-not $ApiKey) {
-    throw 'A uNoGS RapidAPI key is required. Pass -ApiKey or set the RAPIDAPI_KEY environment variable.'
+    throw 'A uNoGS RapidAPI key is required. Pass -ApiKey or set the RAPIDAPI_KEY environment variable. Obtain the API key from https://rapidapi.com/developer/apps'
 }
 
 $script:ApiHost = 'unogsng.p.rapidapi.com'
