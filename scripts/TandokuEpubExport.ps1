@@ -8,8 +8,14 @@ param(
     $OutputPath,
 
     [Parameter()]
-    [Switch]
-    $Combine,
+    [ValidateSet('Auto', 'All', 'None')]
+    [String]
+    $Combine = 'Auto',
+
+    [Parameter()]
+    [ValidateRange(1, 9223372036854775807)]
+    [long]
+    $TargetSize = 120MB,
 
     [Parameter()]
     [int]
@@ -38,6 +44,7 @@ param(
 )
 
 Import-Module "$PSScriptRoot/modules/tandoku-utils.psm1" -Scope Local
+Import-Module "$PSScriptRoot/modules/tandoku-media.psm1" -Scope Local
 
 function GenerateEpub($markdownFiles, [string]$targetPath, [string]$title) {
     $tempPath = "$volumePath/temp"
@@ -374,6 +381,41 @@ function GetCommonSuffix($list) {
     return $suffix
 }
 
+function GetAutoGroups($files, [long]$targetSize) {
+    $totalSize = ($files | Measure-Object -Property MediaSize -Sum).Sum
+    $groupCount = [Math]::Max(1, [Math]::Ceiling($totalSize / $targetSize))
+    $groupCount = [Math]::Min($groupCount, $files.Count)
+    $remainingSize = $totalSize
+    $nextFile = 0
+
+    for ($groupNumber = 0; $groupNumber -lt $groupCount; $groupNumber++) {
+        $remainingGroups = $groupCount - $groupNumber
+        $filesNeededForLaterGroups = $remainingGroups - 1
+        $idealSize = $remainingSize / $remainingGroups
+        $groupFiles = [Collections.Generic.List[object]]::new()
+        [long] $groupSize = 0
+
+        while (($files.Count - $nextFile) -gt $filesNeededForLaterGroups) {
+            $candidate = $files[$nextFile]
+            $currentDifference = [Math]::Abs($groupSize - $idealSize)
+            $candidateDifference = [Math]::Abs(($groupSize + $candidate.MediaSize) - $idealSize)
+            if (($groupFiles.Count -gt 0) -and ($candidateDifference -gt $currentDifference)) {
+                break
+            }
+
+            $groupFiles.Add($candidate)
+            $groupSize += $candidate.MediaSize
+            $nextFile++
+        }
+
+        [PSCustomObject]@{
+            Files = $groupFiles.ToArray()
+            MediaSize = $groupSize
+        }
+        $remainingSize -= $groupSize
+    }
+}
+
 $volume = TandokuVolumeInfo -VolumePath $VolumePath
 if (-not $volume) {
     return
@@ -385,12 +427,12 @@ if (-not $InputPath) {
     $InputPath = "$volumePath/markdown"
 }
 
-$markdownFiles = Get-ChildItem $InputPath -Filter *.md
+$markdownFiles = @(Get-ChildItem $InputPath -Filter *.md | Sort-Object FullName)
 if (-not $markdownFiles) {
     Write-Warning "No markdown files found in $InputPath, nothing to do"
     return
 } elseif ($markdownFiles.Count -eq 1) {
-    $Combine = $true
+    $Combine = 'All'
 }
 
 if ($OutputPath) {
@@ -401,18 +443,37 @@ if ($OutputPath) {
 }
 
 $title = "$($volume.definition.title ?? $volumeSlug)"
-if ($Combine) {
+if ($Combine -eq 'All') {
     if ((Split-Path $targetPath -Extension) -ne '.epub') {
         $targetPath = Join-Path $targetPath "$volumeSlug.epub"
     }
 
     GenerateEpub $markdownFiles $targetPath $title
-} else {
+} elseif ($Combine -eq 'None') {
     $files = ExtractUniqueNamePart $markdownFiles
     foreach ($file in $files) {
         $markdownFile = $file.File
         $fileSuffix = $file.UniquePart
 
         GenerateEpub $markdownFile "$targetPath/$volumeSlug-$fileSuffix.epub" "$title-$fileSuffix"
+    }
+} else {
+    $files = @(ExtractUniqueNamePart $markdownFiles | ForEach-Object {
+        $mediaSize = (GetReferencedMedia -MarkdownFile $_.File -VolumePath $volumePath |
+            Measure-Object -Property Length -Sum).Sum ?? 0
+        [PSCustomObject]@{
+            File = $_.File
+            UniquePart = $_.UniquePart
+            MediaSize = $mediaSize
+        }
+    })
+
+    foreach ($group in GetAutoGroups $files $TargetSize) {
+        $first = $group.Files[0].UniquePart
+        $last = $group.Files[-1].UniquePart
+        $fileSuffix = $group.Files.Count -eq 1 ? $first : "$first-$last"
+        $groupMarkdownFiles = $group.Files | Select-Object -ExpandProperty File
+
+        GenerateEpub $groupMarkdownFiles "$targetPath/$volumeSlug-$fileSuffix.epub" "$title-$fileSuffix"
     }
 }
