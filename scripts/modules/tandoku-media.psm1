@@ -1,3 +1,13 @@
+function GetAudioReferences([String]$html) {
+    foreach ($match in [regex]::Matches(
+        $html,
+        '(?i)<audio\b[^>]*\bsrc\s*=\s*(?:"([^"]+)"|''([^'']+)''|([^\s>]+))')) {
+        $match.Groups[1..3] |
+            Where-Object Success |
+            Select-Object -First 1 -ExpandProperty Value
+    }
+}
+
 function GetReferencedMedia {
     param(
         [Parameter(Mandatory, ValueFromPipeline)]
@@ -23,20 +33,12 @@ function GetReferencedMedia {
             if (($typeName -eq 'Markdig.Syntax.Inlines.LinkInline') -and $node.IsImage) {
                 [void] $references.Add($node.Url)
             } elseif ($typeName -eq 'Markdig.Syntax.Inlines.HtmlInline') {
-                foreach ($match in [regex]::Matches(
-                    $node.Tag,
-                    '(?i)<audio\b[^>]*\bsrc\s*=\s*(?:"([^"]+)"|''([^'']+)''|([^\s>]+))')) {
-                    [void] $references.Add(($match.Groups[1..3] |
-                        Where-Object Success |
-                        Select-Object -First 1 -ExpandProperty Value))
+                foreach ($reference in GetAudioReferences $node.Tag) {
+                    [void] $references.Add($reference)
                 }
             } elseif ($typeName -eq 'Markdig.Syntax.HtmlBlock') {
-                foreach ($match in [regex]::Matches(
-                    $node.Lines.ToString(),
-                    '(?i)<audio\b[^>]*\bsrc\s*=\s*(?:"([^"]+)"|''([^'']+)''|([^\s>]+))')) {
-                    [void] $references.Add(($match.Groups[1..3] |
-                        Where-Object Success |
-                        Select-Object -First 1 -ExpandProperty Value))
+                foreach ($reference in GetAudioReferences $node.Lines.ToString()) {
+                    [void] $references.Add($reference)
                 }
             }
 
