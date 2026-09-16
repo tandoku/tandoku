@@ -52,6 +52,7 @@ function GetReferencedMedia {
             }
         }
 
+        # Convert URL references to local filesystem paths.
         foreach ($reference in $references) {
             if ($reference -match '^(?:[a-z][a-z0-9+.-]*:|//)') {
                 continue
