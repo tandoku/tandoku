@@ -381,6 +381,9 @@ function GetCommonSuffix($list) {
     return $suffix
 }
 
+# Choose the number of groups from the total target size, then greedily partition
+# the ordered files into contiguous groups. Each group accepts the next file while
+# doing so moves it closer to the ideal size of the remaining groups.
 function GetAutoGroups($files, [long]$targetSize) {
     $totalSize = ($files | Measure-Object -Property MediaSize -Sum).Sum
     $groupCount = [Math]::Max(1, [Math]::Ceiling($totalSize / $targetSize))
