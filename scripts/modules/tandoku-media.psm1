@@ -52,14 +52,18 @@ function GetReferencedMedia {
             }
         }
 
-        # Convert URL references to local filesystem paths.
         foreach ($reference in $references) {
+            # Remote references do not resolve to local media files.
             if ($reference -match '^(?:[a-z][a-z0-9+.-]*:|//)') {
                 continue
             }
 
+            # Decode HTML entities used in attribute values.
             $relativePath = [Net.WebUtility]::HtmlDecode($reference)
-            $relativePath = [Uri]::UnescapeDataString(($relativePath -split '[?#]', 2)[0])
+            # Remove URL components that are not part of the filesystem path.
+            $relativePath = ($relativePath -split '[?#]', 2)[0]
+            # Decode percent-encoded path characters.
+            $relativePath = [Uri]::UnescapeDataString($relativePath)
             $mediaPath = Join-Path $VolumePath $relativePath
             Get-Item -LiteralPath $mediaPath -ErrorAction Stop
         }
