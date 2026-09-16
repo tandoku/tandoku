@@ -13,6 +13,7 @@ param(
 )
 
 Import-Module "$PSScriptRoot/modules/tandoku-utils.psm1" -Scope Local
+Import-Module "$PSScriptRoot/modules/tandoku-media.psm1" -Scope Local
 
 $media = Get-Content "$path/media" | ConvertFrom-Json -AsHashtable
 $imageExtensions = GetImageExtensions

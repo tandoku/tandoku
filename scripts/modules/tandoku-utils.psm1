@@ -231,16 +231,6 @@ function GetRelativePath([string]$basePath, [string]$path) {
     return [IO.Path]::GetRelativePath($basePath, $path).Replace('\', '/')
 }
 
-# TODO - move these to tandoku-images, tandoku-audio modules (or maybe combine with tandoku-films/video to tandoku-media ?)
-function GetImageExtensions {
-    return @('.jpg','.jpeg','.png')
-}
-
-function GetKnownAudioExtensions([Switch]$FileMask) {
-    $prefix = $FileMask ? '*' : ''
-    return @("$prefix.mp3","$prefix.m4a")
-}
-
 function GetContentBaseName($contentPath) {
     # Strip file-type extension (.yaml/.md)
     $base = Split-Path $contentPath -LeafBase

@@ -16,6 +16,7 @@ param(
 )
 
 Import-Module "$PSScriptRoot/modules/tandoku-utils.psm1" -Scope Local
+Import-Module "$PSScriptRoot/modules/tandoku-media.psm1" -Scope Local
 Import-Module "$PSScriptRoot/modules/tandoku-volume.psm1" -Scope Local
 
 function GenerateBlocksFromImages {

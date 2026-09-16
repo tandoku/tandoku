@@ -1,3 +1,41 @@
+function ExtractFilmQualifierFromFileName($fileName) {
+    return ($fileName -match 's\d{1,4}e\d{1,4}' ? "-$($Matches[0])".ToLowerInvariant() : $null)
+}
+
+function GetImageExtensions {
+    return @('.jpg','.jpeg','.png')
+}
+
+function GetKnownAudioExtensions([Switch]$FileMask) {
+    $prefix = $FileMask ? '*' : ''
+    return @("$prefix.mp3","$prefix.m4a")
+}
+
+function GetKnownVideoExtensions([Switch]$FileMask) {
+    $prefix = $FileMask ? '*' : ''
+    return "$prefix.mkv","$prefix.mp4"
+}
+
+function GetKnownSubtitleExtensions([Switch]$FileMask, [String]$Language, [Switch]$MatchLanguagePrefix, [Switch]$TtmlOnly) {
+    $prefix = $FileMask ? '*' : ''
+    if ($Language) {
+        $prefix = "$prefix.$Language"
+        if ($MatchLanguagePrefix) {
+            $prefix = "$prefix*"
+        }
+    }
+    $result = "$prefix.ttml","$prefix.dfxp","$prefix.xml"
+    if (-not $TtmlOnly) {
+        $result += "$prefix.vtt","$prefix.ass","$prefix.srt"
+    }
+    return $result
+}
+
+function GetSubtitleBaseName($subtitle) {
+    # Remove both subtitle and language extension (e.g. .ja.srt)
+    return (Split-Path (Split-Path $subtitle -LeafBase) -LeafBase)
+}
+
 function GetAudioReferences([String]$html) {
     foreach ($match in [regex]::Matches(
         $html,
@@ -70,4 +108,11 @@ function GetReferencedMedia {
     }
 }
 
-Export-ModuleMember -Function GetReferencedMedia
+Export-ModuleMember -Function `
+    ExtractFilmQualifierFromFileName, `
+    GetImageExtensions, `
+    GetKnownAudioExtensions, `
+    GetKnownVideoExtensions, `
+    GetKnownSubtitleExtensions, `
+    GetSubtitleBaseName, `
+    GetReferencedMedia

@@ -16,7 +16,7 @@ param(
 )
 
 Import-Module "$PSScriptRoot/modules/tandoku-utils.psm1" -Scope Local
-Import-Module "$PSScriptRoot/modules/tandoku-films.psm1" -Scope Local
+Import-Module "$PSScriptRoot/modules/tandoku-media.psm1" -Scope Local
 
 # Prerequisites:
 # scoop install ffmpeg
