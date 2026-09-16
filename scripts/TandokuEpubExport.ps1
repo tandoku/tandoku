@@ -13,7 +13,7 @@ param(
     $Combine = 'Auto',
 
     [Parameter()]
-    [ValidateRange(1, 9223372036854775807)]
+    [ValidateRange(1, [long]::MaxValue)]
     [long]
     $TargetSize = 120MB,
 
