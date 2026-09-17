@@ -15,7 +15,7 @@ param(
     [Parameter()]
     [ValidateRange(1, [long]::MaxValue)]
     [long]
-    $TargetSize = 120MB,
+    $TargetSize = 100MB,
 
     [Parameter()]
     [int]
@@ -458,7 +458,7 @@ if ($Combine -eq 'All') {
         $markdownFile = $file.File
         $fileSuffix = $file.UniquePart
 
-        GenerateEpub $markdownFile "$targetPath/$volumeSlug-$fileSuffix.epub" "$title-$fileSuffix"
+        GenerateEpub $markdownFile "$targetPath/$volumeSlug-$fileSuffix.epub" "$title $fileSuffix"
     }
 } else {
     $files = @(ExtractUniqueNamePart $markdownFiles | ForEach-Object {
@@ -477,6 +477,6 @@ if ($Combine -eq 'All') {
         $fileSuffix = $group.Files.Count -eq 1 ? $first : "$first-$last"
         $groupMarkdownFiles = $group.Files | Select-Object -ExpandProperty File
 
-        GenerateEpub $groupMarkdownFiles "$targetPath/$volumeSlug-$fileSuffix.epub" "$title-$fileSuffix"
+        GenerateEpub $groupMarkdownFiles "$targetPath/$volumeSlug-$fileSuffix.epub" "$title $fileSuffix"
     }
 }
