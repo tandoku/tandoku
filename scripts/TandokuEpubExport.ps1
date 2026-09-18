@@ -471,12 +471,18 @@ if ($Combine -eq 'All') {
         }
     })
 
-    foreach ($group in GetAutoGroups $files $TargetSize) {
-        $first = $group.Files[0].UniquePart
-        $last = $group.Files[-1].UniquePart
-        $fileSuffix = $group.Files.Count -eq 1 ? $first : "$first-$last"
-        $groupMarkdownFiles = $group.Files | Select-Object -ExpandProperty File
+    $groups = GetAutoGroups $files $TargetSize
 
-        GenerateEpub $groupMarkdownFiles "$targetPath/$volumeSlug-$fileSuffix.epub" "$title $fileSuffix"
+    if ($groups.Count -eq 1) {
+        GenerateEpub $markdownFiles "$targetPath/$volumeSlug.epub" $title
+    } else {
+        foreach ($group in $groups) {
+            $first = $group.Files[0].UniquePart
+            $last = $group.Files[-1].UniquePart
+            $fileSuffix = $group.Files.Count -eq 1 ? $first : "$first-$last"
+            $groupMarkdownFiles = $group.Files | Select-Object -ExpandProperty File
+
+            GenerateEpub $groupMarkdownFiles "$targetPath/$volumeSlug-$fileSuffix.epub" "$title $fileSuffix"
+        }
     }
 }
