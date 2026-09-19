@@ -5,6 +5,7 @@
   </Folder>
   <Project Path="src/Tandoku.CommandLine/Tandoku.CommandLine.csproj" />
   <Project Path="src/Tandoku.Core/Tandoku.Core.csproj" />
+  <Project Path="src/Tandoku.App/Tandoku.App.csproj" />
   <Project Path="tests/Tandoku.CommandLine.Tests/Tandoku.CommandLine.Tests.csproj" />
   <Project Path="tests/Tandoku.Core.Tests/Tandoku.Core.Tests.csproj" />
 </Solution>
