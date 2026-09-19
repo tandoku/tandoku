@@ -1,5 +1,8 @@
+* text=auto eol=lf
+
 *.verified.md text eol=lf
 *.verified.txt text eol=lf
 *.verified.xml text eol=lf
 *.verified.json text eol=lf
 *.verified.yaml text eol=lf
+*.ttf filter=lfs diff=lfs merge=lfs -text
