@@ -1,3 +1,5 @@
+* text=auto eol=lf
+
 *.verified.md text eol=lf
 *.verified.txt text eol=lf
 *.verified.xml text eol=lf
