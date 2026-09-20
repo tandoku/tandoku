@@ -34,7 +34,15 @@ function Invoke-TmdbRequest([string]$path, [string]$cachePath) {
 
     $separator = if ($path.Contains('?')) { '&' } else { '?' }
     $uri = "$tmdbApiBaseUrl/$path${separator}api_key=$([uri]::EscapeDataString($ApiKey))"
-    $response = Invoke-RestMethod -Uri $uri -Method Get
+    try {
+        $response = Invoke-RestMethod -Uri $uri -Method Get
+    }
+    catch {
+        if ([int]$_.Exception.Response.StatusCode -eq 404) {
+            return $null
+        }
+        throw
+    }
     $response | ConvertTo-Json -Depth 100 | Set-Content -LiteralPath $cachePath -Encoding UTF8
     return $response
 }
@@ -52,6 +60,10 @@ function Get-TmdbKindFromImdbType([string]$imdbType) {
 function Find-TmdbByImdbId($film, [string]$imdbId) {
     $cachePath = Join-Path $TmdbDataPath "imdb-$imdbId.json"
     $response = Invoke-TmdbRequest "find/$([uri]::EscapeDataString($imdbId))?external_source=imdb_id" $cachePath
+    if (-not $response) {
+        Write-Warning "TMDB lookup failed for IMDb ID '$imdbId' (title: $(Get-DisplayTitle $film), wikidata: $($film.wikidata))"
+        return $null
+    }
     $matches = [System.Collections.Generic.List[object]]::new()
 
     foreach ($result in @($response.movie_results)) {
@@ -95,6 +107,10 @@ function Get-TmdbById($film, [int]$tmdbId, [string]$tmdbKind) {
 
     $cachePath = Join-Path $TmdbDataPath "$tmdbKind-$tmdbId.json"
     $response = Invoke-TmdbRequest "$tmdbPath/$tmdbId" $cachePath
+    if (-not $response) {
+        Write-Warning "TMDB $tmdbKind ID '$tmdbId' was not found (title: $(Get-DisplayTitle $film), wikidata: $($film.wikidata))"
+        return $null
+    }
     return [pscustomobject]@{ kind = $tmdbKind; result = $response }
 }
 
@@ -120,7 +136,7 @@ function Set-TmdbData($film, $match) {
 
     if ($film.tmdb -is [System.Collections.IDictionary]) {
         foreach ($key in @($film.tmdb.Keys)) {
-            if (-not $tmdb.Contains($key)) {
+            if ($key -ne 'images' -and -not $tmdb.Contains($key)) {
                 $tmdb[$key] = $film.tmdb[$key]
             }
         }
@@ -145,6 +161,15 @@ foreach ($film in $films) {
     $match = $null
     if ($film.tmdb -and $film.tmdb.id -and $film.tmdb.kind) {
         $match = Get-TmdbById $film ([int]$film.tmdb.id) ([string]$film.tmdb.kind)
+        if (-not $match -and $film.imdb -and $film.imdb.id) {
+            $imdbId = [string]$film.imdb.id
+            if ($imdbId -match '^tt\d+$') {
+                Write-Warning "Falling back to IMDb ID '$imdbId' for '$(Get-DisplayTitle $film)'"
+                $match = Find-TmdbByImdbId $film $imdbId
+            } else {
+                Write-Warning "Invalid IMDb ID '$imdbId' for TMDB fallback (title: $(Get-DisplayTitle $film), wikidata: $($film.wikidata))"
+            }
+        }
     } elseif ($film.imdb -and $film.imdb.id) {
         $imdbId = [string]$film.imdb.id
         if ($imdbId -notmatch '^tt\d+$') {
