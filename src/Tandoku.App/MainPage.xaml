@@ -59,11 +59,12 @@
               Grid.Row="1"
               ColumnDefinitions="280,*">
             <Border Grid.Column="0"
-                    Padding="22"
+                    Padding="22,22,12,22"
                     StrokeThickness="0"
                     BackgroundColor="{AppThemeBinding Light=#ECE9E3, Dark=#1A1A1A}">
                 <ScrollView>
-                    <VerticalStackLayout Spacing="18">
+                    <VerticalStackLayout Margin="0,0,24,0"
+                                         Spacing="18">
                         <Grid ColumnDefinitions="*,Auto">
                             <Label Text="FILTERS"
                                    FontFamily="OpenSansSemibold"
@@ -89,12 +90,14 @@
                             <Slider Minimum="{Binding MinimumLevel}"
                                     Maximum="{Binding MaximumLevel}"
                                     Value="{Binding SelectedMinimumLevel, Mode=TwoWay}"
+                                    ValueChanged="OnIntegerSliderValueChanged"
                                     MinimumTrackColor="#D65A31"
                                     ThumbColor="#D65A31" />
                             <Label Text="Maximum" Style="{StaticResource MutedLabel}" />
                             <Slider Minimum="{Binding MinimumLevel}"
                                     Maximum="{Binding MaximumLevel}"
                                     Value="{Binding SelectedMaximumLevel, Mode=TwoWay}"
+                                    ValueChanged="OnIntegerSliderValueChanged"
                                     MinimumTrackColor="#D65A31"
                                     ThumbColor="#D65A31" />
                         </VerticalStackLayout>
@@ -115,22 +118,24 @@
 
                         <VerticalStackLayout Spacing="4">
                             <Label Text="Media type" Style="{StaticResource FilterHeading}" />
-                            <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto">
-                                <CheckBox IsChecked="{Binding IncludeMovies}" />
-                                <Label Grid.Column="1" Text="Movies" VerticalOptions="Center" />
-                                <CheckBox Grid.Row="1" IsChecked="{Binding IncludeTv}" />
-                                <Label Grid.Row="1" Grid.Column="1" Text="TV" VerticalOptions="Center" />
-                            </Grid>
+                            <VerticalStackLayout RadioButtonGroup.GroupName="MediaType"
+                                                 RadioButtonGroup.SelectedValue="{Binding MediaTypeFilter, Mode=TwoWay}"
+                                                 Spacing="0">
+                                <RadioButton Content="All" Value="All" />
+                                <RadioButton Content="Movies" Value="Movies" />
+                                <RadioButton Content="TV" Value="TV" />
+                            </VerticalStackLayout>
                         </VerticalStackLayout>
 
                         <VerticalStackLayout Spacing="4">
                             <Label Text="Format" Style="{StaticResource FilterHeading}" />
-                            <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto">
-                                <CheckBox IsChecked="{Binding IncludeAnimated}" />
-                                <Label Grid.Column="1" Text="Animated" VerticalOptions="Center" />
-                                <CheckBox Grid.Row="1" IsChecked="{Binding IncludeLiveAction}" />
-                                <Label Grid.Row="1" Grid.Column="1" Text="Live action" VerticalOptions="Center" />
-                            </Grid>
+                            <VerticalStackLayout RadioButtonGroup.GroupName="Format"
+                                                 RadioButtonGroup.SelectedValue="{Binding FormatFilter, Mode=TwoWay}"
+                                                 Spacing="0">
+                                <RadioButton Content="All" Value="All" />
+                                <RadioButton Content="Animated" Value="Animated" />
+                                <RadioButton Content="Live action" Value="Live action" />
+                            </VerticalStackLayout>
                         </VerticalStackLayout>
 
                         <VerticalStackLayout Spacing="6">
@@ -259,7 +264,7 @@
                                     <Label Text="{Binding YearDisplay}"
                                            Style="{StaticResource MutedLabel}" />
                                     <Label Grid.Column="2"
-                                           Text="{Binding EffectiveNativelyLevel, StringFormat='Lv {0:0.#}'}"
+                                           Text="{Binding EffectiveNativelyLevel, StringFormat='Lv {0:0}'}"
                                            FontFamily="OpenSansSemibold"
                                            FontSize="12"
                                            TextColor="#D65A31" />
@@ -377,8 +382,23 @@
                                     <Label Text="{Binding SelectedFilm.AvailabilityDisplay}" />
                                 </VerticalStackLayout>
                                 <VerticalStackLayout Spacing="3">
-                                    <Label Text="Identifiers" Style="{StaticResource MutedLabel}" />
-                                    <Label Text="{Binding SelectedFilm.IdentifiersDisplay}" />
+                                    <Label Text="Sources" Style="{StaticResource MutedLabel}" />
+                                    <FlexLayout BindableLayout.ItemsSource="{Binding SelectedFilm.SourceLinks}"
+                                                Direction="Row"
+                                                Wrap="Wrap"
+                                                JustifyContent="Start">
+                                        <BindableLayout.ItemTemplate>
+                                            <DataTemplate x:DataType="films:FilmSourceLink">
+                                                <Button Text="{Binding Label}"
+                                                        Clicked="OnSourceLinkClicked"
+                                                        CommandParameter="{Binding Url}"
+                                                        Margin="0,3,8,3"
+                                                        Padding="10,6"
+                                                        MinimumHeightRequest="34"
+                                                        FontSize="12" />
+                                            </DataTemplate>
+                                        </BindableLayout.ItemTemplate>
+                                    </FlexLayout>
                                 </VerticalStackLayout>
                             </VerticalStackLayout>
                         </Grid>

@@ -75,7 +75,7 @@ public partial class MainPage : ContentPage
             this.ReportStatus($"Parsing {result.FileName}…");
             var films = await FilmDatabaseLoader.LoadAsync(stream);
             this.ReportStatus($"Preparing {films.Count} film cards…");
-            this.viewModel.LoadFilms(films, result.FileName);
+            await this.viewModel.LoadFilmsAsync(films, result.FileName);
             this.ReportStatus($"Loaded {films.Count} films from {result.FileName}.");
         }
         catch (Exception exception) when (
@@ -120,5 +120,43 @@ public partial class MainPage : ContentPage
             >= 390 => 2,
             _ => 1,
         };
+    }
+
+    private void OnIntegerSliderValueChanged(object? sender, ValueChangedEventArgs e)
+    {
+        if (sender is not Slider slider)
+        {
+            return;
+        }
+
+        var wholeLevel = Math.Clamp(
+            Math.Round(e.NewValue, MidpointRounding.AwayFromZero),
+            slider.Minimum,
+            slider.Maximum);
+        if (slider.Value != wholeLevel)
+        {
+            slider.Value = wholeLevel;
+        }
+    }
+
+    private async void OnSourceLinkClicked(object? sender, EventArgs e)
+    {
+        if (sender is not Button { CommandParameter: string url }
+            || !Uri.TryCreate(url, UriKind.Absolute, out var uri))
+        {
+            return;
+        }
+
+        try
+        {
+            if (!await Launcher.Default.OpenAsync(uri))
+            {
+                this.viewModel.ShowError($"Unable to open {uri.Host}.");
+            }
+        }
+        catch (FeatureNotSupportedException exception)
+        {
+            this.viewModel.ShowError($"Unable to open the source link: {exception.Message}");
+        }
     }
 }

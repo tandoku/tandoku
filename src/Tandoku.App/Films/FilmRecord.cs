@@ -85,7 +85,7 @@ public sealed class FilmRecord
         || (this.Imdb?.Genres.Contains("Animation", StringComparer.OrdinalIgnoreCase) ?? false);
 
     [JsonIgnore]
-    public double? EffectiveNativelyLevel => this.Natively?.Level;
+    public int? EffectiveNativelyLevel => this.Natively?.Level;
 
     [JsonIgnore]
     public double? EffectiveImdbRating => this.Imdb?.Rating;
@@ -107,8 +107,8 @@ public sealed class FilmRecord
         : "★ —";
 
     [JsonIgnore]
-    public string NativelyLevelDisplay => this.EffectiveNativelyLevel is double level
-        ? $"Natively Lv {level:0.#}"
+    public string NativelyLevelDisplay => this.EffectiveNativelyLevel is int level
+        ? $"Natively Lv {level}"
         : "Natively level unavailable";
 
     [JsonIgnore]
@@ -155,32 +155,54 @@ public sealed class FilmRecord
         : "Not specified";
 
     [JsonIgnore]
-    public string IdentifiersDisplay
+    public IReadOnlyList<FilmSourceLink> SourceLinks
     {
         get
         {
-            var identifiers = new List<string>();
+            var links = new List<FilmSourceLink>();
+            AddLink(links, "Natively", this.Natively?.Url);
+
             if (!string.IsNullOrWhiteSpace(this.Imdb?.Id))
             {
-                identifiers.Add($"IMDb {this.Imdb.Id}");
+                AddLink(links, "IMDb", $"https://www.imdb.com/title/{Uri.EscapeDataString(this.Imdb.Id)}/");
             }
 
             if (this.Tmdb?.Id is int tmdbId)
             {
-                identifiers.Add($"TMDB {tmdbId.ToString(CultureInfo.InvariantCulture)}");
+                var tmdbMediaType = string.Equals(this.Tmdb.Kind, "movie", StringComparison.OrdinalIgnoreCase)
+                    ? "movie"
+                    : "tv";
+                AddLink(
+                    links,
+                    "TMDB",
+                    $"https://www.themoviedb.org/{tmdbMediaType}/{tmdbId.ToString(CultureInfo.InvariantCulture)}");
             }
 
             if (this.MyAnimeList?.Id is int myAnimeListId)
             {
-                identifiers.Add($"MyAnimeList {myAnimeListId.ToString(CultureInfo.InvariantCulture)}");
+                AddLink(
+                    links,
+                    "MyAnimeList",
+                    $"https://myanimelist.net/anime/{myAnimeListId.ToString(CultureInfo.InvariantCulture)}");
+            }
+
+            if (this.Availability?.Netflix?.Id is int netflixId)
+            {
+                AddLink(
+                    links,
+                    "Netflix",
+                    $"https://www.netflix.com/title/{netflixId.ToString(CultureInfo.InvariantCulture)}");
             }
 
             if (!string.IsNullOrWhiteSpace(this.Wikidata))
             {
-                identifiers.Add($"Wikidata {this.Wikidata}");
+                AddLink(
+                    links,
+                    "Wikidata",
+                    $"https://www.wikidata.org/wiki/{Uri.EscapeDataString(this.Wikidata)}");
             }
 
-            return identifiers.Count > 0 ? string.Join(" · ", identifiers) : "Not specified";
+            return links;
         }
     }
 
@@ -215,6 +237,15 @@ public sealed class FilmRecord
     private static string? GetValue(IReadOnlyDictionary<string, string> values, string key) =>
         values.TryGetValue(key, out var value) && !string.IsNullOrWhiteSpace(value) ? value : null;
 
+    private static void AddLink(ICollection<FilmSourceLink> links, string label, string? url)
+    {
+        if (Uri.TryCreate(url, UriKind.Absolute, out var uri)
+            && ((uri.Scheme == Uri.UriSchemeHttp) || (uri.Scheme == Uri.UriSchemeHttps)))
+        {
+            links.Add(new FilmSourceLink(label, uri.AbsoluteUri));
+        }
+    }
+
     private static Dictionary<string, string> NormalizeDictionary(IDictionary<string, string>? values) =>
         values?
             .Where(pair => !string.IsNullOrWhiteSpace(pair.Key) && !string.IsNullOrWhiteSpace(pair.Value))
@@ -229,6 +260,8 @@ public sealed class FilmRecord
             .ToList()
         ?? [];
 }
+
+public sealed record FilmSourceLink(string Label, string Url);
 
 public sealed class ImdbFilmInfo
 {
@@ -299,7 +332,7 @@ public sealed class NativelyFilmInfo
     public string? Language { get; set; }
 
     [JsonPropertyName("level")]
-    public double? Level { get; set; }
+    public int? Level { get; set; }
 
     [JsonPropertyName("temporaryLevel")]
     public bool TemporaryLevel { get; set; }

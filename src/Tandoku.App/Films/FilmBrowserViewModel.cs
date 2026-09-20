@@ -8,16 +8,21 @@ using System.Windows.Input;
 
 public sealed class FilmBrowserViewModel : INotifyPropertyChanged
 {
+    public const string AllFilter = "All";
+    public const string MoviesFilter = "Movies";
+    public const string TvFilter = "TV";
+    public const string AnimatedFilter = "Animated";
+    public const string LiveActionFilter = "Live action";
+
     private readonly List<FilmRecord> allFilms = [];
+    private CancellationTokenSource? filterCancellation;
     private double minimumLevel;
     private double maximumLevel;
     private double selectedMinimumLevel;
     private double selectedMaximumLevel;
     private double minimumImdbRating;
-    private bool includeMovies = true;
-    private bool includeTv = true;
-    private bool includeAnimated = true;
-    private bool includeLiveAction = true;
+    private string mediaTypeFilter = AllFilter;
+    private string formatFilter = AllFilter;
     private bool hasFilms;
     private bool hasError;
     private string errorMessage = string.Empty;
@@ -27,6 +32,7 @@ public sealed class FilmBrowserViewModel : INotifyPropertyChanged
     private bool isLoading;
     private IReadOnlyList<FilmRecord> visibleFilms = [];
     private string statusMessage = "Choose a films.yaml database to begin.";
+    private bool suppressFilterUpdates;
 
     public FilmBrowserViewModel()
     {
@@ -68,11 +74,12 @@ public sealed class FilmBrowserViewModel : INotifyPropertyChanged
         get => this.selectedMinimumLevel;
         set
         {
-            var adjustedValue = Math.Min(value, this.SelectedMaximumLevel);
+            var wholeLevel = Math.Round(value, MidpointRounding.AwayFromZero);
+            var adjustedValue = Math.Clamp(wholeLevel, this.MinimumLevel, this.SelectedMaximumLevel);
             if (this.SetProperty(ref this.selectedMinimumLevel, adjustedValue))
             {
                 this.OnPropertyChanged(nameof(this.SelectedLevelRangeDisplay));
-                this.ApplyFilters();
+                this.QueueApplyFilters();
             }
         }
     }
@@ -82,16 +89,17 @@ public sealed class FilmBrowserViewModel : INotifyPropertyChanged
         get => this.selectedMaximumLevel;
         set
         {
-            var adjustedValue = Math.Max(value, this.SelectedMinimumLevel);
+            var wholeLevel = Math.Round(value, MidpointRounding.AwayFromZero);
+            var adjustedValue = Math.Clamp(wholeLevel, this.SelectedMinimumLevel, this.MaximumLevel);
             if (this.SetProperty(ref this.selectedMaximumLevel, adjustedValue))
             {
                 this.OnPropertyChanged(nameof(this.SelectedLevelRangeDisplay));
-                this.ApplyFilters();
+                this.QueueApplyFilters();
             }
         }
     }
 
-    public string SelectedLevelRangeDisplay => $"{this.SelectedMinimumLevel:0.#} – {this.SelectedMaximumLevel:0.#}";
+    public string SelectedLevelRangeDisplay => $"{this.SelectedMinimumLevel:0} – {this.SelectedMaximumLevel:0}";
 
     public double MinimumImdbRating
     {
@@ -101,7 +109,7 @@ public sealed class FilmBrowserViewModel : INotifyPropertyChanged
             if (this.SetProperty(ref this.minimumImdbRating, value))
             {
                 this.OnPropertyChanged(nameof(this.MinimumImdbRatingDisplay));
-                this.ApplyFilters();
+                this.QueueApplyFilters();
             }
         }
     }
@@ -110,50 +118,36 @@ public sealed class FilmBrowserViewModel : INotifyPropertyChanged
         ? "Any rating"
         : $"{this.MinimumImdbRating:0.0}+";
 
-    public bool IncludeMovies
+    public string MediaTypeFilter
     {
-        get => this.includeMovies;
+        get => this.mediaTypeFilter;
         set
         {
-            if (this.SetProperty(ref this.includeMovies, value))
+            if (value is not (AllFilter or MoviesFilter or TvFilter))
             {
-                this.ApplyFilters();
+                throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown media type filter.");
+            }
+
+            if (this.SetProperty(ref this.mediaTypeFilter, value))
+            {
+                this.QueueApplyFilters();
             }
         }
     }
 
-    public bool IncludeTv
+    public string FormatFilter
     {
-        get => this.includeTv;
+        get => this.formatFilter;
         set
         {
-            if (this.SetProperty(ref this.includeTv, value))
+            if (value is not (AllFilter or AnimatedFilter or LiveActionFilter))
             {
-                this.ApplyFilters();
+                throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown format filter.");
             }
-        }
-    }
 
-    public bool IncludeAnimated
-    {
-        get => this.includeAnimated;
-        set
-        {
-            if (this.SetProperty(ref this.includeAnimated, value))
+            if (this.SetProperty(ref this.formatFilter, value))
             {
-                this.ApplyFilters();
-            }
-        }
-    }
-
-    public bool IncludeLiveAction
-    {
-        get => this.includeLiveAction;
-        set
-        {
-            if (this.SetProperty(ref this.includeLiveAction, value))
-            {
-                this.ApplyFilters();
+                this.QueueApplyFilters();
             }
         }
     }
@@ -225,7 +219,7 @@ public sealed class FilmBrowserViewModel : INotifyPropertyChanged
     public string ResultCountDisplay =>
         $"{this.VisibleFilms.Count.ToString(CultureInfo.InvariantCulture)} of {this.allFilms.Count.ToString(CultureInfo.InvariantCulture)} titles";
 
-    public void LoadFilms(IEnumerable<FilmRecord> films, string databaseName)
+    public async Task LoadFilmsAsync(IEnumerable<FilmRecord> films, string databaseName)
     {
         this.allFilms.Clear();
         this.allFilms.AddRange(films);
@@ -235,11 +229,11 @@ public sealed class FilmBrowserViewModel : INotifyPropertyChanged
 
         var levels = this.allFilms
             .Select(film => film.EffectiveNativelyLevel)
-            .OfType<double>()
+            .OfType<int>()
             .ToList();
-        this.MinimumLevel = levels.Count > 0 ? Math.Floor(levels.Min()) : 0;
+        this.MinimumLevel = levels.Count > 0 ? levels.Min() : 1;
         this.MaximumLevel = levels.Count > 0
-            ? Math.Max(this.MinimumLevel + 1, Math.Ceiling(levels.Max()))
+            ? Math.Max(this.MinimumLevel + 1, levels.Max())
             : 100;
         this.selectedMinimumLevel = this.MinimumLevel;
         this.selectedMaximumLevel = this.MaximumLevel;
@@ -269,7 +263,7 @@ public sealed class FilmBrowserViewModel : INotifyPropertyChanged
 
         this.HasFilms = this.allFilms.Count > 0;
         this.CloseDetails();
-        this.ApplyFilters();
+        await this.ApplyFiltersAsync(TimeSpan.Zero);
     }
 
     public void ShowError(string message)
@@ -297,50 +291,123 @@ public sealed class FilmBrowserViewModel : INotifyPropertyChanged
         this.IsLoading = false;
     }
 
-    private void ApplyFilters()
+    private void QueueApplyFilters()
     {
+        if (!this.suppressFilterUpdates)
+        {
+            _ = this.ApplyFiltersAsync(TimeSpan.FromMilliseconds(150));
+        }
+    }
+
+    private async Task ApplyFiltersAsync(TimeSpan delay)
+    {
+        var cancellation = new CancellationTokenSource();
+        var previousCancellation = this.filterCancellation;
+        this.filterCancellation = cancellation;
+        previousCancellation?.Cancel();
+
+        var films = this.allFilms.ToArray();
         var selectedLists = this.ImdbListFilters
             .Where(filter => filter.IsSelected)
             .Select(filter => filter.Name)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var levelRangeIsUnrestricted =
-            (this.SelectedMinimumLevel <= this.MinimumLevel)
-            && (this.SelectedMaximumLevel >= this.MaximumLevel);
+        var criteria = new FilmFilterCriteria(
+            this.SelectedMinimumLevel,
+            this.SelectedMaximumLevel,
+            this.MinimumLevel,
+            this.MaximumLevel,
+            this.MinimumImdbRating,
+            this.MediaTypeFilter,
+            this.FormatFilter,
+            selectedLists);
 
-        var filteredFilms = this.allFilms
+        try
+        {
+            if (delay > TimeSpan.Zero)
+            {
+                await Task.Delay(delay, cancellation.Token);
+            }
+
+            var filteredFilms = await Task.Run(
+                () => FilterFilms(films, criteria, cancellation.Token),
+                cancellation.Token);
+            if (!ReferenceEquals(this.filterCancellation, cancellation))
+            {
+                return;
+            }
+
+            this.VisibleFilms = filteredFilms;
+            this.OnPropertyChanged(nameof(this.ResultCountDisplay));
+        }
+        catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+        {
+        }
+        finally
+        {
+            if (ReferenceEquals(this.filterCancellation, cancellation))
+            {
+                this.filterCancellation = null;
+            }
+
+            cancellation.Dispose();
+        }
+    }
+
+    private static IReadOnlyList<FilmRecord> FilterFilms(
+        IEnumerable<FilmRecord> films,
+        FilmFilterCriteria criteria,
+        CancellationToken cancellationToken)
+    {
+        var levelRangeIsUnrestricted =
+            (criteria.MinimumLevel <= criteria.AvailableMinimumLevel)
+            && (criteria.MaximumLevel >= criteria.AvailableMaximumLevel);
+
+        return films
             .Where(film =>
-                (film.IsTv ? this.IncludeTv : this.IncludeMovies)
-                && (film.Animated ? this.IncludeAnimated : this.IncludeLiveAction)
-                && (this.MinimumImdbRating == 0
-                    || (film.EffectiveImdbRating is double rating && rating >= this.MinimumImdbRating))
-                && (levelRangeIsUnrestricted
-                    || (film.EffectiveNativelyLevel is double level
-                        && (level >= this.SelectedMinimumLevel)
-                        && (level <= this.SelectedMaximumLevel)))
-                && (selectedLists.Count == 0
-                    || film.EffectiveImdbLists.Any(selectedLists.Contains)))
-            .OrderBy(film => film.EffectiveNativelyLevel ?? double.MaxValue)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                return (criteria.MediaType == AllFilter
+                    || (film.IsTv ? criteria.MediaType == TvFilter : criteria.MediaType == MoviesFilter))
+                    && (criteria.Format == AllFilter
+                        || (film.Animated
+                            ? criteria.Format == AnimatedFilter
+                            : criteria.Format == LiveActionFilter))
+                    && (criteria.MinimumImdbRating == 0
+                        || (film.EffectiveImdbRating is double rating && rating >= criteria.MinimumImdbRating))
+                    && (levelRangeIsUnrestricted
+                        || (film.EffectiveNativelyLevel is int level
+                            && (level >= criteria.MinimumLevel)
+                            && (level <= criteria.MaximumLevel)))
+                    && (criteria.ImdbLists.Count == 0
+                        || film.EffectiveImdbLists.Any(criteria.ImdbLists.Contains));
+            })
+            .OrderBy(film => film.EffectiveNativelyLevel ?? int.MaxValue)
             .ThenByDescending(film => film.EffectiveImdbRating ?? double.MinValue)
             .ThenBy(film => film.Title, StringComparer.CurrentCultureIgnoreCase)
             .ToList();
-
-        this.VisibleFilms = filteredFilms;
-        this.OnPropertyChanged(nameof(this.ResultCountDisplay));
     }
 
     private void ClearFilters()
     {
-        this.IncludeMovies = true;
-        this.IncludeTv = true;
-        this.IncludeAnimated = true;
-        this.IncludeLiveAction = true;
-        this.SelectedMinimumLevel = this.MinimumLevel;
-        this.SelectedMaximumLevel = this.MaximumLevel;
-        this.MinimumImdbRating = 0;
-        foreach (var filter in this.ImdbListFilters)
+        this.suppressFilterUpdates = true;
+        try
         {
-            filter.IsSelected = false;
+            this.MediaTypeFilter = AllFilter;
+            this.FormatFilter = AllFilter;
+            this.SelectedMinimumLevel = this.MinimumLevel;
+            this.SelectedMaximumLevel = this.MaximumLevel;
+            this.MinimumImdbRating = 0;
+            foreach (var filter in this.ImdbListFilters)
+            {
+                filter.IsSelected = false;
+            }
         }
+        finally
+        {
+            this.suppressFilterUpdates = false;
+        }
+
+        this.QueueApplyFilters();
     }
 
     private void ShowDetails(FilmRecord? film)
@@ -364,7 +431,7 @@ public sealed class FilmBrowserViewModel : INotifyPropertyChanged
     {
         if (e.PropertyName == nameof(ImdbListFilter.IsSelected))
         {
-            this.ApplyFilters();
+            this.QueueApplyFilters();
         }
     }
 
@@ -382,6 +449,16 @@ public sealed class FilmBrowserViewModel : INotifyPropertyChanged
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
         this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+
+    private sealed record FilmFilterCriteria(
+        double MinimumLevel,
+        double MaximumLevel,
+        double AvailableMinimumLevel,
+        double AvailableMaximumLevel,
+        double MinimumImdbRating,
+        string MediaType,
+        string Format,
+        HashSet<string> ImdbLists);
 }
 
 public sealed class ImdbListFilter : INotifyPropertyChanged
