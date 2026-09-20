@@ -1,5 +1,7 @@
 ﻿namespace Tandoku.App;
 
+using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Tandoku.App.Films;
 
 public partial class MainPage : ContentPage
@@ -22,22 +24,31 @@ public partial class MainPage : ContentPage
 
     private async void OnOpenDatabaseClicked(object? sender, EventArgs e)
     {
+        if (this.viewModel.IsLoading)
+        {
+            return;
+        }
+
         try
         {
+#if MACCATALYST
+            var result = await MacCatalystFilmDatabasePicker.PickAsync(this.ReportStatus);
+#else
+            this.ReportStatus("Presenting the system file picker.");
             var result = await FilePicker.Default.PickAsync(
                 new PickOptions
                 {
                     PickerTitle = "Choose a films.yaml database",
                     FileTypes = YamlFileType,
                 });
+#endif
             if (result is null)
             {
+                this.ReportStatus("No film database selected.");
                 return;
             }
 
-            await using var stream = await result.OpenReadAsync();
-            var films = await FilmDatabaseLoader.LoadAsync(stream);
-            this.viewModel.LoadFilms(films, result.FileName);
+            await this.LoadDatabaseAsync(result);
         }
         catch (Exception exception) when (
             exception is InvalidDataException
@@ -47,6 +58,55 @@ public partial class MainPage : ContentPage
         {
             this.viewModel.ShowError($"Unable to open films.yaml: {exception.Message}");
         }
+    }
+
+    private async Task LoadDatabaseAsync(FileResult result)
+    {
+        this.WriteDiagnostic($"LoadDatabaseAsync entered for {result.FileName}.");
+        this.viewModel.BeginLoading($"Reading {result.FileName}…");
+        this.WriteDiagnostic("Loading state displayed.");
+        try
+        {
+            await Task.Yield();
+            this.WriteDiagnostic("UI thread yielded.");
+            this.WriteDiagnostic("Opening selected file stream.");
+            await using var stream = await result.OpenReadAsync();
+            this.WriteDiagnostic("Selected file stream opened.");
+            this.ReportStatus($"Parsing {result.FileName}…");
+            var films = await FilmDatabaseLoader.LoadAsync(stream);
+            this.ReportStatus($"Preparing {films.Count} film cards…");
+            this.viewModel.LoadFilms(films, result.FileName);
+            this.ReportStatus($"Loaded {films.Count} films from {result.FileName}.");
+        }
+        catch (Exception exception) when (
+            exception is InvalidDataException
+            or IOException
+            or UnauthorizedAccessException
+            or SharpYaml.YamlException)
+        {
+            this.viewModel.ShowError($"Unable to open films.yaml: {exception.Message}");
+        }
+        finally
+        {
+            this.viewModel.EndLoading();
+        }
+    }
+
+    private void ReportStatus(string message)
+    {
+        this.viewModel.ShowStatus(message);
+        this.WriteDiagnostic(message);
+    }
+
+    private void WriteDiagnostic(string message)
+    {
+        var logMessage = $"{DateTimeOffset.Now:O} [FilmBrowser] {message}";
+        Debug.WriteLine(logMessage);
+        if (this.Handler?.MauiContext?.Services.GetService(typeof(ILogger<MainPage>)) is ILogger<MainPage> logger)
+        {
+            logger.LogInformation("{FilmBrowserStatus}", message);
+        }
+
     }
 
     private void OnPageSizeChanged(object? sender, EventArgs e)

@@ -40,12 +40,18 @@
                 <Label Text="Film Library"
                        FontFamily="OpenSansSemibold"
                        FontSize="26" />
-                <Label Text="{Binding DatabaseName}"
-                       Style="{StaticResource MutedLabel}" />
+                <HorizontalStackLayout Spacing="8">
+                    <Label Text="{Binding DatabaseName}"
+                           Style="{StaticResource MutedLabel}" />
+                    <Label Text="{Binding StatusMessage}"
+                           Style="{StaticResource MutedLabel}"
+                           LineBreakMode="TailTruncation" />
+                </HorizontalStackLayout>
             </VerticalStackLayout>
             <Button Grid.Column="1"
                     Text="Open films.yaml"
                     Clicked="OnOpenDatabaseClicked"
+                    IsEnabled="{Binding CanOpenDatabase}"
                     VerticalOptions="Center" />
         </Grid>
 
@@ -201,6 +207,7 @@
                                        HorizontalTextAlignment="Center" />
                                 <Button Text="Choose films.yaml"
                                         Clicked="OnOpenDatabaseClicked"
+                                        IsEnabled="{Binding CanOpenDatabase}"
                                         HorizontalOptions="Center"
                                         Margin="0,8,0,0" />
                             </VerticalStackLayout>
@@ -262,6 +269,27 @@
                     </CollectionView.ItemTemplate>
                 </CollectionView>
             </Grid>
+        </Grid>
+
+        <Grid Grid.RowSpan="2"
+              IsVisible="{Binding IsLoading}"
+              BackgroundColor="#A6000000">
+            <Border Padding="28"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center"
+                    StrokeThickness="0"
+                    StrokeShape="RoundRectangle 14"
+                    BackgroundColor="{AppThemeBinding Light=White, Dark=#242424}">
+                <VerticalStackLayout Spacing="14">
+                    <ActivityIndicator IsRunning="{Binding IsLoading}"
+                                       WidthRequest="36"
+                                       HeightRequest="36" />
+                    <Label Text="{Binding StatusMessage}"
+                           FontFamily="OpenSansSemibold"
+                           FontSize="16"
+                           HorizontalTextAlignment="Center" />
+                </VerticalStackLayout>
+            </Border>
         </Grid>
 
         <Grid Grid.RowSpan="2"

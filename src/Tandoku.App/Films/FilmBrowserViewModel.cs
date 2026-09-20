@@ -24,6 +24,9 @@ public sealed class FilmBrowserViewModel : INotifyPropertyChanged
     private string databaseName = string.Empty;
     private FilmRecord? selectedFilm;
     private bool isDetailsVisible;
+    private bool isLoading;
+    private IReadOnlyList<FilmRecord> visibleFilms = [];
+    private string statusMessage = "Choose a films.yaml database to begin.";
 
     public FilmBrowserViewModel()
     {
@@ -34,7 +37,11 @@ public sealed class FilmBrowserViewModel : INotifyPropertyChanged
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
-    public ObservableCollection<FilmRecord> VisibleFilms { get; } = [];
+    public IReadOnlyList<FilmRecord> VisibleFilms
+    {
+        get => this.visibleFilms;
+        private set => this.SetProperty(ref this.visibleFilms, value);
+    }
 
     public ObservableCollection<ImdbListFilter> ImdbListFilters { get; } = [];
 
@@ -165,6 +172,26 @@ public sealed class FilmBrowserViewModel : INotifyPropertyChanged
 
     public bool NeedsDatabase => !this.HasFilms;
 
+    public bool IsLoading
+    {
+        get => this.isLoading;
+        private set
+        {
+            if (this.SetProperty(ref this.isLoading, value))
+            {
+                this.OnPropertyChanged(nameof(this.CanOpenDatabase));
+            }
+        }
+    }
+
+    public bool CanOpenDatabase => !this.IsLoading;
+
+    public string StatusMessage
+    {
+        get => this.statusMessage;
+        private set => this.SetProperty(ref this.statusMessage, value);
+    }
+
     public bool HasError
     {
         get => this.hasError;
@@ -249,6 +276,25 @@ public sealed class FilmBrowserViewModel : INotifyPropertyChanged
     {
         this.ErrorMessage = message;
         this.HasError = true;
+        this.StatusMessage = message;
+    }
+
+    public void ShowStatus(string message)
+    {
+        this.StatusMessage = message;
+    }
+
+    public void BeginLoading(string message)
+    {
+        this.HasError = false;
+        this.ErrorMessage = string.Empty;
+        this.StatusMessage = message;
+        this.IsLoading = true;
+    }
+
+    public void EndLoading()
+    {
+        this.IsLoading = false;
     }
 
     private void ApplyFilters()
@@ -278,12 +324,7 @@ public sealed class FilmBrowserViewModel : INotifyPropertyChanged
             .ThenBy(film => film.Title, StringComparer.CurrentCultureIgnoreCase)
             .ToList();
 
-        this.VisibleFilms.Clear();
-        foreach (var film in filteredFilms)
-        {
-            this.VisibleFilms.Add(film);
-        }
-
+        this.VisibleFilms = filteredFilms;
         this.OnPropertyChanged(nameof(this.ResultCountDisplay));
     }
 

@@ -16,6 +16,11 @@ internal static class FilmDatabaseLoader
             throw new InvalidDataException("The selected films.yaml file is empty.");
         }
 
+        return await Task.Run(() => Parse(yaml), cancellationToken);
+    }
+
+    private static IReadOnlyList<FilmRecord> Parse(string yaml)
+    {
         var yamlStream = YamlStream.Load(new StringReader(yaml));
         var films = new List<FilmRecord>(yamlStream.Count);
         for (var index = 0; index < yamlStream.Count; index++)
