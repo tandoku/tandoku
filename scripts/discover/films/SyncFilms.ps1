@@ -6,6 +6,7 @@ param(
     [int]$NetflixRequestLimit = 100,
     [string]$IMDbExportsPath,
     [switch]$UpdateImdbData,
+    [switch]$UpdateTmdbData,
     [switch]$UpdateNativelyData,
     [string]$LogPath
 )
@@ -53,6 +54,8 @@ if ($IMDbExportsPath) {
 & "$PSScriptRoot/PopulateWikidata.ps1" -DatabasePath $dbPath -Force:$Force @logArgs
 
 & "$PSScriptRoot/PopulateIMDb.ps1" -DatabasePath $dbPath -ImdbDataPath "$sources/imdb" -UpdateImdbData:$UpdateImdbData @logArgs
+
+& "$PSScriptRoot/PopulateTMDB.ps1" -DatabasePath $dbPath -TmdbDataPath "$sources/tmdb" -UpdateTmdbData:$UpdateTmdbData @logArgs
 
 & "$PSScriptRoot/PopulateNatively.ps1" -DatabasePath $dbPath -NativelyDataPath "$sources/natively" -UpdateNativelyData:$UpdateNativelyData -NativelyLanguage ja -OriginalLanguage ja @logArgs
 
