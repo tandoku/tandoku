@@ -27,6 +27,52 @@ dotnet run --project src/Tandoku.CommandLine -- <args>
 The output assembly name is `tandoku`, so once built you can also invoke
 `src/Tandoku.CommandLine/bin/Debug/net10.0/tandoku <args>` directly.
 
+### Run the film browser
+```bash
+dotnet build src/Tandoku.App/Tandoku.App.csproj -t:Run
+```
+
+The app prompts for the multi-document `films.yaml` database produced by the
+scripts under `scripts/discover/films`:
+
+```yaml
+wikidata: Q12345
+title:
+  en: Example Film
+  ja: サンプル映画
+type:
+- film
+country:
+- Japan
+language:
+- ja
+year: 2024
+imdb:
+  id: tt1234567
+  type: movie
+  runtime: 112
+  genres:
+  - Drama
+  rating: 7.8
+  votes: 12000
+  lists:
+    japanese: 10
+tmdb:
+  id: 12345
+  kind: movie
+  images:
+    small: https://image.tmdb.org/t/p/w342/example.jpg
+    large: https://image.tmdb.org/t/p/w780/example.jpg
+natively:
+  language: ja
+  level: 24
+  url: https://learnnatively.com/movies/example/
+origin:
+- imdb
+---
+# next film document
+```
+
 ### Testing
 Tests use [TUnit](https://github.com/thomhurst/TUnit) on Microsoft.Testing.Platform.
 The repo's `global.json` opts `dotnet test` into the .NET 10 SDK MTP runner, so

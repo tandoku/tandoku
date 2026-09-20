@@ -1,8 +1,362 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="Tandoku.App.MainPage">
+             xmlns:films="clr-namespace:Tandoku.App.Films"
+             x:Class="Tandoku.App.MainPage"
+             x:DataType="films:FilmBrowserViewModel"
+             BackgroundColor="{AppThemeBinding Light=#F6F5F2, Dark=#111111}"
+             Shell.NavBarIsVisible="False">
 
-    <Grid />
+    <ContentPage.Resources>
+        <Style x:Key="FilterHeading" TargetType="Label">
+            <Setter Property="FontFamily" Value="OpenSansSemibold" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="TextColor" Value="{AppThemeBinding Light=#342F2A, Dark=#F4F1EA}" />
+        </Style>
+        <Style x:Key="MutedLabel" TargetType="Label">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="TextColor" Value="{AppThemeBinding Light=#746D65, Dark=#A8A29A}" />
+        </Style>
+        <Style x:Key="BadgeLabel" TargetType="Label">
+            <Setter Property="BackgroundColor" Value="#D9202020" />
+            <Setter Property="TextColor" Value="White" />
+            <Setter Property="FontFamily" Value="OpenSansSemibold" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Padding" Value="8,5" />
+        </Style>
+    </ContentPage.Resources>
 
+    <Grid RowDefinitions="Auto,*">
+        <Grid Grid.Row="0"
+              Padding="28,20"
+              ColumnDefinitions="*,Auto"
+              BackgroundColor="{AppThemeBinding Light=White, Dark=#1B1B1B}">
+            <VerticalStackLayout Spacing="2">
+                <Label Text="TANDOKU"
+                       FontFamily="OpenSansSemibold"
+                       FontSize="12"
+                       CharacterSpacing="3"
+                       TextColor="#D65A31" />
+                <Label Text="Film Library"
+                       FontFamily="OpenSansSemibold"
+                       FontSize="26" />
+                <Label Text="{Binding DatabaseName}"
+                       Style="{StaticResource MutedLabel}" />
+            </VerticalStackLayout>
+            <Button Grid.Column="1"
+                    Text="Open films.yaml"
+                    Clicked="OnOpenDatabaseClicked"
+                    VerticalOptions="Center" />
+        </Grid>
+
+        <Grid x:Name="BrowserLayout"
+              Grid.Row="1"
+              ColumnDefinitions="280,*">
+            <Border Grid.Column="0"
+                    Padding="22"
+                    StrokeThickness="0"
+                    BackgroundColor="{AppThemeBinding Light=#ECE9E3, Dark=#1A1A1A}">
+                <ScrollView>
+                    <VerticalStackLayout Spacing="18">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Text="FILTERS"
+                                   FontFamily="OpenSansSemibold"
+                                   FontSize="12"
+                                   CharacterSpacing="2"
+                                   VerticalOptions="Center" />
+                            <Button Grid.Column="1"
+                                    Text="Reset"
+                                    Command="{Binding ClearFiltersCommand}"
+                                    Padding="10,5"
+                                    MinimumHeightRequest="32"
+                                    FontSize="12" />
+                        </Grid>
+
+                        <VerticalStackLayout Spacing="6">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <Label Text="Natively level" Style="{StaticResource FilterHeading}" />
+                                <Label Grid.Column="1"
+                                       Text="{Binding SelectedLevelRangeDisplay}"
+                                       Style="{StaticResource MutedLabel}" />
+                            </Grid>
+                            <Label Text="Minimum" Style="{StaticResource MutedLabel}" />
+                            <Slider Minimum="{Binding MinimumLevel}"
+                                    Maximum="{Binding MaximumLevel}"
+                                    Value="{Binding SelectedMinimumLevel, Mode=TwoWay}"
+                                    MinimumTrackColor="#D65A31"
+                                    ThumbColor="#D65A31" />
+                            <Label Text="Maximum" Style="{StaticResource MutedLabel}" />
+                            <Slider Minimum="{Binding MinimumLevel}"
+                                    Maximum="{Binding MaximumLevel}"
+                                    Value="{Binding SelectedMaximumLevel, Mode=TwoWay}"
+                                    MinimumTrackColor="#D65A31"
+                                    ThumbColor="#D65A31" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Spacing="6">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <Label Text="IMDb rating" Style="{StaticResource FilterHeading}" />
+                                <Label Grid.Column="1"
+                                       Text="{Binding MinimumImdbRatingDisplay}"
+                                       Style="{StaticResource MutedLabel}" />
+                            </Grid>
+                            <Slider Minimum="0"
+                                    Maximum="10"
+                                    Value="{Binding MinimumImdbRating, Mode=TwoWay}"
+                                    MinimumTrackColor="#F5C518"
+                                    ThumbColor="#F5C518" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="Media type" Style="{StaticResource FilterHeading}" />
+                            <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto">
+                                <CheckBox IsChecked="{Binding IncludeMovies}" />
+                                <Label Grid.Column="1" Text="Movies" VerticalOptions="Center" />
+                                <CheckBox Grid.Row="1" IsChecked="{Binding IncludeTv}" />
+                                <Label Grid.Row="1" Grid.Column="1" Text="TV" VerticalOptions="Center" />
+                            </Grid>
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="Format" Style="{StaticResource FilterHeading}" />
+                            <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto">
+                                <CheckBox IsChecked="{Binding IncludeAnimated}" />
+                                <Label Grid.Column="1" Text="Animated" VerticalOptions="Center" />
+                                <CheckBox Grid.Row="1" IsChecked="{Binding IncludeLiveAction}" />
+                                <Label Grid.Row="1" Grid.Column="1" Text="Live action" VerticalOptions="Center" />
+                            </Grid>
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="IMDb lists" Style="{StaticResource FilterHeading}" />
+                            <Label Text="Match any selected list"
+                                   Style="{StaticResource MutedLabel}" />
+                            <VerticalStackLayout BindableLayout.ItemsSource="{Binding ImdbListFilters}"
+                                                 Spacing="2">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate x:DataType="films:ImdbListFilter">
+                                        <Grid ColumnDefinitions="Auto,*">
+                                            <CheckBox IsChecked="{Binding IsSelected}" />
+                                            <Label Grid.Column="1"
+                                                   Text="{Binding Name}"
+                                                   VerticalOptions="Center"
+                                                   LineBreakMode="TailTruncation" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </VerticalStackLayout>
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </ScrollView>
+            </Border>
+
+            <Grid Grid.Column="1"
+                  Padding="24"
+                  RowDefinitions="Auto,Auto,*">
+                <Label Grid.Row="0"
+                       Text="{Binding ResultCountDisplay}"
+                       Style="{StaticResource MutedLabel}"
+                       Margin="2,0,0,12" />
+
+                <Border Grid.Row="1"
+                        IsVisible="{Binding HasError}"
+                        Margin="0,0,0,14"
+                        Padding="14,10"
+                        BackgroundColor="{AppThemeBinding Light=#FFF0EC, Dark=#41211B}"
+                        Stroke="#D65A31"
+                        StrokeShape="RoundRectangle 8">
+                    <Label Text="{Binding ErrorMessage}"
+                           TextColor="{AppThemeBinding Light=#8B2E15, Dark=#FFB199}" />
+                </Border>
+
+                <CollectionView Grid.Row="2"
+                                ItemsSource="{Binding VisibleFilms}"
+                                SelectionMode="None">
+                    <CollectionView.ItemsLayout>
+                        <GridItemsLayout x:Name="FilmGridLayout"
+                                         Orientation="Vertical"
+                                         Span="4"
+                                         HorizontalItemSpacing="18"
+                                         VerticalItemSpacing="24" />
+                    </CollectionView.ItemsLayout>
+                    <CollectionView.EmptyView>
+                        <VerticalStackLayout Padding="24"
+                                             Spacing="14"
+                                             HorizontalOptions="Center"
+                                             VerticalOptions="Center">
+                            <Label Text="No films match these filters."
+                                   IsVisible="{Binding HasFilms}"
+                                   FontFamily="OpenSansSemibold"
+                                   FontSize="18"
+                                   HorizontalTextAlignment="Center" />
+                            <VerticalStackLayout IsVisible="{Binding NeedsDatabase}"
+                                                 Spacing="10">
+                                <Label Text="Start with your film database"
+                                       FontFamily="OpenSansSemibold"
+                                       FontSize="24"
+                                       HorizontalTextAlignment="Center" />
+                                <Label Text="Choose a films.yaml file to browse your movies and TV shows."
+                                       Style="{StaticResource MutedLabel}"
+                                       FontSize="14"
+                                       HorizontalTextAlignment="Center" />
+                                <Button Text="Choose films.yaml"
+                                        Clicked="OnOpenDatabaseClicked"
+                                        HorizontalOptions="Center"
+                                        Margin="0,8,0,0" />
+                            </VerticalStackLayout>
+                        </VerticalStackLayout>
+                    </CollectionView.EmptyView>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="films:FilmRecord">
+                            <VerticalStackLayout Spacing="8">
+                                <VerticalStackLayout.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.ShowDetailsCommand}"
+                                                          CommandParameter="{Binding .}" />
+                                </VerticalStackLayout.GestureRecognizers>
+                                <Border HeightRequest="285"
+                                        StrokeThickness="0"
+                                        StrokeShape="RoundRectangle 12"
+                                        BackgroundColor="{AppThemeBinding Light=#DDD9D1, Dark=#292929}">
+                                    <Grid>
+                                        <VerticalStackLayout HorizontalOptions="Center"
+                                                             VerticalOptions="Center"
+                                                             Spacing="8">
+                                            <Label Text="▣"
+                                                   FontSize="34"
+                                                   TextColor="{AppThemeBinding Light=#A49D93, Dark=#666666}"
+                                                   HorizontalTextAlignment="Center" />
+                                            <Label Text="No poster"
+                                                   Style="{StaticResource MutedLabel}" />
+                                        </VerticalStackLayout>
+                                        <Image Source="{Binding PosterImageSource}"
+                                               Aspect="AspectFill"
+                                               IsVisible="{Binding HasPoster}" />
+                                        <Grid Padding="9"
+                                              ColumnDefinitions="Auto,*,Auto"
+                                              VerticalOptions="Start">
+                                            <Label Text="{Binding MediaTypeDisplay}"
+                                                   Style="{StaticResource BadgeLabel}" />
+                                            <Label Grid.Column="2"
+                                                   Text="{Binding RatingBadgeText}"
+                                                   Style="{StaticResource BadgeLabel}"
+                                                   TextColor="#F5C518" />
+                                        </Grid>
+                                    </Grid>
+                                </Border>
+                                <Label Text="{Binding Title}"
+                                       FontFamily="OpenSansSemibold"
+                                       FontSize="15"
+                                       MaxLines="2"
+                                       LineBreakMode="TailTruncation" />
+                                <Grid ColumnDefinitions="Auto,*,Auto">
+                                    <Label Text="{Binding YearDisplay}"
+                                           Style="{StaticResource MutedLabel}" />
+                                    <Label Grid.Column="2"
+                                           Text="{Binding EffectiveNativelyLevel, StringFormat='Lv {0:0.#}'}"
+                                           FontFamily="OpenSansSemibold"
+                                           FontSize="12"
+                                           TextColor="#D65A31" />
+                                </Grid>
+                            </VerticalStackLayout>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </Grid>
+        </Grid>
+
+        <Grid Grid.RowSpan="2"
+              IsVisible="{Binding IsDetailsVisible}"
+              BackgroundColor="#B8000000"
+              Padding="36">
+            <Border MaximumWidthRequest="860"
+                    MaximumHeightRequest="650"
+                    Padding="26"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center"
+                    StrokeThickness="0"
+                    StrokeShape="RoundRectangle 16"
+                    BackgroundColor="{AppThemeBinding Light=White, Dark=#242424}">
+                <Grid RowDefinitions="Auto,*">
+                    <Button Grid.Row="0"
+                            Text="Close"
+                            Command="{Binding CloseDetailsCommand}"
+                            HorizontalOptions="End"
+                            Padding="12,7"
+                            MinimumHeightRequest="34" />
+                    <ScrollView Grid.Row="1">
+                        <Grid ColumnDefinitions="240,*"
+                              ColumnSpacing="26"
+                              Margin="0,12,0,0">
+                            <Border HeightRequest="360"
+                                    StrokeThickness="0"
+                                    StrokeShape="RoundRectangle 12"
+                                    BackgroundColor="{AppThemeBinding Light=#DDD9D1, Dark=#333333}"
+                                    VerticalOptions="Start">
+                                <Grid>
+                                    <Label Text="No poster"
+                                           Style="{StaticResource MutedLabel}"
+                                           HorizontalOptions="Center"
+                                           VerticalOptions="Center" />
+                                    <Image Source="{Binding SelectedFilm.DetailPosterImageSource}"
+                                           Aspect="AspectFill"
+                                           IsVisible="{Binding SelectedFilm.HasPoster}" />
+                                </Grid>
+                            </Border>
+
+                            <VerticalStackLayout Grid.Column="1" Spacing="13">
+                                <Label Text="{Binding SelectedFilm.Title}"
+                                       FontFamily="OpenSansSemibold"
+                                       FontSize="28" />
+                                <Label Text="{Binding SelectedFilm.OriginalTitleDisplay}"
+                                       Style="{StaticResource MutedLabel}"
+                                       FontSize="15" />
+                                <HorizontalStackLayout Spacing="8">
+                                    <Label Text="{Binding SelectedFilm.MediaTypeDisplay}"
+                                           Style="{StaticResource BadgeLabel}" />
+                                    <Label Text="{Binding SelectedFilm.FormatDisplay}"
+                                           Style="{StaticResource BadgeLabel}" />
+                                    <Label Text="{Binding SelectedFilm.RatingBadgeText}"
+                                           Style="{StaticResource BadgeLabel}"
+                                           TextColor="#F5C518" />
+                                </HorizontalStackLayout>
+                                <Label Text="{Binding SelectedFilm.NativelyLevelDisplay}"
+                                       FontFamily="OpenSansSemibold"
+                                       TextColor="#D65A31" />
+                                <Grid ColumnDefinitions="110,*"
+                                      RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto"
+                                      RowSpacing="8">
+                                    <Label Text="Year" Style="{StaticResource MutedLabel}" />
+                                    <Label Grid.Column="1" Text="{Binding SelectedFilm.YearDisplay}" />
+                                    <Label Grid.Row="1" Text="Runtime" Style="{StaticResource MutedLabel}" />
+                                    <Label Grid.Row="1" Grid.Column="1" Text="{Binding SelectedFilm.RuntimeDisplay}" />
+                                    <Label Grid.Row="2" Text="Genres" Style="{StaticResource MutedLabel}" />
+                                    <Label Grid.Row="2" Grid.Column="1" Text="{Binding SelectedFilm.GenresDisplay}" />
+                                    <Label Grid.Row="3" Text="Series" Style="{StaticResource MutedLabel}" />
+                                    <Label Grid.Row="3" Grid.Column="1" Text="{Binding SelectedFilm.SeriesDisplay}" />
+                                    <Label Grid.Row="4" Text="Countries" Style="{StaticResource MutedLabel}" />
+                                    <Label Grid.Row="4" Grid.Column="1" Text="{Binding SelectedFilm.CountriesDisplay}" />
+                                    <Label Grid.Row="5" Text="Languages" Style="{StaticResource MutedLabel}" />
+                                    <Label Grid.Row="5" Grid.Column="1" Text="{Binding SelectedFilm.LanguagesDisplay}" />
+                                    <Label Grid.Row="6" Text="IMDb votes" Style="{StaticResource MutedLabel}" />
+                                    <Label Grid.Row="6" Grid.Column="1" Text="{Binding SelectedFilm.ImdbVotesDisplay}" />
+                                </Grid>
+                                <VerticalStackLayout Spacing="3">
+                                    <Label Text="IMDb lists" Style="{StaticResource MutedLabel}" />
+                                    <Label Text="{Binding SelectedFilm.ImdbListsDisplay}" />
+                                </VerticalStackLayout>
+                                <VerticalStackLayout Spacing="3">
+                                    <Label Text="Availability" Style="{StaticResource MutedLabel}" />
+                                    <Label Text="{Binding SelectedFilm.AvailabilityDisplay}" />
+                                </VerticalStackLayout>
+                                <VerticalStackLayout Spacing="3">
+                                    <Label Text="Identifiers" Style="{StaticResource MutedLabel}" />
+                                    <Label Text="{Binding SelectedFilm.IdentifiersDisplay}" />
+                                </VerticalStackLayout>
+                            </VerticalStackLayout>
+                        </Grid>
+                    </ScrollView>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
 </ContentPage>

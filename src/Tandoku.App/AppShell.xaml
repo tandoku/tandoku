@@ -7,7 +7,7 @@
     Title="tandoku">
 
     <ShellContent
-        Title="Home"
+        Title="Films"
         ContentTemplate="{DataTemplate local:MainPage}"
         Route="MainPage" />
 
