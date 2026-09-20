@@ -29,6 +29,9 @@ myAnimeList:
 tmdb:
   id: 271607
   kind: tv-series
+  images:
+    small: https://image.tmdb.org/t/p/w342/example.jpg
+    large: https://image.tmdb.org/t/p/w780/example.jpg
 natively:
   language: ja
   level: 21
@@ -220,6 +223,23 @@ PopulateIMDb.ps1 -DatabasePath <films.yaml> -ImdbDataPath <path> [-UpdateImdbDat
 ### Behavior
 Uses `UpdateIMDbData.ps1` to download `title.ratings.tsv.gz` from IMDb daily data dumps and extract it to the folder specified by `-ImdbDataPath` (passing through `-UpdateImdbData`). For each entry in films.yaml that has `imdb.id`, looks up the IMDb rating and vote count and updates the `imdb.rating` and `imdb.votes` fields.
 
+## PopulateTMDB.ps1
+### Usage
+```powershell
+PopulateTMDB.ps1 -DatabasePath <films.yaml> -TmdbDataPath <path> [-ApiKey <key>] [-UpdateTmdbData]
+```
+
+### Parameters
+- `-DatabasePath` - Path to the films.yaml database file.
+- `-TmdbDataPath` - Path to the directory used to cache complete TMDB API responses.
+- `-ApiKey` - TMDB API key. Falls back to the `TMDB_API_KEY` environment variable and is only required for uncached lookups.
+- `-UpdateTmdbData` - When specified, refreshes cached responses from TMDB.
+
+### Behavior
+Retrieves a poster for every film record. Records with both `tmdb.id` and `tmdb.kind` are fetched directly as a TMDB movie or TV series; otherwise, the script uses `imdb.id` with TMDB's external-ID lookup and fills in the resolved `tmdb.id` and `tmdb.kind`. A warning is emitted when neither identifier is available, no unambiguous TMDB match exists, or the matched title has no poster.
+
+The complete JSON response from each TMDB lookup is cached under `-TmdbDataPath`, rather than caching only the selected image fields, so future TMDB metadata can be extracted without repeating API calls. Cached data is reused unless `-UpdateTmdbData` is supplied. The selected poster is written under `tmdb.images` as full `small` (`w342`) and `large` (`w780`) image URLs.
+
 ## SuggestWikidataIdentifiers.ps1
 ### Usage
 ```powershell
@@ -335,4 +355,3 @@ MigrateFilmsDatabase.ps1 -DatabasePath <films.yaml> [-TitleLanguage <code>]
 
 ### Behavior
 Migrates an existing films.yaml from the legacy format to the current one, rewriting the file in place. For each entry it converts the scalar `title` / `title-ja` fields into a per-language `title` dictionary (`title.en` from `title`, `title.<TitleLanguage>` from `title-ja`) and renames `originCountry` → `country`, `originalLanguage` → `language`, and `providers` → `availability`. Entry keys are reordered to the canonical field order. The migration is idempotent: entries already in the new format are left unchanged.
-
