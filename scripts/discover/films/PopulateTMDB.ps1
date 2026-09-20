@@ -23,9 +23,38 @@ trap { Write-TandokuLogEntry 'ERROR' $_; break }
 $tmdbApiBaseUrl = 'https://api.themoviedb.org/3'
 $tmdbImageBaseUrl = 'https://image.tmdb.org/t/p'
 
-function Invoke-TmdbRequest([string]$path, [string]$cachePath) {
-    if (-not $UpdateTmdbData -and (Test-Path -LiteralPath $cachePath)) {
-        return Get-Content -LiteralPath $cachePath -Raw -Encoding UTF8 | ConvertFrom-Json
+function Save-TmdbCache($cache, [string]$cachePath, [bool]$numericKeys) {
+    $sorted = [ordered]@{}
+    $sortExpression = if ($numericKeys) { { [long]$_ } } else { { [string]$_ } }
+    foreach ($key in ($cache.Keys | Sort-Object $sortExpression)) {
+        $sorted[[string]$key] = $cache[$key]
+    }
+    $sorted | ConvertTo-Json -Depth 100 | Set-Content -LiteralPath $cachePath -Encoding UTF8
+}
+
+function Import-TmdbCache([string]$cachePath, [bool]$numericKeys) {
+    $cache = [ordered]@{}
+    if (-not (Test-Path -LiteralPath $cachePath)) {
+        return $cache
+    }
+
+    $loaded = Get-Content -LiteralPath $cachePath -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable
+    $sortExpression = if ($numericKeys) { { [long]$_ } } else { { [string]$_ } }
+    foreach ($key in ($loaded.Keys | Sort-Object $sortExpression)) {
+        $cache[[string]$key] = $loaded[$key]
+    }
+    return $cache
+}
+
+function Invoke-TmdbRequest(
+    [string]$path,
+    $cache,
+    [string]$cacheKey,
+    [string]$cachePath,
+    [bool]$numericKeys
+) {
+    if (-not $UpdateTmdbData -and $cache.Contains($cacheKey)) {
+        return $cache[$cacheKey]
     }
 
     if (-not $ApiKey) {
@@ -43,7 +72,8 @@ function Invoke-TmdbRequest([string]$path, [string]$cachePath) {
         }
         throw
     }
-    $response | ConvertTo-Json -Depth 100 | Set-Content -LiteralPath $cachePath -Encoding UTF8
+    $cache[$cacheKey] = $response
+    Save-TmdbCache $cache $cachePath $numericKeys
     return $response
 }
 
@@ -58,8 +88,12 @@ function Get-TmdbKindFromImdbType([string]$imdbType) {
 }
 
 function Find-TmdbByImdbId($film, [string]$imdbId) {
-    $cachePath = Join-Path $TmdbDataPath "imdb-$imdbId.json"
-    $response = Invoke-TmdbRequest "find/$([uri]::EscapeDataString($imdbId))?external_source=imdb_id" $cachePath
+    $response = Invoke-TmdbRequest `
+        "find/$([uri]::EscapeDataString($imdbId))?external_source=imdb_id" `
+        $script:TmdbImdbCache `
+        $imdbId `
+        $script:TmdbImdbCachePath `
+        $false
     if (-not $response) {
         Write-Warning "TMDB lookup failed for IMDb ID '$imdbId' (title: $(Get-DisplayTitle $film), wikidata: $($film.wikidata))"
         return $null
@@ -105,8 +139,9 @@ function Get-TmdbById($film, [int]$tmdbId, [string]$tmdbKind) {
         }
     }
 
-    $cachePath = Join-Path $TmdbDataPath "$tmdbKind-$tmdbId.json"
-    $response = Invoke-TmdbRequest "$tmdbPath/$tmdbId" $cachePath
+    $cache = if ($tmdbKind -eq 'movie') { $script:TmdbMovieCache } else { $script:TmdbTvSeriesCache }
+    $cachePath = if ($tmdbKind -eq 'movie') { $script:TmdbMovieCachePath } else { $script:TmdbTvSeriesCachePath }
+    $response = Invoke-TmdbRequest "$tmdbPath/$tmdbId" $cache ([string]$tmdbId) $cachePath $true
     if (-not $response) {
         Write-Warning "TMDB $tmdbKind ID '$tmdbId' was not found (title: $(Get-DisplayTitle $film), wikidata: $($film.wikidata))"
         return $null
@@ -152,6 +187,13 @@ if (-not (Test-Path -LiteralPath $TmdbDataPath)) {
     New-Item -ItemType Directory -Path $TmdbDataPath | Out-Null
 }
 $TmdbDataPath = (Resolve-Path -LiteralPath $TmdbDataPath).Path
+
+$script:TmdbImdbCachePath = Join-Path $TmdbDataPath 'tmdb-imdb.json'
+$script:TmdbMovieCachePath = Join-Path $TmdbDataPath 'tmdb-movies.json'
+$script:TmdbTvSeriesCachePath = Join-Path $TmdbDataPath 'tmdb-tv-series.json'
+$script:TmdbImdbCache = Import-TmdbCache $script:TmdbImdbCachePath $false
+$script:TmdbMovieCache = Import-TmdbCache $script:TmdbMovieCachePath $true
+$script:TmdbTvSeriesCache = Import-TmdbCache $script:TmdbTvSeriesCachePath $true
 
 $matched = 0
 $notFound = 0

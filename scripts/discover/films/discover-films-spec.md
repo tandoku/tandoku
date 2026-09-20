@@ -231,14 +231,14 @@ PopulateTMDB.ps1 -DatabasePath <films.yaml> -TmdbDataPath <path> [-ApiKey <key>]
 
 ### Parameters
 - `-DatabasePath` - Path to the films.yaml database file.
-- `-TmdbDataPath` - Path to the directory used to cache complete TMDB API responses.
+- `-TmdbDataPath` - Path to the directory used to cache complete TMDB API responses in `tmdb-imdb.json`, `tmdb-movies.json`, and `tmdb-tv-series.json`.
 - `-ApiKey` - TMDB API key. Falls back to the `TMDB_API_KEY` environment variable and is only required for uncached lookups.
 - `-UpdateTmdbData` - When specified, refreshes cached responses from TMDB.
 
 ### Behavior
 Retrieves a poster for every film record. Records with both `tmdb.id` and `tmdb.kind` are fetched directly as a TMDB movie or TV series; otherwise, the script uses `imdb.id` with TMDB's external-ID lookup and fills in the resolved `tmdb.id` and `tmdb.kind`. When a stored TMDB ID returns HTTP 404, the script warns and retries via `imdb.id` when available, allowing moved or deleted TMDB records to be repaired without stopping the remaining lookups. A warning is emitted when neither identifier is available, no unambiguous TMDB match exists, or the matched title has no poster.
 
-The complete JSON response from each TMDB lookup is cached under `-TmdbDataPath`, rather than caching only the selected image fields, so future TMDB metadata can be extracted without repeating API calls. Cached data is reused unless `-UpdateTmdbData` is supplied. The selected poster is written under `tmdb.images` as full `small` (`w342`) and `large` (`w780`) image URLs.
+The complete JSON response from each TMDB lookup is cached under `-TmdbDataPath`, rather than caching only the selected image fields, so future TMDB metadata can be extracted without repeating API calls. IMDb find responses, movie details, and TV-series details are stored as ID-keyed dictionaries in `tmdb-imdb.json`, `tmdb-movies.json`, and `tmdb-tv-series.json`, respectively. Each dictionary is sorted by ID for stable diffs and saved after every new response. Cached data is reused unless `-UpdateTmdbData` is supplied. The selected poster is written under `tmdb.images` as full `small` (`w342`) and `large` (`w780`) image URLs.
 
 ## SuggestWikidataIdentifiers.ps1
 ### Usage
