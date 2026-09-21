@@ -2,6 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:films="clr-namespace:Tandoku.App.Films"
+             xmlns:local="clr-namespace:Tandoku.App"
              x:Class="Tandoku.App.MainPage"
              x:DataType="films:FilmBrowserViewModel"
              BackgroundColor="{AppThemeBinding Light=#F6F5F2, Dark=#111111}"
@@ -180,8 +181,10 @@
                            TextColor="{AppThemeBinding Light=#8B2E15, Dark=#FFB199}" />
                 </Border>
 
-                <CollectionView Grid.Row="2"
+                <CollectionView x:Name="FilmCollection"
+                                Grid.Row="2"
                                 ItemsSource="{Binding VisibleFilms}"
+                                ItemSizingStrategy="MeasureFirstItem"
                                 SelectionMode="None">
                     <CollectionView.ItemsLayout>
                         <GridItemsLayout x:Name="FilmGridLayout"
@@ -220,12 +223,15 @@
                     </CollectionView.EmptyView>
                     <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="films:FilmRecord">
-                            <VerticalStackLayout Spacing="8">
+                            <VerticalStackLayout WidthRequest="{Binding Source={RelativeSource AncestorType={x:Type local:MainPage}}, Path=CardWidth}"
+                                                 BackgroundColor="Transparent"
+                                                 HorizontalOptions="Center"
+                                                 Spacing="8">
                                 <VerticalStackLayout.GestureRecognizers>
-                                    <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.ShowDetailsCommand}"
+                                    <TapGestureRecognizer Tapped="OnFilmCardTapped"
                                                           CommandParameter="{Binding .}" />
                                 </VerticalStackLayout.GestureRecognizers>
-                                <Border HeightRequest="285"
+                                <Border HeightRequest="{Binding Source={RelativeSource AncestorType={x:Type local:MainPage}}, Path=PosterHeight}"
                                         StrokeThickness="0"
                                         StrokeShape="RoundRectangle 12"
                                         BackgroundColor="{AppThemeBinding Light=#DDD9D1, Dark=#292929}">
@@ -255,19 +261,24 @@
                                         </Grid>
                                     </Grid>
                                 </Border>
-                                <Label Text="{Binding Title}"
-                                       FontFamily="OpenSansSemibold"
-                                       FontSize="15"
-                                       MaxLines="2"
-                                       LineBreakMode="TailTruncation" />
-                                <Grid ColumnDefinitions="Auto,*,Auto">
-                                    <Label Text="{Binding YearDisplay}"
-                                           Style="{StaticResource MutedLabel}" />
-                                    <Label Grid.Column="2"
-                                           Text="{Binding EffectiveNativelyLevel, StringFormat='Lv {0:0}'}"
+                                <Grid HeightRequest="60"
+                                      RowDefinitions="Auto,Auto,*"
+                                      RowSpacing="4">
+                                    <Label Text="{Binding Title}"
                                            FontFamily="OpenSansSemibold"
-                                           FontSize="12"
-                                           TextColor="#D65A31" />
+                                           FontSize="15"
+                                           MaxLines="2"
+                                           LineBreakMode="TailTruncation" />
+                                    <Grid Grid.Row="1"
+                                          ColumnDefinitions="Auto,*,Auto">
+                                        <Label Text="{Binding YearDisplay}"
+                                               Style="{StaticResource MutedLabel}" />
+                                        <Label Grid.Column="2"
+                                               Text="{Binding EffectiveNativelyLevel, StringFormat='Lv {0:0}'}"
+                                               FontFamily="OpenSansSemibold"
+                                               FontSize="12"
+                                               TextColor="#D65A31" />
+                                    </Grid>
                                 </Grid>
                             </VerticalStackLayout>
                         </DataTemplate>
