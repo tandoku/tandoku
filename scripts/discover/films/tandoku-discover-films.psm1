@@ -5,9 +5,9 @@ Import-Module "$PSScriptRoot/../../modules/tandoku-yaml.psm1"
 # User-Agent sent with every request to Wikidata (SPARQL endpoint and Action API).
 $script:WikidataUserAgent = 'tandoku-discover/1.0 (https://github.com/tandoku)'
 
-# Canonical key order for film entries in films.yaml. Scripts that rewrite the
+# Canonical V3 key order for film entries in films.yaml. Scripts that rewrite the
 # database reorder each entry to this order (unknown keys are appended as-is).
-$script:FilmFieldOrder = @('wikidata', 'title', 'type', 'country', 'language', 'year', 'imdb', 'myAnimeList', 'tmdb', 'natively', 'availability', 'origin')
+$script:FilmFieldOrder = @('origin', 'identifiers', 'sources')
 
 function Get-WikidataUserAgent {
     return $script:WikidataUserAgent
@@ -93,15 +93,51 @@ function Remove-Origin($film, [string]$origin) {
     }
 }
 
-# Title is a per-language dictionary (e.g. title.en, title.ja); prefer the English
-# title for display/search, falling back to any available language.
+# Prefer Wikidata's English label, then another label, then source titles.
 function Get-DisplayTitle($film) {
-    if (-not $film.title) { return $null }
-    if ($film.title.en) { return $film.title.en }
-    foreach ($value in $film.title.Values) {
-        if ($value) { return $value }
+    $wikidata = Get-FilmSource $film 'wikidata'
+    if ($wikidata -and $wikidata.title) {
+        if ($wikidata.title.en) { return $wikidata.title.en }
+        foreach ($value in $wikidata.title.Values) {
+            if ($value) { return $value }
+        }
+    }
+    foreach ($name in @('imdb', 'netflix-unogs', 'netflix-watchlist', 'imdb-lists')) {
+        $source = Get-FilmSource $film $name
+        if ($source -and $source.title) { return $source.title }
     }
     return $null
+}
+
+function Get-NetflixTitle($film) {
+    foreach ($name in @('netflix-unogs', 'netflix-watchlist')) {
+        $source = Get-FilmSource $film $name
+        if ($source -and $source.title) { return $source.title }
+    }
+    return $null
+}
+
+function Get-FilmSource($film, [string]$name, [switch]$Create) {
+    if (-not $film.Contains('sources') -or $null -eq $film['sources']) {
+        if (-not $Create) { return $null }
+        $film['sources'] = [ordered]@{}
+    }
+    if (-not $film['sources'].Contains($name) -or $null -eq $film['sources'][$name]) {
+        if (-not $Create) { return $null }
+        $film['sources'][$name] = [ordered]@{}
+    }
+    return $film['sources'][$name]
+}
+
+function Set-FilmIdentifier($film, [string]$name, $id, [string]$kind) {
+    if (-not $film.Contains('identifiers') -or $null -eq $film['identifiers']) {
+        $film['identifiers'] = [ordered]@{}
+    }
+    if (-not $film['identifiers'].Contains($name) -or $null -eq $film['identifiers'][$name]) {
+        $film['identifiers'][$name] = [ordered]@{}
+    }
+    $film['identifiers'][$name]['id'] = $id
+    if ($kind) { $film['identifiers'][$name]['kind'] = $kind }
 }
 
 # Reads the films database (a stream of YAML documents) into a mutable list.
@@ -112,7 +148,9 @@ function Read-FilmsDatabase {
         [Parameter(Mandatory)]
         [string]$LiteralPath,
 
-        [switch]$AllowMissing
+        [switch]$AllowMissing,
+
+        [switch]$AllowLegacy
     )
 
     $films = [System.Collections.Generic.List[object]]::new()
@@ -120,47 +158,42 @@ function Read-FilmsDatabase {
         return , $films
     }
     foreach ($doc in @(Import-Yaml -LiteralPath $LiteralPath)) {
+        if ($null -eq $doc) { continue }
+        if (-not $AllowLegacy) {
+            foreach ($key in @('wikidata', 'title', 'type', 'country', 'language', 'year', 'imdb', 'myAnimeList', 'tmdb', 'natively', 'availability', 'providers', 'title-ja', 'originCountry', 'originalLanguage')) {
+                if ($doc.Contains($key)) {
+                    throw "Legacy film record in '$LiteralPath'. For original V1 data, run MigrateFilmsDatabase.ps1 (V1 to V2) first. Run MigrateFilmsDatabaseV2.ps1 (V2 to V3) before using the V3 workflow."
+                }
+            }
+            if (@($doc.origin) | Where-Object { $_ -in @('imdb', 'netflix') }) {
+                throw "Legacy film origins in '$LiteralPath'. Run MigrateFilmsDatabaseV2.ps1 (V2 to V3) before using the V3 workflow."
+            }
+        }
         $films.Add($doc)
     }
     return , $films
 }
 
-# Registry of the external sources ("origins") a film record can come from. Each
-# origin "owns" exactly one external identifier (a path within the film record)
-# that uniquely identifies the work for that source and is mirrored on Wikidata
-# under a known property. This drives origin-aware Wikidata lookup and the rule
-# that an origin-owned identifier is authoritative and must never be silently
-# overwritten from Wikidata. Add a new origin here to extend support (e.g. a
-# future tmdb or myAnimeList origin) rather than special-casing it in scripts.
+# Import inputs share provider identifiers. An identifier backed by an origin
+# remains authoritative when Wikidata supplies cross-references.
 $script:FilmOriginRegistry = @(
     [pscustomobject]@{
-        Origin        = 'netflix'
-        # Wikidata property mirroring this identifier (P1874 = Netflix ID).
+        Origin        = 'netflix-unogs'
+        Identifier    = 'netflix'
         WikidataProp  = 'P1874'
-        # Alias used for this identifier in PopulateWikidata's details query.
         WikidataField = 'netflixId'
-        # Reads the identifier value from a film record (or $null when absent).
-        GetId         = {
-            param($film)
-            if ($film.Contains('availability') -and $film['availability'] -and
-                $film['availability'].Contains('netflix') -and $film['availability']['netflix']) {
-                return $film['availability']['netflix']['id']
-            }
-            return $null
-        }
     },
     [pscustomobject]@{
-        Origin        = 'imdb'
-        # P345 = IMDb ID.
+        Origin        = 'netflix-watchlist'
+        Identifier    = 'netflix'
+        WikidataProp  = 'P1874'
+        WikidataField = 'netflixId'
+    },
+    [pscustomobject]@{
+        Origin        = 'imdb-lists'
+        Identifier    = 'imdb'
         WikidataProp  = 'P345'
         WikidataField = 'imdbId'
-        GetId         = {
-            param($film)
-            if ($film.Contains('imdb') -and $film['imdb']) {
-                return $film['imdb']['id']
-            }
-            return $null
-        }
     }
 )
 
@@ -178,31 +211,33 @@ function Get-FilmOriginInfo([string]$origin) {
     return $null
 }
 
-# Reads the identifier value an origin owns from a film record (regardless of
-# whether the origin is listed in the record's `origin` field). Returns $null
-# when the origin is unknown or the identifier is absent.
-function Get-FilmIdentifier($film, [string]$origin) {
-    $info = Get-FilmOriginInfo $origin
-    if (-not $info) { return $null }
-    return (& $info.GetId $film)
+# Reads a shared provider identifier, independent of its contributing origins.
+function Get-FilmIdentifier($film, [string]$name) {
+    if ($film.Contains('identifiers') -and $film['identifiers'] -and
+        $film['identifiers'].Contains($name) -and $film['identifiers'][$name]) {
+        return $film['identifiers'][$name]['id']
+    }
+    return $null
 }
 
 # Returns the set of identifiers a film record actually owns: one entry per
-# registry origin that is listed in the record's `origin` field AND has a
-# non-null identifier value. Each entry has Origin, WikidataProp, WikidataField
-# and Id.
+# provider backed by a listed origin and a non-null identifier. Netflix's two
+# input origins contribute the same identifier only once.
 function Get-FilmOwnedIdentifiers($film) {
     $origins = @()
     if ($film.Contains('origin') -and $film['origin']) {
         $origins = @($film['origin'])
     }
     $owned = [System.Collections.Generic.List[object]]::new()
+    $seen = [System.Collections.Generic.HashSet[string]]::new()
     foreach ($entry in $script:FilmOriginRegistry) {
         if ($origins -notcontains $entry.Origin) { continue }
-        $id = & $entry.GetId $film
+        $id = Get-FilmIdentifier $film $entry.Identifier
         if ($null -eq $id -or $id -eq '') { continue }
+        if (-not $seen.Add($entry.Identifier)) { continue }
         $owned.Add([pscustomobject]@{
             Origin        = $entry.Origin
+            Identifier    = $entry.Identifier
             WikidataProp  = $entry.WikidataProp
             WikidataField = $entry.WikidataField
             Id            = $id
@@ -214,21 +249,28 @@ function Get-FilmOwnedIdentifiers($film) {
 # Deep-merges the $secondary film record into $primary (modifying $primary in
 # place) when they represent the same work (e.g. one created from a Netflix
 # import and another from an IMDb list import that resolve to the same Wikidata
-# entity). Unions origins and `imdb.lists`, and fills any field present on
+# entity). Unions origins and source dictionaries, and fills any field present on
 # $secondary but missing on $primary.
 #
 # Returns $true on success. If the two records carry conflicting values for any
-# origin-owned identifier (e.g. different netflix.id or imdb.id), no merge is
+# shared identifier (including TMDB kind), no merge is
 # performed and $false is returned after writing a non-terminating error, so the
 # caller can leave both records in place for manual resolution.
-function Merge-FilmRecords($primary, $secondary) {
-    # Detect conflicting owned identifiers before mutating anything.
-    foreach ($entry in $script:FilmOriginRegistry) {
-        $a = & $entry.GetId $primary
-        $b = & $entry.GetId $secondary
-        if ($null -ne $a -and $a -ne '' -and $null -ne $b -and $b -ne '' -and "$a" -ne "$b") {
-            Write-Error "Cannot merge film records: conflicting $($entry.Origin) identifier ('$a' vs '$b'). Leaving records unmerged."
-            return $false
+function Merge-FilmRecords {
+    [CmdletBinding()]
+    param($primary, $secondary)
+
+    if ($primary.identifiers -and $secondary.identifiers) {
+        foreach ($name in $secondary.identifiers.Keys) {
+            if (-not $primary.identifiers.Contains($name)) { continue }
+            foreach ($field in @('id', 'kind')) {
+                $a = $primary.identifiers[$name][$field]
+                $b = $secondary.identifiers[$name][$field]
+                if ($null -ne $a -and $a -ne '' -and $null -ne $b -and $b -ne '' -and "$a" -ne "$b") {
+                    Write-Error "Cannot merge film records: conflicting identifiers.$name.$field ('$a' vs '$b'). Leaving records unmerged." -ErrorAction $ErrorActionPreference
+                    return $false
+                }
+            }
         }
     }
 
@@ -264,11 +306,11 @@ function Merge-FilmSubDictionary($primary, $secondary) {
             $primary[$key] = $secondary[$key]
         }
         elseif ($primary[$key] -is [System.Collections.IDictionary] -and $secondary[$key] -is [System.Collections.IDictionary]) {
-            # e.g. imdb.lists or availability.netflix - union nested entries,
+            # e.g. sources.imdb-lists.lists - union nested entries,
             # preferring the primary's value on overlap.
             Merge-FilmSubDictionary $primary[$key] $secondary[$key]
         }
     }
 }
 
-Export-ModuleMember -Function Get-WikidataUserAgent, Invoke-WikidataSparql, ConvertTo-WikidataQid, Format-FilmEntry, Get-DisplayTitle, Read-FilmsDatabase, Add-Origin, Remove-Origin, Get-FilmOriginRegistry, Get-FilmOriginInfo, Get-FilmIdentifier, Get-FilmOwnedIdentifiers, Merge-FilmRecords
+Export-ModuleMember -Function Get-WikidataUserAgent, Invoke-WikidataSparql, ConvertTo-WikidataQid, Format-FilmEntry, Get-DisplayTitle, Get-NetflixTitle, Get-FilmSource, Set-FilmIdentifier, Read-FilmsDatabase, Add-Origin, Remove-Origin, Get-FilmOriginRegistry, Get-FilmOriginInfo, Get-FilmIdentifier, Get-FilmOwnedIdentifiers, Merge-FilmRecords

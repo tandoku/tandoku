@@ -1,9 +1,10 @@
 # Proposed films record format
 
-This is a design example, not the format currently supported by the scripts.
+This proposal is implemented as the V3 format supported by the scripts.
 It inventories the fields written to `films.yaml` by the scripts in this folder;
 it does not include every field returned by the upstream APIs or stored in caches.
-The [current specification](discover-films-spec.md) describes the existing format.
+The [workflow specification](discover-films-spec.md) describes script usage,
+migration, and cache directory layout.
 
 ## Structure
 
@@ -201,15 +202,18 @@ validate or normalize upstream dates; the example's `YYYY-MM-DD` strings do not
 imply the scripts enforce that format. Empty audio/subtitle arrays are valid.
 Availability countries are distinct from Wikidata's countries of origin.
 
-## Mapping from the current format
+## Migration from V2 to V3
 
-| Current path | Proposed path |
+V1 is the original format. `MigrateFilmsDatabase.ps1` migrates V1 to V2;
+`MigrateFilmsDatabaseV2.ps1` migrates V2 to the V3 format described here.
+
+| V2 path | V3 path |
 | --- | --- |
 | `wikidata` | `identifiers.wikidata.id` |
 | `title`, `type`, `country`, `language`, `year` | Corresponding fields under `sources.wikidata` |
 | `imdb.id` | `identifiers.imdb.id` |
 | `imdb.lists` | `sources.imdb-lists.lists` |
-| `imdb.title` | `sources.imdb.title` and/or `sources.imdb-lists.title`, depending on provenance |
+| `imdb.title` | Copied into both `sources.imdb.title` and `sources.imdb-lists.title` |
 | Other IMDb metadata | Corresponding fields under `sources.imdb` |
 | `myAnimeList.id` | `identifiers.myAnimeList.id` |
 | `tmdb.id`, `tmdb.kind` | `identifiers.tmdb.id`, `identifiers.tmdb.kind` |
@@ -217,38 +221,42 @@ Availability countries are distinct from Wikidata's countries of origin.
 | `natively.*` | `sources.natively.*` |
 | `availability.netflix.id` | `identifiers.netflix.id` |
 | `availability.netflix.watchlist` | `sources.netflix-watchlist.watchlist` |
-| `availability.netflix.title` | `sources.netflix-unogs.title` and/or `sources.netflix-watchlist.title`, depending on provenance |
+| `availability.netflix.title` | Copied into both `sources.netflix-unogs.title` and `sources.netflix-watchlist.title` |
 | Other Netflix catalog metadata | Corresponding fields under `sources.netflix-unogs` |
 | `origin: [imdb]` | `origin: [imdb-lists]` when list membership still exists |
-| `origin: [netflix]` | One or both Netflix input tags, depending on provenance |
+| `origin: [netflix]` | Inferred from field presence; both input tags when only ID/title exists |
 
 ## Design and migration considerations
 
 Shared identifier storage removes the assumption that one origin exclusively
-owns an identifier. A future implementation still needs to distinguish trusted
-imported identifiers from enrichment suggestions, check disagreement explicitly,
-and avoid silently replacing an imported IMDb/Netflix ID with a Wikidata value.
-The three-block shape alone does not retain who asserted each identifier; adding
-per-identifier provenance would be an additional design choice.
+owns an identifier. The implementation protects IMDb IDs backed by `imdb-lists`
+and Netflix IDs backed by either Netflix input origin from conflicting Wikidata
+values. Origin-backed lookup deduplicates shared Netflix IDs. Merging checks all
+shared IDs and TMDB kind before mutation. The three-block shape does not retain
+every identifier assertion; adding per-identifier provenance remains a separate
+design choice.
 
 `origin` should remain separate from the keys in `sources`: enrichment alone
-does not justify retaining a work after it leaves all importing inputs. Exactly
-when an origin is removed needs an explicit policy before implementation.
-Currently IMDb list imports remove the IMDb origin when the last list membership
-disappears, but Netflix watchlist imports set `watchlist: false` without removing
-the Netflix origin, and catalog imports do not prune vanished catalog titles.
-The example does not silently change those behaviors.
+does not justify retaining a work after it leaves all importing inputs.
+Retention preserves the previous behavior: IMDb list imports remove `imdb-lists`
+when the last membership disappears; Netflix watchlist imports set
+`watchlist: false` without removing `netflix-watchlist`; catalog imports do not
+prune vanished titles or their `netflix-unogs` origins.
 
 A lossless migration cannot recover the two historical IMDb titles or the two
-historical Netflix titles: the current scripts share and overwrite those fields.
-Existing `origin: [netflix]` also does not tell which Netflix importer supplied
-the record. Reimporting the original inputs is preferable to claiming provenance
-that the old record cannot establish. Similarly, identifiers populated from
-Wikidata do not establish that IMDb/TMDB source metadata was fetched.
+historical Netflix titles: V2 shared and overwrote those fields. Migration copies
+each old title into both new source blocks; the next import corrects each source.
+An old Netflix origin is inferred from catalog-specific fields and/or the
+presence of `watchlist` (including false), or becomes both when neither is
+distinguishable. Neither source metadata nor cross-reference identifiers alone
+invent an origin. Run `MigrateFilmsDatabaseV2.ps1 -MigrateCaches` to also relocate
+the old IMDb-list, Netflix-catalog, and Netflix-watchlist input/cache directories
+to their corresponding source names; other caches remain unchanged.
 
-If a consumer needs one display title, year, or type, it should resolve that
-from these source blocks using an explicit precedence rule. This proposal does
-not add a second, unsourced canonical copy at the top level.
+Display titles prefer Wikidata English, then another Wikidata label, then IMDb,
+uNoGS, Netflix watchlist, and IMDb lists. Netflix title matching prefers uNoGS,
+then watchlist. No unsourced canonical copy is stored at the top level. Consumers
+needing one year or type should likewise define a read-time precedence rule.
 
 `DownloadIMDbLists.ps1` and `UpdateIMDbData.ps1` download inputs but write no
 film-record fields. Natively's cached `title`, `tmdbId`, `tmdbKind`, `temporary`,

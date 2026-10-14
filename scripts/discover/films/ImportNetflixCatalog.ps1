@@ -32,6 +32,9 @@ Import-Module "$PSScriptRoot/../../modules/tandoku-log.psm1"
 Initialize-TandokuLog -LogPath $LogPath
 trap { Write-TandokuLogEntry 'ERROR' $_; break }
 
+$films = Read-FilmsDatabase -LiteralPath $DatabasePath -AllowMissing
+Write-Host "Read $($films.Count) existing entries from films database"
+
 if (-not $ApiKey) {
     throw 'A uNoGS RapidAPI key is required. Pass -ApiKey or set the RAPIDAPI_KEY environment variable. Obtain the API key from https://rapidapi.com/developer/apps'
 }
@@ -207,11 +210,9 @@ function ConvertTo-LanguageCodes([string]$value, [switch]$OriginalOnly) {
     return , [string[]]@($codes | Sort-Object)
 }
 
-# Builds the availability.netflix record, preserving any extra keys (e.g.
-# watchlist) already present on the existing record.
-function New-NetflixRecord($existing, $id, $title, $type, $year, $matlabel, $images, $genres, $countryDetails, $runCountryCodes) {
+# Builds the uNoGS source record, retaining countries outside this run.
+function New-NetflixRecord($existing, $title, $type, $year, $matlabel, $images, $genres, $countryDetails, $runCountryCodes) {
     $record = [ordered]@{
-        id             = $id
         title          = $title
         type           = $type
         year           = $year
@@ -471,16 +472,13 @@ while ($true) {
     }
 }
 
-# Read existing films database.
-$films = Read-FilmsDatabase -LiteralPath $DatabasePath -AllowMissing
-Write-Host "Read $($films.Count) existing entries from films database"
-
 # Build lookup table for existing films by Netflix ID.
 $filmsByNetflixId = @{}
 for ($i = 0; $i -lt $films.Count; $i++) {
     $film = $films[$i]
-    if ($film.availability -and $film.availability.netflix -and $null -ne $film.availability.netflix.id) {
-        $filmsByNetflixId[[string]$film.availability.netflix.id] = $i
+    $netflixId = Get-FilmIdentifier $film 'netflix'
+    if ($null -ne $netflixId) {
+        $filmsByNetflixId[[string]$netflixId] = $i
     }
 }
 
@@ -570,22 +568,21 @@ foreach ($result in $searchResults) {
     }
 
     if ($filmsByNetflixId.ContainsKey($netflixId)) {
-        # Update existing entry, preserving other fields (e.g. watchlist).
         $film = $films[$filmsByNetflixId[$netflixId]]
-        $film['availability']['netflix'] = New-NetflixRecord `
-            $film['availability']['netflix'] ([int]$result.nfid) $result.title $result.vtype $result.year `
+        $existing = Get-FilmSource $film 'netflix-unogs' -Create
+        $film['sources']['netflix-unogs'] = New-NetflixRecord `
+            $existing $result.title $result.vtype $result.year `
             $titleDetails.matlabel $images $genres $countryDetails $countryCodes
-        Add-Origin $film 'netflix'
+        Add-Origin $film 'netflix-unogs'
         $updated++
     } else {
         # Add new entry.
-        $newFilm = [ordered]@{
-            availability = [ordered]@{
-                netflix = New-NetflixRecord $null ([int]$result.nfid) $result.title $result.vtype $result.year `
-                    $titleDetails.matlabel $images $genres $countryDetails $countryCodes
-            }
-        }
-        Add-Origin $newFilm 'netflix'
+        $newFilm = [ordered]@{}
+        Set-FilmIdentifier $newFilm 'netflix' ([int]$result.nfid)
+        $null = Get-FilmSource $newFilm 'netflix-unogs' -Create
+        $newFilm['sources']['netflix-unogs'] = New-NetflixRecord $null $result.title $result.vtype $result.year `
+            $titleDetails.matlabel $images $genres $countryDetails $countryCodes
+        Add-Origin $newFilm 'netflix-unogs'
         $films.Add($newFilm)
         $filmsByNetflixId[$netflixId] = $films.Count - 1
         $added++
@@ -593,6 +590,9 @@ foreach ($result in $searchResults) {
 }
 
 # Write films.yaml
+for ($i = 0; $i -lt $films.Count; $i++) {
+    $films[$i] = Format-FilmEntry $films[$i]
+}
 $films | Export-Yaml -Path $DatabasePath
 
 Write-Host "Done: $added added, $updated updated, $skipped skipped, $filtered filtered - $($films.Count) total entries ($($script:RequestCount) API requests)"

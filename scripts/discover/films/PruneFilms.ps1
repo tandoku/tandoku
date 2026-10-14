@@ -23,7 +23,7 @@ foreach ($film in $films) {
         $kept.Add($film)
     } else {
         $title = Get-DisplayTitle $film
-        $imdbId = if ($film.Contains('imdb') -and $film['imdb']) { $film['imdb']['id'] } else { $null }
+        $imdbId = Get-FilmIdentifier $film 'imdb'
         $label = @($title, $imdbId | Where-Object { $_ }) -join ' '
         if (-not $label) { $label = '(no title)' }
         Write-Host "Removing record with no origin: $label"
