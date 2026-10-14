@@ -28,6 +28,8 @@ Identifiers, URLs, ratings, and dates are illustrative, not a verified mapping
 between real services. Optional fields are included to show their shape; a
 normal record would contain only the identifiers and source data actually known.
 Each record remains one YAML document in a stream, separated by `---`.
+Writers alphabetically sort the keys directly under `identifiers` and `sources`;
+the field order inside each block is preserved.
 
 ```yaml
 origin:
@@ -35,30 +37,18 @@ origin:
   - netflix-unogs
   - netflix-watchlist
 identifiers:
-  wikidata:
-    id: Q123456789
   imdb:
     id: tt123456789
-  netflix:
-    id: 81234567
   myAnimeList:
     id: 12345
+  netflix:
+    id: 81234567
   tmdb:
     id: 123456
     kind: tv-series
-sources:
   wikidata:
-    title:
-      en: My Film
-      ja: 私の作品
-    type:
-      - anime-television-series
-      - television-series
-    country:
-      - Japan
-    language:
-      - ja
-    year: 2022
+    id: Q123456789
+sources:
   imdb:
     title: My Film
     originalTitle: Watashi no Sakuhin
@@ -80,10 +70,6 @@ sources:
       queue-japanese: 32
       completed-japanese-intensive-immersion: 12
       unranked-example: null
-  tmdb:
-    images:
-      small: https://image.tmdb.org/t/p/w342/example.jpg
-      large: https://image.tmdb.org/t/p/w780/example.jpg
   natively:
     language: ja
     level: 30
@@ -119,6 +105,22 @@ sources:
   netflix-watchlist:
     title: My Film
     watchlist: true
+  tmdb:
+    images:
+      small: https://image.tmdb.org/t/p/w342/example.jpg
+      large: https://image.tmdb.org/t/p/w780/example.jpg
+  wikidata:
+    title:
+      en: My Film
+      ja: 私の作品
+    type:
+      - anime-television-series
+      - television-series
+    country:
+      - Japan
+    language:
+      - ja
+    year: 2022
 ```
 
 ## Field schema

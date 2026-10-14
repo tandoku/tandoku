@@ -49,13 +49,21 @@ function ConvertTo-WikidataQid([string]$entityUri) {
     return $entityUri -replace '.*/entity/', ''
 }
 
-# Reorders a film entry's keys to the canonical field order, appending any keys
-# not in the canonical order in their existing order.
+# Reorders a film entry's keys to the canonical field order and alphabetizes
+# identifier and source keys, leaving their metadata and unknown fields as-is.
 function Format-FilmEntry($film) {
     $ordered = [ordered]@{}
     foreach ($key in $script:FilmFieldOrder) {
         if ($film.Contains($key)) {
-            $ordered[$key] = $film[$key]
+            if ($key -in @('identifiers', 'sources') -and $film[$key] -is [System.Collections.IDictionary]) {
+                $sorted = [ordered]@{}
+                foreach ($name in ($film[$key].Keys | Sort-Object)) {
+                    $sorted[$name] = $film[$key][$name]
+                }
+                $ordered[$key] = $sorted
+            } else {
+                $ordered[$key] = $film[$key]
+            }
         }
     }
     foreach ($key in @($film.Keys)) {
