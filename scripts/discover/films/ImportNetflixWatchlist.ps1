@@ -34,15 +34,16 @@ Write-Host "Read $($films.Count) existing entries from films database"
 $filmsByNetflixId = @{}
 for ($i = 0; $i -lt $films.Count; $i++) {
     $film = $films[$i]
-    if ($film.availability -and $film.availability.netflix -and $null -ne $film.availability.netflix.id) {
-        $filmsByNetflixId[[string]$film.availability.netflix.id] = $i
+    $netflixId = Get-FilmIdentifier $film 'netflix'
+    if ($null -ne $netflixId) {
+        $filmsByNetflixId[[string]$netflixId] = $i
     }
 }
 
 # Track which Netflix IDs are in the current watchlist
 $watchlistNetflixIds = [System.Collections.Generic.HashSet[string]]::new()
 foreach ($item in $watchlist) {
-    [void]$watchlistNetflixIds.Add($item.videoId)
+    [void]$watchlistNetflixIds.Add([string]$item.videoId)
 }
 
 # Process each Netflix watchlist item
@@ -50,29 +51,23 @@ $added = 0
 $updated = 0
 $skipped = 0
 foreach ($item in $watchlist) {
-    $videoId = $item.videoId
+    $videoId = [string]$item.videoId
 
     if ($filmsByNetflixId.ContainsKey($videoId)) {
-        # Update existing entry, preserving other netflix fields (e.g. type,
-        # year, countryDetails added by ImportNetflixCatalog.ps1)
         $film = $films[$filmsByNetflixId[$videoId]]
-        $netflix = $film['availability']['netflix']
-        if ($item.title -and $Force) { $netflix['title'] = $item.title }
+        $netflix = Get-FilmSource $film 'netflix-watchlist' -Create
+        $netflix['title'] = $item.title
         $netflix['watchlist'] = $true
-        Add-Origin $film 'netflix'
+        Add-Origin $film 'netflix-watchlist'
         $updated++
     } elseif ($Force) {
         # Add new entry
-        $newFilm = [ordered]@{
-            availability = [ordered]@{
-                netflix = [ordered]@{
-                    id        = [int]$videoId
-                    title     = $item.title
-                    watchlist = $true
-                }
-            }
-        }
-        Add-Origin $newFilm 'netflix'
+        $newFilm = [ordered]@{}
+        Set-FilmIdentifier $newFilm 'netflix' ([int]$videoId)
+        $netflix = Get-FilmSource $newFilm 'netflix-watchlist' -Create
+        $netflix['title'] = $item.title
+        $netflix['watchlist'] = $true
+        Add-Origin $newFilm 'netflix-watchlist'
         $films.Add($newFilm)
         $filmsByNetflixId[$videoId] = $films.Count - 1
         $added++
@@ -85,16 +80,20 @@ foreach ($item in $watchlist) {
 # Mark removed watchlist items (in DB but no longer in imported watchlist)
 $unmarked = 0
 foreach ($film in $films) {
-    if ($film.availability -and $film.availability.netflix -and $film.availability.netflix.watchlist -eq $true) {
-        $netflixId = [string]$film.availability.netflix.id
+    $netflix = Get-FilmSource $film 'netflix-watchlist'
+    if ($netflix -and $netflix.watchlist -eq $true) {
+        $netflixId = [string](Get-FilmIdentifier $film 'netflix')
         if (-not $watchlistNetflixIds.Contains($netflixId)) {
-            $film.availability.netflix.watchlist = $false
+            $netflix['watchlist'] = $false
             $unmarked++
         }
     }
 }
 
 # Write films.yaml
+for ($i = 0; $i -lt $films.Count; $i++) {
+    $films[$i] = Format-FilmEntry $films[$i]
+}
 $films | Export-Yaml -Path $DatabasePath
 
 Write-Host "Done: $added added, $updated updated, $skipped skipped, $unmarked unmarked - $($films.Count) total entries"

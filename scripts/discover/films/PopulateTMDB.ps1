@@ -95,7 +95,7 @@ function Find-TmdbByImdbId($film, [string]$imdbId) {
         $script:TmdbImdbCachePath `
         $false
     if (-not $response) {
-        Write-Warning "TMDB lookup failed for IMDb ID '$imdbId' (title: $(Get-DisplayTitle $film), wikidata: $($film.wikidata))"
+        Write-Warning "TMDB lookup failed for IMDb ID '$imdbId' (title: $(Get-DisplayTitle $film), wikidata: $(Get-FilmIdentifier $film 'wikidata'))"
         return $null
     }
     $matches = [System.Collections.Generic.List[object]]::new()
@@ -107,7 +107,8 @@ function Find-TmdbByImdbId($film, [string]$imdbId) {
         $matches.Add([pscustomobject]@{ kind = 'tv-series'; result = $result })
     }
 
-    $preferredKind = Get-TmdbKindFromImdbType $film.imdb.type
+    $imdb = Get-FilmSource $film 'imdb'
+    $preferredKind = Get-TmdbKindFromImdbType $imdb.type
     if ($preferredKind) {
         $preferredMatches = @($matches | Where-Object { $_.kind -eq $preferredKind })
         if ($preferredMatches.Count -gt 0) {
@@ -116,12 +117,12 @@ function Find-TmdbByImdbId($film, [string]$imdbId) {
     }
 
     if ($matches.Count -eq 0) {
-        Write-Warning "No TMDB match for IMDb ID '$imdbId' (title: $(Get-DisplayTitle $film), wikidata: $($film.wikidata))"
+        Write-Warning "No TMDB match for IMDb ID '$imdbId' (title: $(Get-DisplayTitle $film), wikidata: $(Get-FilmIdentifier $film 'wikidata'))"
         return $null
     }
     if ($matches.Count -gt 1) {
         $matchDescription = @($matches | ForEach-Object { "$($_.kind):$($_.result.id)" }) -join ', '
-        Write-Warning "IMDb ID '$imdbId' has multiple TMDB matches [$matchDescription] (title: $(Get-DisplayTitle $film), wikidata: $($film.wikidata)); skipping"
+        Write-Warning "IMDb ID '$imdbId' has multiple TMDB matches [$matchDescription] (title: $(Get-DisplayTitle $film), wikidata: $(Get-FilmIdentifier $film 'wikidata')); skipping"
         return $null
     }
 
@@ -134,7 +135,7 @@ function Get-TmdbById($film, [int]$tmdbId, [string]$tmdbKind) {
         'movie' { 'movie' }
         'tv-series' { 'tv' }
         default {
-            Write-Warning "Unsupported tmdb.kind '$tmdbKind' for TMDB ID '$tmdbId' (title: $(Get-DisplayTitle $film), wikidata: $($film.wikidata))"
+            Write-Warning "Unsupported identifiers.tmdb.kind '$tmdbKind' for TMDB ID '$tmdbId' (title: $(Get-DisplayTitle $film), wikidata: $(Get-FilmIdentifier $film 'wikidata'))"
             return $null
         }
     }
@@ -143,7 +144,7 @@ function Get-TmdbById($film, [int]$tmdbId, [string]$tmdbKind) {
     $cachePath = if ($tmdbKind -eq 'movie') { $script:TmdbMovieCachePath } else { $script:TmdbTvSeriesCachePath }
     $response = Invoke-TmdbRequest "$tmdbPath/$tmdbId" $cache ([string]$tmdbId) $cachePath $true
     if (-not $response) {
-        Write-Warning "TMDB $tmdbKind ID '$tmdbId' was not found (title: $(Get-DisplayTitle $film), wikidata: $($film.wikidata))"
+        Write-Warning "TMDB $tmdbKind ID '$tmdbId' was not found (title: $(Get-DisplayTitle $film), wikidata: $(Get-FilmIdentifier $film 'wikidata'))"
         return $null
     }
     return [pscustomobject]@{ kind = $tmdbKind; result = $response }
@@ -151,10 +152,8 @@ function Get-TmdbById($film, [int]$tmdbId, [string]$tmdbKind) {
 
 function Set-TmdbData($film, $match) {
     $tmdbId = [int]$match.result.id
-    $tmdb = [ordered]@{
-        id   = $tmdbId
-        kind = $match.kind
-    }
+    Set-FilmIdentifier $film 'tmdb' $tmdbId $match.kind
+    $tmdb = [ordered]@{}
 
     if ($match.result.poster_path) {
         $posterPath = [string]$match.result.poster_path
@@ -166,18 +165,17 @@ function Set-TmdbData($film, $match) {
             large = "$tmdbImageBaseUrl/w780$posterPath"
         }
     } else {
-        Write-Warning "TMDB $($match.kind) ID '$tmdbId' has no poster image (title: $(Get-DisplayTitle $film), wikidata: $($film.wikidata))"
+        Write-Warning "TMDB $($match.kind) ID '$tmdbId' has no poster image (title: $(Get-DisplayTitle $film), wikidata: $(Get-FilmIdentifier $film 'wikidata'))"
     }
 
-    if ($film.tmdb -is [System.Collections.IDictionary]) {
-        foreach ($key in @($film.tmdb.Keys)) {
-            if ($key -ne 'images' -and -not $tmdb.Contains($key)) {
-                $tmdb[$key] = $film.tmdb[$key]
-            }
+    $existing = Get-FilmSource $film 'tmdb' -Create
+    foreach ($key in @($existing.Keys)) {
+        if ($key -ne 'images' -and -not $tmdb.Contains($key)) {
+            $tmdb[$key] = $existing[$key]
         }
     }
 
-    $film['tmdb'] = $tmdb
+    $film['sources']['tmdb'] = $tmdb
 }
 
 $films = Read-FilmsDatabase -LiteralPath $DatabasePath
@@ -201,27 +199,28 @@ $missingIdentifier = 0
 
 foreach ($film in $films) {
     $match = $null
-    if ($film.tmdb -and $film.tmdb.id -and $film.tmdb.kind) {
-        $match = Get-TmdbById $film ([int]$film.tmdb.id) ([string]$film.tmdb.kind)
-        if (-not $match -and $film.imdb -and $film.imdb.id) {
-            $imdbId = [string]$film.imdb.id
+    $tmdbId = Get-FilmIdentifier $film 'tmdb'
+    $tmdbKind = $film.identifiers.tmdb.kind
+    $imdbId = [string](Get-FilmIdentifier $film 'imdb')
+    if ($tmdbId -and $tmdbKind) {
+        $match = Get-TmdbById $film ([int]$tmdbId) ([string]$tmdbKind)
+        if (-not $match -and $imdbId) {
             if ($imdbId -match '^tt\d+$') {
                 Write-Warning "Falling back to IMDb ID '$imdbId' for '$(Get-DisplayTitle $film)'"
                 $match = Find-TmdbByImdbId $film $imdbId
             } else {
-                Write-Warning "Invalid IMDb ID '$imdbId' for TMDB fallback (title: $(Get-DisplayTitle $film), wikidata: $($film.wikidata))"
+                Write-Warning "Invalid IMDb ID '$imdbId' for TMDB fallback (title: $(Get-DisplayTitle $film), wikidata: $(Get-FilmIdentifier $film 'wikidata'))"
             }
         }
-    } elseif ($film.imdb -and $film.imdb.id) {
-        $imdbId = [string]$film.imdb.id
+    } elseif ($imdbId) {
         if ($imdbId -notmatch '^tt\d+$') {
-            Write-Warning "Invalid IMDb ID '$imdbId' for TMDB lookup (title: $(Get-DisplayTitle $film), wikidata: $($film.wikidata))"
+            Write-Warning "Invalid IMDb ID '$imdbId' for TMDB lookup (title: $(Get-DisplayTitle $film), wikidata: $(Get-FilmIdentifier $film 'wikidata'))"
             $notFound++
             continue
         }
         $match = Find-TmdbByImdbId $film $imdbId
     } else {
-        Write-Warning "No complete tmdb.id/kind or imdb.id for '$(Get-DisplayTitle $film)' (wikidata: $($film.wikidata))"
+        Write-Warning "No complete identifiers.tmdb.id/kind or identifiers.imdb.id for '$(Get-DisplayTitle $film)' (wikidata: $(Get-FilmIdentifier $film 'wikidata'))"
         $missingIdentifier++
         continue
     }

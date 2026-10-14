@@ -13,20 +13,20 @@ Import-Module "$PSScriptRoot/tandoku-discover-films.psm1"
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 [Console]::InputEncoding = [System.Text.Encoding]::UTF8
 
-# Old field names mapped to their new names (1:1 renames)
+# V1 field names mapped to their V2 names (1:1 renames)
 $renames = [ordered]@{
     originCountry    = 'country'
     originalLanguage = 'language'
     providers        = 'availability'
 }
 
-# Convert a single old-format entry to the new format. Returns the number of
+# Convert a single original V1 entry to V2. Returns the number of
 # changes made so callers can report whether anything was migrated.
 function Migrate-FilmEntry($film) {
     $changes = 0
 
     # title (string) + title-ja (string) -> title: { en: ..., <lang>: ... }
-    if ($film.title -isnot [System.Collections.IDictionary]) {
+    if (($film.Contains('title') -or $film.Contains('title-ja')) -and $film.title -isnot [System.Collections.IDictionary]) {
         $title = [ordered]@{}
         if ($film.Contains('title') -and $null -ne $film['title']) {
             $title['en'] = [string]$film['title']
@@ -60,7 +60,7 @@ function Migrate-FilmEntry($film) {
 
 # --- Read films database ---
 
-$films = Read-FilmsDatabase -LiteralPath $DatabasePath
+$films = Read-FilmsDatabase -LiteralPath $DatabasePath -AllowLegacy
 
 Write-Host "Read $($films.Count) entries from films database"
 
@@ -75,6 +75,8 @@ for ($i = 0; $i -lt $films.Count; $i++) {
     $films[$i] = Format-FilmEntry $films[$i]
 }
 
-$films | Export-Yaml -Path $DatabasePath
+if ($migrated -gt 0) {
+    $films | Export-Yaml -Path $DatabasePath
+}
 
-Write-Host "Done: migrated $migrated of $($films.Count) entries in $DatabasePath"
+Write-Host "Done: migrated $migrated of $($films.Count) entries from V1 to V2 in $DatabasePath"

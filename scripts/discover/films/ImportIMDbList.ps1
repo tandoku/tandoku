@@ -20,7 +20,7 @@ trap { Write-TandokuLogEntry 'ERROR' $_; break }
 
 # Imports one or more IMDb list CSV exports into the films database. Each CSV's
 # file name (without the .csv extension) is used as the list name recorded under
-# imdb.lists.<list-name>:<rank>. Entries are matched by imdb.id (created if
+# sources.imdb-lists.lists.<list-name>:<rank>. Entries are matched by identifiers.imdb.id (created if
 # absent) and repeated runs merge without smashing other lists or fields.
 #
 # -CsvPath accepts any mix of: a directory (all *.csv files within it), a CSV
@@ -67,17 +67,17 @@ Write-Host "Read $($films.Count) existing entries from films database"
 $filmsByImdbId = @{}
 for ($i = 0; $i -lt $films.Count; $i++) {
     $film = $films[$i]
-    if ($film.imdb -and $film.imdb.id) {
-        $filmsByImdbId[[string]$film.imdb.id] = $i
+    $imdbId = Get-FilmIdentifier $film 'imdb'
+    if ($imdbId) {
+        $filmsByImdbId[[string]$imdbId] = $i
     }
 }
 
 # Merges a single list's CSV rows into the database. Matches existing entries by
-# imdb.id (creating new ones if absent) and records the title's rank under
-# imdb.lists.<list-name> without disturbing other lists or fields. Acts as the
+# identifiers.imdb.id (creating new ones if absent) and records the title's rank under
+# sources.imdb-lists.lists.<list-name> without disturbing other lists or fields. Acts as the
 # authoritative source for the list it imports: titles previously recorded under
-# this list name but absent from the CSV have their imdb.lists.<list-name> entry
-# removed (and imdb.lists dropped entirely once empty).
+# this list name but absent from the CSV have their membership removed.
 function Import-ListRows($listName, $rows) {
     $added = 0
     $updated = 0
@@ -92,43 +92,40 @@ function Import-ListRows($listName, $rows) {
 
         if ($filmsByImdbId.ContainsKey($id)) {
             $film = $films[$filmsByImdbId[$id]]
-            $imdb = $film['imdb']
-            if ($title) { $imdb['title'] = $title }
             $updated++
         } else {
-            $imdb = [ordered]@{
-                id    = $id
-                title = $title
-            }
-            $film = [ordered]@{ imdb = $imdb }
+            $film = [ordered]@{}
+            Set-FilmIdentifier $film 'imdb' $id
             $films.Add($film)
             $filmsByImdbId[$id] = $films.Count - 1
             $added++
         }
 
+        $imdb = Get-FilmSource $film 'imdb-lists' -Create
+        $imdb['title'] = $title
         if (-not $imdb.Contains('lists') -or -not $imdb['lists']) {
             $imdb['lists'] = [ordered]@{}
         }
         $imdb['lists'][$listName] = $rank
 
-        Add-Origin $film 'imdb'
+        Add-Origin $film 'imdb-lists'
     }
 
     # Prune stale membership: any film still carrying this list whose IMDb ID is
-    # no longer in the CSV is removed from the list, dropping imdb.lists when it
+    # no longer in the CSV is removed from the list, dropping lists when it
     # becomes empty.
     foreach ($film in $films) {
-        if (-not ($film.Contains('imdb') -and $film['imdb'])) { continue }
-        $imdb = $film['imdb']
+        $imdb = Get-FilmSource $film 'imdb-lists'
+        if (-not $imdb) { continue }
         if (-not ($imdb.Contains('lists') -and $imdb['lists'] -and $imdb['lists'].Contains($listName))) { continue }
-        if (-not $idsInList.Contains([string]$imdb['id'])) {
+        if (-not $idsInList.Contains([string](Get-FilmIdentifier $film 'imdb'))) {
             $imdb['lists'].Remove($listName)
             if ($imdb['lists'].Count -eq 0) {
                 $imdb.Remove('lists')
-                # The film is no longer a member of any imdb list, so the imdb
-                # origin tag no longer applies (the imdb id/title cross-reference
+                # The film is no longer a member of any IMDb list, so the
+                # imdb-lists origin no longer applies (identifier and source title
                 # fields are kept).
-                Remove-Origin $film 'imdb'
+                Remove-Origin $film 'imdb-lists'
             }
             $removed++
         }
@@ -140,7 +137,7 @@ function Import-ListRows($listName, $rows) {
 # --- Import each CSV ---
 
 # Warn when two distinct CSV files share a base name, since they map to the same
-# imdb.lists entry and the later import would overwrite the earlier one's ranks.
+# sources.imdb-lists.lists entry and the later import would overwrite the earlier one's ranks.
 $listNameSources = @{}
 foreach ($file in $csvFiles) {
     $listName = [System.IO.Path]::GetFileNameWithoutExtension($file)

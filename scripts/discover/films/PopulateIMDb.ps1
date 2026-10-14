@@ -30,8 +30,9 @@ Write-Host "Read $($films.Count) entries from films database"
 # matching rows from the (very large) IMDb datasets.
 $wantedIds = [System.Collections.Generic.HashSet[string]]::new()
 foreach ($film in $films) {
-    if ($film.imdb -and $film.imdb.id) {
-        [void]$wantedIds.Add([string]$film.imdb.id)
+    $imdbId = Get-FilmIdentifier $film 'imdb'
+    if ($imdbId) {
+        [void]$wantedIds.Add([string]$imdbId)
     }
 }
 
@@ -136,10 +137,7 @@ $updated = 0
 $notFound = 0
 $noImdbId = 0
 foreach ($film in $films) {
-    $imdbId = $null
-    if ($film.imdb) {
-        $imdbId = $film.imdb.id
-    }
+    $imdbId = Get-FilmIdentifier $film 'imdb'
     if (-not $imdbId) {
         $noImdbId++
         continue
@@ -148,12 +146,12 @@ foreach ($film in $films) {
     $basic = $basics[$imdbId]
     $rating = $ratings[$imdbId]
     if (-not $basic -and -not $rating) {
-        Write-Warning "IMDb ID '$imdbId' not found in IMDb data (title: $(Get-DisplayTitle $film), wikidata: $($film.wikidata))"
+        Write-Warning "IMDb ID '$imdbId' not found in IMDb data (title: $(Get-DisplayTitle $film), wikidata: $(Get-FilmIdentifier $film 'wikidata'))"
         $notFound++
         continue
     }
 
-    $imdb = [ordered]@{ id = $imdbId }
+    $imdb = [ordered]@{}
     if ($basic) {
         if ($basic.primaryTitle) { $imdb['title'] = $basic.primaryTitle }
         if ($basic.originalTitle) { $imdb['originalTitle'] = $basic.originalTitle }
@@ -176,17 +174,14 @@ foreach ($film in $films) {
         $imdb['votes'] = $rating.votes
     }
 
-    # Preserve any existing imdb fields this script doesn't manage (e.g. `lists`
-    # populated by ImportIMDbList.ps1) so repeated runs don't smash them.
-    if ($film.imdb) {
-        foreach ($key in @($film.imdb.Keys)) {
-            if (-not $imdb.Contains($key)) {
-                $imdb[$key] = $film.imdb[$key]
-            }
+    $existing = Get-FilmSource $film 'imdb' -Create
+    foreach ($key in @($existing.Keys)) {
+        if (-not $imdb.Contains($key)) {
+            $imdb[$key] = $existing[$key]
         }
     }
 
-    $film['imdb'] = $imdb
+    $film['sources']['imdb'] = $imdb
     $updated++
 }
 

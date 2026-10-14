@@ -39,17 +39,17 @@ $dbJsonPath = "$Path/films.json"
 $sources = "$Path/sources"
 
 if ($NetflixCatalog) {
-    & "$PSScriptRoot/ImportNetflixCatalog.ps1" -DatabasePath $dbPath -CachePath "$sources/netflix" -RequestLimit $NetflixRequestLimit @logArgs
+    & "$PSScriptRoot/ImportNetflixCatalog.ps1" -DatabasePath $dbPath -CachePath "$sources/netflix-unogs" -RequestLimit $NetflixRequestLimit @logArgs
 }
 
 if ($IMDbExportsPath) {
-    & "$PSScriptRoot/DownloadIMDbLists.ps1" -IMDbExportsPath $IMDbExportsPath -CsvPath "$sources/imdb/lists" @logArgs
+    & "$PSScriptRoot/DownloadIMDbLists.ps1" -IMDbExportsPath $IMDbExportsPath -CsvPath "$sources/imdb-lists" @logArgs
 }
-& "$PSScriptRoot/ImportIMDbList.ps1" -DatabasePath $dbPath -CsvPath "$sources/imdb/lists" @logArgs
+& "$PSScriptRoot/ImportIMDbList.ps1" -DatabasePath $dbPath -CsvPath "$sources/imdb-lists" @logArgs
 
 # Import Netflix watchlist *after* IMDb lists so titles present in IMDb list and Netflix
 # will be imported even if not present in filtered Netflix catalog (IMDb list serves as override).
-& "$PSScriptRoot/ImportNetflixWatchlist.ps1" -Path "$sources/netflix/netflix-my-list.json" -DatabasePath $dbPath @logArgs
+& "$PSScriptRoot/ImportNetflixWatchlist.ps1" -Path "$sources/netflix-watchlist/netflix-my-list.json" -DatabasePath $dbPath @logArgs
 
 & "$PSScriptRoot/PopulateWikidata.ps1" -DatabasePath $dbPath -Force:$Force @logArgs
 

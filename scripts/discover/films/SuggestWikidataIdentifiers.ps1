@@ -76,9 +76,9 @@ Write-Host "Read $($films.Count) entries from films database"
 $filmsByTitle = @{}
 $needsWikidata = [System.Collections.Generic.List[object]]::new()
 foreach ($film in $films) {
-    if ($film.availability -and $film.availability.netflix -and $null -ne $film.availability.netflix.id -and -not $film.wikidata) {
+    if ($null -ne (Get-FilmIdentifier $film 'netflix') -and -not (Get-FilmIdentifier $film 'wikidata')) {
         $needsWikidata.Add($film)
-        $norm = [TandokuTitle]::Normalize([string]$film.availability.netflix.title)
+        $norm = [TandokuTitle]::Normalize([string](Get-NetflixTitle $film))
         if ($norm) {
             if (-not $filmsByTitle.ContainsKey($norm)) {
                 $filmsByTitle[$norm] = [System.Collections.Generic.List[object]]::new()
@@ -92,7 +92,7 @@ Write-Host "$($needsWikidata.Count) entries missing Wikidata identifier (with Ne
 
 foreach ($norm in $filmsByTitle.Keys) {
     if ($filmsByTitle[$norm].Count -gt 1) {
-        $ids = ($filmsByTitle[$norm] | ForEach-Object { $_.availability.netflix.id }) -join ', '
+        $ids = ($filmsByTitle[$norm] | ForEach-Object { Get-FilmIdentifier $_ 'netflix' }) -join ', '
         Write-Warning "Multiple films share normalized title '$norm' (Netflix IDs: $ids); IMDb matches will apply to all of them"
     }
 }
@@ -282,7 +282,7 @@ foreach ($film in $filmCandidates.Keys) {
 
     if ($ranked.Count -gt 1) {
         $alts = ($ranked | Select-Object -Skip 1 | ForEach-Object { "$($_.tconst) ($($_.data.titleType), $($_.data.votes) votes)" }) -join ', '
-        Write-Warning "Netflix '$($film.availability.netflix.title)' ($($film.availability.netflix.id)) -> $($best.tconst); other candidates: $alts"
+        Write-Warning "Netflix '$(Get-NetflixTitle $film)' ($(Get-FilmIdentifier $film 'netflix')) -> $($best.tconst); other candidates: $alts"
     }
 }
 
@@ -330,10 +330,10 @@ $results = [System.Collections.Generic.List[object]]::new()
 $withImdb = 0
 $withWikidata = 0
 foreach ($film in $needsWikidata) {
-    $netflixId = $film.availability.netflix.id
+    $netflixId = Get-FilmIdentifier $film 'netflix'
     $entry = [ordered]@{
         netflix = [ordered]@{
-            title = [string]$film.availability.netflix.title
+            title = [string](Get-NetflixTitle $film)
             id    = $netflixId
             url   = "https://www.netflix.com/title/$netflixId"
         }

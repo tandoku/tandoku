@@ -47,7 +47,7 @@ function Format-NativelyLevel($rating) {
 # Normalize a single Natively search result into a record keyed by TMDB id + kind.
 # Movies map to a 'movie' record; TV series (and TV seasons, via their parent
 # series) map to a 'tv-series' record so they can be matched against the films
-# database, where tmdb.kind is either 'movie' or 'tv-series'.
+# database, where identifiers.tmdb.kind is either 'movie' or 'tv-series'.
 function ConvertTo-NativelyRecord($result) {
     if ($result.widget -eq 'series') {
         $series = $result.series
@@ -191,13 +191,14 @@ Write-Host "Read $($films.Count) entries from films database"
 # entries that are missing it.
 $needsNatively = @()
 foreach ($film in $films) {
-    if (-not $film.tmdb) {
+    if (-not (Get-FilmIdentifier $film 'tmdb') -or -not $film.identifiers.tmdb.kind) {
         continue
     }
     if ($OriginalLanguage.Count -gt 0) {
-        $filmLanguages = @($film.language | Where-Object { $_ })
+        $wikidata = Get-FilmSource $film 'wikidata'
+        $filmLanguages = @($wikidata.language | Where-Object { $_ })
         if ($filmLanguages.Count -eq 0) {
-            Write-Warning "No language for '$(Get-DisplayTitle $film)' (wikidata=$($film.wikidata))"
+            Write-Warning "No language for '$(Get-DisplayTitle $film)' (wikidata=$(Get-FilmIdentifier $film 'wikidata'))"
         }
         $hasLanguageMatch = $false
         foreach ($language in $filmLanguages) {
@@ -255,8 +256,8 @@ $notFound = 0
 
 foreach ($film in $needsNatively) {
     $title = Get-DisplayTitle $film
-    $tmdbId = [int]$film.tmdb.id
-    $tmdbKind = $film.tmdb.kind
+    $tmdbId = [int](Get-FilmIdentifier $film 'tmdb')
+    $tmdbKind = $film.identifiers.tmdb.kind
 
     $key = "$tmdbKind|$tmdbId"
     $entry = $index[$key]
@@ -271,14 +272,15 @@ foreach ($film in $needsNatively) {
             $natively['temporaryLevel'] = $true
         }
         $natively['url'] = $matchedResult.url
-        $film['natively'] = $natively
+        $null = Get-FilmSource $film 'natively' -Create
+        $film['sources']['natively'] = $natively
         $matched++
         Write-Verbose "Matched '$title' -> $($matchedResult.url) (level $($matchedResult.level))"
     } else {
         $tmdbPath = if ($tmdbKind -eq 'movie') { 'movie' } else { 'tv' }
         $tmdbUrl = "https://www.themoviedb.org/$tmdbPath/$tmdbId"
         $nativelySearchUrl = "$nativelyBaseUrl/search/$nativelyLanguageCode/videos/?q=$([uri]::EscapeDataString([string]$title))"
-        Write-Warning "No Natively match for '$title' (tmdb $tmdbUrl natively $nativelySearchUrl wikidata=$($film.wikidata))"
+        Write-Warning "No Natively match for '$title' (tmdb $tmdbUrl natively $nativelySearchUrl wikidata=$(Get-FilmIdentifier $film 'wikidata'))"
         $notFound++
     }
 }
