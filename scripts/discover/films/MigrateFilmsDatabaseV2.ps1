@@ -131,7 +131,9 @@ function Migrate-FilmEntryV2($film) {
             } else {
                 $catalog[$key] = $netflix[$key]
                 if ($key -eq 'title') {
-                    $watchlist[$key] = $netflix[$key]
+                    if ($netflix.Contains('watchlist')) {
+                        $watchlist[$key] = $netflix[$key]
+                    }
                 } else {
                     $hasCatalog = $true
                 }

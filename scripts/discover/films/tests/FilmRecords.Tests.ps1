@@ -166,13 +166,24 @@ try {
     Assert-True (-not $film.sources.'imdb-lists'.Contains('id')) 'Source blocks have no shared IDs'
     Assert-Equal $film.origin @('imdb-lists', 'netflix-unogs', 'netflix-watchlist') 'Origins split and sorted'
     Assert-Equal $films[1].origin @('netflix-watchlist') 'Watchlist false still establishes origin'
+    Assert-Equal $films[1].sources.'netflix-watchlist'.title 'Watchlist' 'Explicit watchlist false preserves title'
     Assert-Equal $films[2].origin @('netflix-unogs') 'Catalog-only origin inferred'
     Assert-Equal $films[3].origin @('netflix-unogs', 'netflix-watchlist') 'Ambiguous Netflix origin becomes both'
+    foreach ($index in @(2, 3, 4)) {
+        Assert-True (-not $films[$index].sources.Contains('netflix-watchlist')) 'Absent watchlist property does not create watchlist metadata'
+    }
     Assert-True (-not $films[4].Contains('origin')) 'Sources alone do not invent origins'
     Assert-True (-not $films[5].Contains('origin')) 'Empty list membership does not retain IMDb origin'
     $hash = (Get-FileHash $dbPath).Hash
     & "$scriptsPath/MigrateFilmsDatabaseV2.ps1" -DatabasePath $dbPath
     Assert-Equal (Get-FileHash $dbPath).Hash $hash 'Migration is byte-idempotent'
+
+    $watchlistMigrationPath = Join-Path $testPath 'watchlist-migration.yaml'
+    @{ availability = @{ netflix = [ordered]@{ title = 'Active Watchlist'; watchlist = $true } } } | Export-Yaml -Path $watchlistMigrationPath
+    & "$scriptsPath/MigrateFilmsDatabaseV2.ps1" -DatabasePath $watchlistMigrationPath
+    $activeWatchlist = (Read-FilmsDatabase -LiteralPath $watchlistMigrationPath)[0]
+    Assert-Equal $activeWatchlist.sources.'netflix-watchlist'.title 'Active Watchlist' 'Explicit watchlist true preserves title regardless of key order'
+    Assert-Equal $activeWatchlist.sources.'netflix-watchlist'.watchlist $true 'Explicit watchlist true is preserved'
 
     $cacheMigrationPath = Join-Path $testPath 'cache-migration'
     foreach ($directory in @('sources/imdb/lists', 'sources/netflix', 'sources/tmdb', 'sources/natively')) {
