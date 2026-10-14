@@ -14,7 +14,7 @@ param(
 )
 
 Import-Module "$PSScriptRoot/../../modules/tandoku-yaml.psm1"
-Import-Module "$PSScriptRoot/tandoku-discover-films.psm1"
+Import-Module "$PSScriptRoot/tandoku-catalog-films.psm1"
 Import-Module "$PSScriptRoot/../../modules/tandoku-log.psm1"
 
 Initialize-TandokuLog -LogPath $LogPath
@@ -247,3 +247,4 @@ for ($i = 0; $i -lt $films.Count; $i++) {
 $films | Export-Yaml -Path $DatabasePath
 
 Write-Host "Done: $matched matched, $notFound not found, $missingIdentifier missing identifiers - $($films.Count) total entries"
+

@@ -3,7 +3,7 @@ param()
 
 $ErrorActionPreference = 'Stop'
 $scriptsPath = Split-Path $PSScriptRoot -Parent
-Import-Module "$scriptsPath/tandoku-discover-films.psm1"
+Import-Module "$scriptsPath/tandoku-catalog-films.psm1"
 Import-Module "$scriptsPath/../../modules/tandoku-yaml.psm1"
 
 $testPath = Join-Path ([System.IO.Path]::GetTempPath()) "tandoku-film-tests-$([guid]::NewGuid())"
@@ -348,10 +348,10 @@ try {
     Assert-Equal $tmdbFilms[1].identifiers.tmdb.id 7 'IMDb lookup supplies shared TMDB ID'
 
     $apiTestScriptsPath = Join-Path $testPath 'api-scripts'
-    $apiTestFilmsPath = Join-Path $apiTestScriptsPath 'discover/films'
+    $apiTestFilmsPath = Join-Path $apiTestScriptsPath 'catalog/films'
     $null = New-Item -ItemType Directory -Path $apiTestFilmsPath -Force
     $null = New-Item -ItemType Directory -Path "$apiTestScriptsPath/modules"
-    foreach ($name in @('ImportNetflixCatalog.ps1', 'PopulateTMDB.ps1', 'tandoku-discover-films.psm1')) {
+    foreach ($name in @('ImportNetflixCatalog.ps1', 'PopulateTMDB.ps1', 'tandoku-catalog-films.psm1')) {
         Copy-Item "$scriptsPath/$name" $apiTestFilmsPath
     }
     foreach ($name in @('tandoku-yaml.psm1', 'tandoku-utils.psm1', 'tandoku-log.psm1')) {
@@ -514,4 +514,5 @@ finally {
     Remove-Variable FilmTestRequests, FilmTestHttpMode, FilmTestBindings, FilmTestQidBindings, FilmTestApiKeys, FilmTestConfig, FilmTestConfigKeys -Scope Global
     Remove-Item -LiteralPath $testPath -Recurse -Force
 }
+
 

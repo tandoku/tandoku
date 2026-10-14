@@ -7,7 +7,7 @@ param(
 )
 
 Import-Module "$PSScriptRoot/../../modules/tandoku-yaml.psm1"
-Import-Module "$PSScriptRoot/tandoku-discover-films.psm1"
+Import-Module "$PSScriptRoot/tandoku-catalog-films.psm1"
 
 $ErrorActionPreference = 'Stop'
 [Console]::InputEncoding = [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new()
@@ -229,3 +229,4 @@ if ($MigrateCaches) {
     Write-Host "Moved $($cacheMoves.Count) cache/input path(s); other source directories were left unchanged."
 }
 Write-Host "Done: migrated $migrated of $($films.Count) entries from V2 to V3 in $DatabasePath"
+

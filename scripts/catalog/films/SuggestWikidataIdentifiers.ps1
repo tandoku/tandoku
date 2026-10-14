@@ -13,7 +13,7 @@ param(
 )
 
 Import-Module "$PSScriptRoot/../../modules/tandoku-yaml.psm1"
-Import-Module "$PSScriptRoot/tandoku-discover-films.psm1"
+Import-Module "$PSScriptRoot/tandoku-catalog-films.psm1"
 
 # IMDb title types that represent watchable films / series (excludes tvEpisode, videoGame, etc.)
 $allowedTitleTypes = [System.Collections.Generic.HashSet[string]]::new(
@@ -377,3 +377,4 @@ $results | Export-Yaml -Path $OutputPath
 
 Write-Host "Done - wrote $($results.Count) candidates to $OutputPath"
 Write-Host "  $withImdb with IMDb match, $withWikidata with existing Wikidata entity"
+

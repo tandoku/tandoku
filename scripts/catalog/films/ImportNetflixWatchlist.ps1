@@ -12,7 +12,7 @@ param(
 )
 
 Import-Module "$PSScriptRoot/../../modules/tandoku-yaml.psm1"
-Import-Module "$PSScriptRoot/tandoku-discover-films.psm1"
+Import-Module "$PSScriptRoot/tandoku-catalog-films.psm1"
 Import-Module "$PSScriptRoot/../../modules/tandoku-log.psm1"
 
 # When -LogPath is supplied, additionally record warnings and errors (including
@@ -97,4 +97,5 @@ for ($i = 0; $i -lt $films.Count; $i++) {
 $films | Export-Yaml -Path $DatabasePath
 
 Write-Host "Done: $added added, $updated updated, $skipped skipped, $unmarked unmarked - $($films.Count) total entries"
+
 

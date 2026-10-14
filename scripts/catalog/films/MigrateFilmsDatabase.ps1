@@ -7,7 +7,7 @@ param(
 )
 
 Import-Module "$PSScriptRoot/../../modules/tandoku-yaml.psm1"
-Import-Module "$PSScriptRoot/tandoku-discover-films.psm1"
+Import-Module "$PSScriptRoot/tandoku-catalog-films.psm1"
 
 # Ensure UTF-8 encoding for yq compatibility
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -80,3 +80,4 @@ if ($migrated -gt 0) {
 }
 
 Write-Host "Done: migrated $migrated of $($films.Count) entries from V1 to V2 in $DatabasePath"
+

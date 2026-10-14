@@ -14,7 +14,7 @@ param(
 )
 
 Import-Module "$PSScriptRoot/../../modules/tandoku-yaml.psm1"
-Import-Module "$PSScriptRoot/tandoku-discover-films.psm1"
+Import-Module "$PSScriptRoot/tandoku-catalog-films.psm1"
 
 # Wikidata properties for the external identifiers we commit
 $netflixProperty = 'P1874'
@@ -271,3 +271,4 @@ if ($Prune) {
         Write-Host "Pruned $($upToDateRecords.Count) already-up-to-date entry(ies); $($remaining.Count) record(s) remain in $CandidatesPath"
     }
 }
+

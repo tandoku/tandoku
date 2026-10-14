@@ -3,7 +3,7 @@
 This proposal is implemented as the V3 format supported by the scripts.
 It inventories the fields written to `film-catalog.yaml` by the scripts in this folder;
 it does not include every field returned by the upstream APIs or stored in caches.
-The [workflow specification](discover-films-spec.md) describes script usage,
+The [workflow specification](film-catalog-spec.md) describes script usage,
 migration, and cache directory layout.
 
 ## Structure

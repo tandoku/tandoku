@@ -1,4 +1,4 @@
-# discover films
+# film catalog
 Tools for compiling a database to aid discovery and ranking of Japanese films (including movies and TV series) for language learning.
 
 # Data
@@ -101,7 +101,7 @@ sources:
 ```
 
 # Scripts
-The scripts in this folder share helpers through the `tandoku-discover-films.psm1`
+The scripts in this folder share helpers through the `tandoku-catalog-films.psm1`
 module (e.g. `Read-FilmsDatabase`, `Format-FilmEntry`, `Add-Origin`). Functions
 used by more than one script belong in this module rather than being copied into
 each script.
@@ -111,7 +111,7 @@ uNoGS, Netflix watchlist, and IMDb lists. Netflix title matching prefers uNoGS
 then watchlist. These are read-time fallbacks, not stored canonical copies.
 
 Scripts use PowerShell, `powershell-yaml`, and `yq`. Run the offline regression
-tests with `pwsh -NoProfile -File scripts/discover/films/tests/FilmRecords.Tests.ps1`
+tests with `pwsh -NoProfile -File scripts/catalog/films/tests/FilmRecords.Tests.ps1`
 from the repository root. All HTTP in those tests is mocked.
 
 ## ImportNetflixWatchlist.ps1
@@ -492,7 +492,7 @@ nothing is silently overwritten. Repeated runs do not move files again.
 ## SyncFilms.ps1
 ### Usage
 ```powershell
-SyncFilms.ps1 -Path <discover-films-dir> [-Force] [-NetflixCatalog] [-NetflixRequestLimit <n>] [-IMDbExportsPath <html>] [-UpdateImdbData] [-UpdateTmdbData] [-UpdateNativelyData] [-LogPath <log>]
+SyncFilms.ps1 -Path <film-catalog-dir> [-Force] [-NetflixCatalog] [-NetflixRequestLimit <n>] [-IMDbExportsPath <html>] [-UpdateImdbData] [-UpdateTmdbData] [-UpdateNativelyData] [-LogPath <log>]
 ```
 
 ### Behavior
