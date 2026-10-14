@@ -1,3 +1,33 @@
+<#
+.SYNOPSIS
+Downloads ready IMDb title-list exports from a saved exports page.
+
+.DESCRIPTION
+Parses a saved IMDb exports page (https://www.imdb.com/exports/) and downloads
+every ready title-list export as a CSV file under CsvPath. Each list is saved
+as <kebab-cased list name>.csv so the file name doubles as the list name when
+imported by ImportIMDbList.ps1.
+
+.PARAMETER IMDbExportsPath
+Path to the saved IMDb exports HTML page.
+
+.PARAMETER CsvPath
+Directory in which to save the downloaded CSV files. Created if it does not exist.
+
+.PARAMETER LogPath
+Optional file to additionally record warnings and errors, including uncaught
+terminating errors.
+
+.EXAMPLE
+.\DownloadIMDbLists.ps1 -IMDbExportsPath .\exports.html -CsvPath .\lists
+
+Downloads ready title-list exports from exports.html into the lists directory.
+
+.NOTES
+The presigned CSV URLs embedded in the page expire a few minutes after the page
+is loaded, so save the exports page and run this script promptly. Re-save the
+page if the downloads fail with an expired/forbidden error.
+#>
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)]
@@ -16,15 +46,6 @@ Import-Module "$PSScriptRoot/../../modules/tandoku-log.psm1"
 # uncaught terminating errors) to that file. See tandoku-log.psm1.
 Initialize-TandokuLog -LogPath $LogPath
 trap { Write-TandokuLogEntry 'ERROR' $_; break }
-
-# Parses a saved IMDb exports page (https://www.imdb.com/exports/) and downloads
-# every ready title-list export as a CSV file under $CsvPath. Each list is saved
-# as <kebab-cased list name>.csv so the file name doubles as the list name when
-# imported by ImportIMDbList.ps1.
-#
-# NOTE: the presigned CSV URLs embedded in the page expire a few minutes after
-# the page is loaded, so save the exports page and run this script promptly
-# (re-save the page if the downloads fail with an expired/forbidden error).
 
 # Converts a list name to a file-name-friendly kebab-case slug (lower-case ASCII
 # words separated by single hyphens).
