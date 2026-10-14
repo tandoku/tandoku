@@ -55,6 +55,51 @@ function global:Invoke-RestMethod {
 }
 
 try {
+    $identifierKeys = @('imdb', 'myAnimeList', 'netflix', 'tmdb', 'wikidata')
+    $sourceKeys = @('imdb', 'imdb-lists', 'natively', 'netflix-unogs', 'netflix-watchlist', 'tmdb', 'wikidata')
+    $identifiers = [ordered]@{}
+    $sources = [ordered]@{}
+    foreach ($name in @('wikidata', 'tmdb', 'netflix', 'myAnimeList', 'imdb')) {
+        $identifiers[$name] = [ordered]@{ kind = 'movie'; id = "id-$name" }
+    }
+    foreach ($name in @('wikidata', 'tmdb', 'netflix-watchlist', 'netflix-unogs', 'natively', 'imdb-lists', 'imdb')) {
+        $sources[$name] = [ordered]@{ year = 2022; title = $name; language = @('ja') }
+    }
+    $unsorted = [ordered]@{ sources = $sources; custom = 'retained'; identifiers = $identifiers; origin = @('imdb-lists') }
+    $formatted = Format-FilmEntry $unsorted
+    Assert-Equal @($formatted.Keys) @('origin', 'identifiers', 'sources', 'custom') 'Formatting preserves canonical top-level order'
+    Assert-Equal @($formatted.identifiers.Keys) $identifierKeys 'Identifier keys are alphabetically sorted'
+    Assert-Equal @($formatted.sources.Keys) $sourceKeys 'Source keys are alphabetically sorted'
+    Assert-Equal $formatted.identifiers.tmdb $identifiers.tmdb 'Identifier metadata and field order are unchanged'
+    Assert-Equal $formatted.sources.wikidata $sources.wikidata 'Source metadata and arrays are unchanged'
+    Assert-Equal $formatted.custom 'retained' 'Formatting preserves unknown fields'
+    Assert-Equal @($unsorted.identifiers.Keys) @('wikidata', 'tmdb', 'netflix', 'myAnimeList', 'imdb') 'Formatting does not mutate input maps'
+    Assert-Equal (Format-FilmEntry $formatted) $formatted 'Formatting is idempotent'
+    Assert-Equal (Format-FilmEntry ([ordered]@{ identifiers = @{}; sources = @{} })) ([ordered]@{ identifiers = [ordered]@{}; sources = [ordered]@{} }) 'Empty maps remain maps'
+    Assert-Equal (Format-FilmEntry ([ordered]@{ identifiers = $null; sources = $null })) ([ordered]@{ identifiers = $null; sources = $null }) 'Null maps remain null'
+    Assert-Equal (Format-FilmEntry ([ordered]@{ custom = 'only' })) ([ordered]@{ custom = 'only' }) 'Absent maps are not created'
+    $single = Format-FilmEntry (New-Film @{ tmdb = @{ id = 20; kind = 'movie' } } @{ tmdb = @{ images = @{ small = 'poster' } } } @('imdb-lists'))
+    Assert-Equal @($single.identifiers.Keys) @('tmdb') 'Single identifier remains a map'
+    Assert-Equal @($single.sources.Keys) @('tmdb') 'Single source remains a map'
+
+    $sortingPath = Join-Path $testPath 'sorting.yaml'
+    $formatted | Export-Yaml -Path $sortingPath
+    $sortedHash = (Get-FileHash $sortingPath).Hash
+    $reorderedIdentifiers = [ordered]@{}
+    $reorderedSources = [ordered]@{}
+    foreach ($name in $identifierKeys) { $reorderedIdentifiers[$name] = $identifiers[$name] }
+    foreach ($name in $sourceKeys) { $reorderedSources[$name] = $sources[$name] }
+    $reordered = New-Film $reorderedIdentifiers $reorderedSources @('imdb-lists')
+    $reordered['custom'] = 'retained'
+    Format-FilmEntry $reordered | Export-Yaml -Path $sortingPath
+    Assert-Equal (Get-FileHash $sortingPath).Hash $sortedHash 'Different insertion orders produce identical YAML bytes'
+    $roundTripped = (Read-FilmsDatabase -LiteralPath $sortingPath)[0]
+    Assert-Equal @($roundTripped.identifiers.Keys) $identifierKeys 'Written YAML preserves identifier key order'
+    Assert-Equal @($roundTripped.sources.Keys) $sourceKeys 'Written YAML preserves source key order'
+    @($unsorted, [ordered]@{ sources = [ordered]@{} }) | Export-Yaml -Path $sortingPath
+    & "$scriptsPath/PruneFilms.ps1" -DatabasePath $sortingPath
+    Assert-Equal (Get-FileHash $sortingPath).Hash $sortedHash 'Pruning normalizes retained records when writing YAML'
+
     $dbPath = Join-Path $testPath 'films.yaml'
     $legacy = [ordered]@{
         wikidata = 'Q1'
@@ -95,6 +140,8 @@ try {
     Assert-Equal $films.Count 6 'Migration preserves record count'
     $film = $films[0]
     Assert-Equal @($film.Keys) @('origin', 'identifiers', 'sources', 'custom') 'Canonical key order and unknown fields'
+    Assert-Equal @($film.identifiers.Keys) $identifierKeys 'Migration writes sorted identifier keys'
+    Assert-Equal @($film.sources.Keys) $sourceKeys 'Migration writes sorted source keys'
     Assert-Equal $film.custom 'retained' 'Unknown metadata preserved'
     Assert-Equal $film.identifiers.wikidata.id 'Q1' 'Wikidata identifier moved'
     Assert-Equal $film.identifiers.netflix.id 100 'Netflix identifier moved without type change'

@@ -20,7 +20,7 @@ $kept = [System.Collections.Generic.List[object]]::new()
 $removed = 0
 foreach ($film in $films) {
     if ($film.Contains('origin') -and $film['origin'] -and @($film['origin']).Count -gt 0) {
-        $kept.Add($film)
+        $kept.Add((Format-FilmEntry $film))
     } else {
         $title = Get-DisplayTitle $film
         $imdbId = Get-FilmIdentifier $film 'imdb'

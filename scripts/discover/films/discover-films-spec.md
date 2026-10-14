@@ -10,6 +10,11 @@ YAML stream containing one document per film (movie or TV series), in V3 format.
 Run `MigrateFilmsDatabaseV2.ps1` before using these scripts on an existing V2
 database; operational scripts reject unmigrated records instead of mixing formats.
 
+When writing records, scripts use the top-level order `origin`, `identifiers`,
+`sources`, followed by any unknown fields. Keys directly under `identifiers`
+and `sources` are alphabetically sorted to avoid insertion-order diffs; fields
+inside each identifier or source block retain their existing order.
+
 | Format | Structure | Migration |
 | --- | --- | --- |
 | V1 (original) | Scalar `title`, `title-ja`, `originCountry`, `originalLanguage`, `providers` | `MigrateFilmsDatabase.ps1`: V1 to V2 |
@@ -22,26 +27,18 @@ format for the V2-to-V3 migration, not its output format.
 ```yaml
 origin: [imdb-lists, netflix-watchlist]
 identifiers:
-  wikidata:
-    id: Q130305455
   imdb:
     id: tt36592690
-  netflix:
-    id: 82024665
   myAnimeList:
     id: 59845
+  netflix:
+    id: 82024665
   tmdb:
     id: 271607
     kind: tv-series
-sources:
   wikidata:
-    title:
-      en: The Fragrant Flower Blooms with Dignity
-      ja: 薫る花は凛と咲く
-    type: [anime-television-series]
-    country: [Japan]
-    language: [ja]
-    year: 2025
+    id: Q130305455
+sources:
   imdb:
     rating: 8.3
     votes: 12000
@@ -50,10 +47,6 @@ sources:
     lists:
       queue-japanese: 3
       completed-japanese-intensive-immersion: 12
-  tmdb:
-    images:
-      small: https://image.tmdb.org/t/p/w342/example.jpg
-      large: https://image.tmdb.org/t/p/w780/example.jpg
   natively:
     language: ja
     level: 21
@@ -61,11 +54,21 @@ sources:
   netflix-watchlist:
     title: The Fragrant Flower Blooms With Dignity
     watchlist: true
+  tmdb:
+    images:
+      small: https://image.tmdb.org/t/p/w342/example.jpg
+      large: https://image.tmdb.org/t/p/w780/example.jpg
+  wikidata:
+    title:
+      en: The Fragrant Flower Blooms with Dignity
+      ja: 薫る花は凛と咲く
+    type: [anime-television-series]
+    country: [Japan]
+    language: [ja]
+    year: 2025
 ---
 origin: [netflix-watchlist]
 identifiers:
-  wikidata:
-    id: Q626942
   imdb:
     id: tt0399971
   netflix:
@@ -73,15 +76,9 @@ identifiers:
   tmdb:
     id: 2146
     kind: tv-series
-sources:
   wikidata:
-    title:
-      en: Good Luck!!
-      ja: GOOD LUCK!!
-    type: [japanese-television-drama]
-    country: [Japan]
-    language: [ja]
-    year: 2003
+    id: Q626942
+sources:
   imdb:
     rating: 7.5
     votes: 830
@@ -93,6 +90,14 @@ sources:
   netflix-watchlist:
     title: Good Luck!!
     watchlist: true
+  wikidata:
+    title:
+      en: Good Luck!!
+      ja: GOOD LUCK!!
+    type: [japanese-television-drama]
+    country: [Japan]
+    language: [ja]
+    year: 2003
 ```
 
 # Scripts
