@@ -18,7 +18,7 @@ param(
 
     [int]$RequestLimit = 100,
 
-    [string]$ApiKey = $env:RAPIDAPI_KEY,
+    [string]$ApiKey,
 
     [string]$LogPath
 )
@@ -32,11 +32,18 @@ Import-Module "$PSScriptRoot/../../modules/tandoku-log.psm1"
 Initialize-TandokuLog -LogPath $LogPath
 trap { Write-TandokuLogEntry 'ERROR' $_; break }
 
+if (-not $PSBoundParameters.ContainsKey('ApiKey')) {
+    $ApiKey = & "$PSScriptRoot/../../TandokuConfig.ps1" rapidapi.apikey
+    if (-not $ApiKey) {
+        $ApiKey = $env:RAPIDAPI_KEY
+    }
+}
+
 $films = Read-FilmsDatabase -LiteralPath $DatabasePath -AllowMissing
 Write-Host "Read $($films.Count) existing entries from films database"
 
 if (-not $ApiKey) {
-    throw 'A uNoGS RapidAPI key is required. Pass -ApiKey or set the RAPIDAPI_KEY environment variable. Obtain the API key from https://rapidapi.com/developer/apps'
+    throw 'A uNoGS RapidAPI key is required. Pass -ApiKey, configure rapidapi.apikey with TandokuConfig, or set the RAPIDAPI_KEY environment variable. Obtain the API key from https://rapidapi.com/developer/apps'
 }
 
 $script:ApiHost = 'unogsng.p.rapidapi.com'

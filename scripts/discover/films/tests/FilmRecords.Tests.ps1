@@ -34,10 +34,14 @@ $global:FilmTestRequests = [System.Collections.Generic.List[string]]::new()
 $global:FilmTestHttpMode = 'blocked'
 $global:FilmTestBindings = @()
 $global:FilmTestQidBindings = @()
+$global:FilmTestApiKeys = [System.Collections.Generic.List[string]]::new()
+$global:FilmTestConfig = @{}
+$global:FilmTestConfigKeys = [System.Collections.Generic.List[string]]::new()
 function global:Invoke-RestMethod {
     param([string]$Uri, $Headers, $Method, $Body)
     $global:FilmTestRequests.Add($Uri)
     if ($global:FilmTestHttpMode -eq 'catalog' -and $Uri -like 'https://unogsng.p.rapidapi.com/search?*') {
+        $global:FilmTestApiKeys.Add($Headers['x-rapidapi-key'])
         return @{
             total = 2
             results = @(
@@ -45,6 +49,9 @@ function global:Invoke-RestMethod {
                 @{ nfid = 101; title = 'Uncached Title'; vtype = 'movie'; year = '2023' }
             )
         }
+    }
+    if ($global:FilmTestHttpMode -eq 'tmdb' -and $Uri -like 'https://api.themoviedb.org/3/tv/20?*') {
+        return @{ id = 20; poster_path = '/poster.jpg' }
     }
     if ($global:FilmTestHttpMode -eq 'wikidata' -and $Uri -like 'https://query.wikidata.org/sparql?*') {
         $query = [uri]::UnescapeDataString($Uri)
@@ -329,6 +336,61 @@ try {
     Assert-Equal $tmdbFilms[1].identifiers.tmdb.kind 'movie' 'IMDb lookup supplies shared TMDB kind'
     Assert-Equal $tmdbFilms[1].identifiers.tmdb.id 7 'IMDb lookup supplies shared TMDB ID'
 
+    $apiTestScriptsPath = Join-Path $testPath 'api-scripts'
+    $apiTestFilmsPath = Join-Path $apiTestScriptsPath 'discover/films'
+    $null = New-Item -ItemType Directory -Path $apiTestFilmsPath -Force
+    $null = New-Item -ItemType Directory -Path "$apiTestScriptsPath/modules"
+    foreach ($name in @('ImportNetflixCatalog.ps1', 'PopulateTMDB.ps1', 'tandoku-discover-films.psm1')) {
+        Copy-Item "$scriptsPath/$name" $apiTestFilmsPath
+    }
+    foreach ($name in @('tandoku-yaml.psm1', 'tandoku-utils.psm1', 'tandoku-log.psm1')) {
+        Copy-Item "$scriptsPath/../../modules/$name" "$apiTestScriptsPath/modules"
+    }
+    @'
+param([string]$Key)
+$global:FilmTestConfigKeys.Add($Key)
+return $global:FilmTestConfig[$Key]
+'@ | Set-Content "$apiTestScriptsPath/TandokuConfig.ps1"
+    $apiTestDb = Join-Path $testPath 'api-keys.yaml'
+    $previousRapidApiKey = $env:RAPIDAPI_KEY
+    $previousTmdbApiKey = $env:TMDB_API_KEY
+    try {
+        $env:RAPIDAPI_KEY = 'env-rapidapi'
+        $env:TMDB_API_KEY = 'env-tmdb'
+        foreach ($case in @(
+            @{ config = 'configured'; arguments = @{}; expected = 'configured'; reads = 2 },
+            @{ config = ''; arguments = @{}; expected = 'env'; reads = 2 },
+            @{ config = $null; arguments = @{}; expected = 'env'; reads = 2 },
+            @{ config = 'configured'; arguments = @{ ApiKey = 'explicit' }; expected = 'explicit'; reads = 0 }
+        )) {
+            $global:FilmTestConfig = @{
+                'rapidapi.apikey' = $case.config ? "$($case.config)-rapidapi" : $case.config
+                'tmdb.apikey' = $case.config ? "$($case.config)-tmdb" : $case.config
+            }
+            $global:FilmTestConfigKeys.Clear()
+            $global:FilmTestApiKeys.Clear()
+            $keyArgs = $case.arguments
+            $global:FilmTestHttpMode = 'catalog'
+            & "$apiTestFilmsPath/ImportNetflixCatalog.ps1" -DatabasePath $dbPath -CachePath $cachePath -RequestLimit 1 @keyArgs
+            $expectedRapidApiKey = $case.expected -eq 'explicit' ? 'explicit' : "$($case.expected)-rapidapi"
+            Assert-Equal $global:FilmTestApiKeys[0] $expectedRapidApiKey 'Catalog API key precedence'
+            $tmdbFilms[0] | Export-Yaml -Path $apiTestDb
+            $global:FilmTestRequests.Clear()
+            $global:FilmTestHttpMode = 'tmdb'
+            & "$apiTestFilmsPath/PopulateTMDB.ps1" -DatabasePath $apiTestDb -TmdbDataPath $tmdbPath -UpdateTmdbData @keyArgs
+            $expectedTmdbApiKey = $case.expected -eq 'explicit' ? 'explicit' : "$($case.expected)-tmdb"
+            Assert-True ($global:FilmTestRequests[0].EndsWith("api_key=$expectedTmdbApiKey")) 'TMDB API key precedence'
+            Assert-Equal $global:FilmTestConfigKeys.Count $case.reads 'Explicit API keys bypass TandokuConfig'
+            if ($case.reads) {
+                Assert-Equal @($global:FilmTestConfigKeys) @('rapidapi.apikey', 'tmdb.apikey') 'Scripts request the correct config keys'
+            }
+        }
+    } finally {
+        $env:RAPIDAPI_KEY = $previousRapidApiKey
+        $env:TMDB_API_KEY = $previousTmdbApiKey
+        $global:FilmTestHttpMode = 'blocked'
+    }
+
     $nativelyPath = Join-Path $testPath 'natively'
     $null = New-Item -ItemType Directory $nativelyPath
     Write-Json @{ videos = @(@{ tmdbId = 7; tmdbKind = 'movie'; level = 25; url = 'movie-url'; temporary = $false; source = 'movie' }) } "$nativelyPath/natively-movies-jpn.json"
@@ -438,6 +500,6 @@ finally {
     } else {
         Remove-Item Function:global:Invoke-RestMethod
     }
-    Remove-Variable FilmTestRequests, FilmTestHttpMode, FilmTestBindings, FilmTestQidBindings -Scope Global
+    Remove-Variable FilmTestRequests, FilmTestHttpMode, FilmTestBindings, FilmTestQidBindings, FilmTestApiKeys, FilmTestConfig, FilmTestConfigKeys -Scope Global
     Remove-Item -LiteralPath $testPath -Recurse -Force
 }

@@ -6,7 +6,7 @@ param(
     [Parameter(Mandatory)]
     [string]$TmdbDataPath,
 
-    [string]$ApiKey = $env:TMDB_API_KEY,
+    [string]$ApiKey,
 
     [switch]$UpdateTmdbData,
 
@@ -19,6 +19,13 @@ Import-Module "$PSScriptRoot/../../modules/tandoku-log.psm1"
 
 Initialize-TandokuLog -LogPath $LogPath
 trap { Write-TandokuLogEntry 'ERROR' $_; break }
+
+if (-not $PSBoundParameters.ContainsKey('ApiKey')) {
+    $ApiKey = & "$PSScriptRoot/../../TandokuConfig.ps1" tmdb.apikey
+    if (-not $ApiKey) {
+        $ApiKey = $env:TMDB_API_KEY
+    }
+}
 
 $tmdbApiBaseUrl = 'https://api.themoviedb.org/3'
 $tmdbImageBaseUrl = 'https://image.tmdb.org/t/p'
@@ -58,7 +65,7 @@ function Invoke-TmdbRequest(
     }
 
     if (-not $ApiKey) {
-        throw 'A TMDB API key is required for uncached lookups. Pass -ApiKey or set the TMDB_API_KEY environment variable.'
+        throw 'A TMDB API key is required for uncached lookups. Pass -ApiKey, configure tmdb.apikey with TandokuConfig, or set the TMDB_API_KEY environment variable.'
     }
 
     $separator = if ($path.Contains('?')) { '&' } else { '?' }

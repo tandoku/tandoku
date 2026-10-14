@@ -57,6 +57,8 @@ class ValidKeysGenerator : IValidateSetValuesGenerator {
         return @(
             'azure-computer-vision.apikey',
             'azure-computer-vision.endpoint',
+            'rapidapi.apikey',
+            'tmdb.apikey',
             'targets.*',
             'workflow-params.*'
         )

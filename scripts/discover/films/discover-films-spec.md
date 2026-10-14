@@ -148,7 +148,7 @@ ImportNetflixCatalog.ps1 -DatabasePath <films.yaml> [-Country <codes>] [-AudioLa
 - `-SubtitleLanguage` - Two-letter ISO 639-1 subtitle language code to filter on (no default). When both `-AudioLanguage` and `-SubtitleLanguage` are specified, titles must match both (AND filter).
 - `-CachePath` - Optional folder for caching uNoGS responses across runs. The Countries response is cached to `netflix-catalog-countries.json`, and Title Countries responses to `netflix-catalog-titlecountries.json` (a Netflix-id-keyed map, sorted by id, where each entry has `results` and a `timestamp`). Cached lookups do not count against `-RequestLimit`.
 - `-RequestLimit` - Maximum number of requests sent to the uNoGS API across all endpoints in a single run (defaults to `100`; `0` means no limit). Once the limit is reached the script emits a single warning and skips all remaining requests, leaving the rest for a later run. Combined with `-CachePath`, a large catalog can be imported incrementally across multiple runs.
-- `-ApiKey` - uNoGS RapidAPI key. Falls back to the `RAPIDAPI_KEY` environment variable.
+- `-ApiKey` - uNoGS RapidAPI key. When omitted, reads `rapidapi.apikey` from TandokuConfig, falling back to the `RAPIDAPI_KEY` environment variable if no value is configured.
 
 ### Behavior
 Queries the [uNoGS API](https://rapidapi.com/unogs/api/unogsng) for Netflix titles and imports them into films.yaml by adding or updating entries matched by `identifiers.netflix.id`. Uses the Search endpoint (resolving country codes to uNoGS country IDs via the Countries endpoint) to find titles available in the requested countries with the requested audio/subtitle languages, paging through all results. For each matching title it retrieves Title Countries, Title Details, and Title Genres, using the supplied cache when available.
@@ -317,7 +317,7 @@ PopulateTMDB.ps1 -DatabasePath <films.yaml> -TmdbDataPath <path> [-ApiKey <key>]
 ### Parameters
 - `-DatabasePath` - Path to the films.yaml database file.
 - `-TmdbDataPath` - Path to the directory used to cache complete TMDB API responses in `tmdb-imdb.json`, `tmdb-movies.json`, and `tmdb-tv-series.json`.
-- `-ApiKey` - TMDB API key. Falls back to the `TMDB_API_KEY` environment variable and is only required for uncached lookups.
+- `-ApiKey` - TMDB API key. When omitted, reads `tmdb.apikey` from TandokuConfig, falling back to the `TMDB_API_KEY` environment variable if no value is configured. Only required for uncached lookups.
 - `-UpdateTmdbData` - When specified, refreshes cached responses from TMDB.
 
 ### Behavior
