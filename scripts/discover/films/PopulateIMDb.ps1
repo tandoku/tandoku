@@ -187,10 +187,11 @@ foreach ($film in $films) {
 
 Write-Host "Updated $updated, no IMDb ID $noImdbId, not found in data $notFound"
 
-# Reorder keys and write films.yaml
+# Reorder keys and write film-catalog.yaml
 for ($i = 0; $i -lt $films.Count; $i++) {
     $films[$i] = Format-FilmEntry $films[$i]
 }
 $films | Export-Yaml -Path $DatabasePath
 
 Write-Host "Done - $($films.Count) total entries in $DatabasePath"
+

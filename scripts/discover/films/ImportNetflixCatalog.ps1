@@ -596,10 +596,11 @@ foreach ($result in $searchResults) {
     }
 }
 
-# Write films.yaml
+# Write film-catalog.yaml
 for ($i = 0; $i -lt $films.Count; $i++) {
     $films[$i] = Format-FilmEntry $films[$i]
 }
 $films | Export-Yaml -Path $DatabasePath
 
 Write-Host "Done: $added added, $updated updated, $skipped skipped, $filtered filtered - $($films.Count) total entries ($($script:RequestCount) API requests)"
+

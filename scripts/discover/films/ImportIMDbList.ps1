@@ -168,7 +168,7 @@ foreach ($file in $csvFiles) {
     $totalRemoved += $result.Removed
 }
 
-# --- Reorder keys and write films.yaml ---
+# --- Reorder keys and write film-catalog.yaml ---
 
 for ($i = 0; $i -lt $films.Count; $i++) {
     $films[$i] = Format-FilmEntry $films[$i]
@@ -176,3 +176,4 @@ for ($i = 0; $i -lt $films.Count; $i++) {
 $films | Export-Yaml -Path $DatabasePath
 
 Write-Host "Done: $totalAdded added, $totalUpdated updated, $totalRemoved removed across $($csvFiles.Count) list(s) - $($films.Count) total entries in $DatabasePath"
+

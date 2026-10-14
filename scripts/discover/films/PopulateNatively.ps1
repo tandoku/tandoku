@@ -285,10 +285,11 @@ foreach ($film in $needsNatively) {
     }
 }
 
-# Reorder keys and write films.yaml
+# Reorder keys and write film-catalog.yaml
 for ($i = 0; $i -lt $films.Count; $i++) {
     $films[$i] = Format-FilmEntry $films[$i]
 }
 $films | Export-Yaml -Path $DatabasePath
 
 Write-Host "Done: $matched matched, $notFound not found - $($films.Count) total entries"
+

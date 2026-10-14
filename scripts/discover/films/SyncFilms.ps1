@@ -34,7 +34,7 @@ RequireCommand yq
 Write-Host "Setting console encoding to UTF-8 (required for yq roundtripping)"
 [Console]::InputEncoding = [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new()
 
-$dbPath = "$Path/films.yaml"
+$dbPath = "$Path/film-catalog.yaml"
 $dbJsonPath = "$Path/films.json"
 $sources = "$Path/sources"
 
@@ -60,3 +60,4 @@ if ($IMDbExportsPath) {
 & "$PSScriptRoot/PopulateNatively.ps1" -DatabasePath $dbPath -NativelyDataPath "$sources/natively" -UpdateNativelyData:$UpdateNativelyData -NativelyLanguage ja -OriginalLanguage ja @logArgs
 
 & "$PSScriptRoot/ExportFilms.ps1" -DatabasePath $dbPath -OutputPath $dbJsonPath @logArgs
+

@@ -107,7 +107,7 @@ try {
     & "$scriptsPath/PruneFilms.ps1" -DatabasePath $sortingPath
     Assert-Equal (Get-FileHash $sortingPath).Hash $sortedHash 'Pruning normalizes retained records when writing YAML'
 
-    $dbPath = Join-Path $testPath 'films.yaml'
+    $dbPath = Join-Path $testPath 'film-catalog.yaml'
     $legacy = [ordered]@{
         wikidata = 'Q1'
         title = [ordered]@{ en = 'Canonical Title'; ja = '日本語の作品' }
@@ -189,7 +189,7 @@ try {
     foreach ($directory in @('sources/imdb/lists', 'sources/netflix', 'sources/tmdb', 'sources/natively')) {
         $null = New-Item -ItemType Directory -Path (Join-Path $cacheMigrationPath $directory) -Force
     }
-    $cacheDb = Join-Path $cacheMigrationPath 'films.yaml'
+    $cacheDb = Join-Path $cacheMigrationPath 'film-catalog.yaml'
     Copy-Item $dbPath $cacheDb
     Set-Content "$cacheMigrationPath/sources/imdb/lists/queue.csv" 'list-input'
     Set-Content "$cacheMigrationPath/sources/imdb/title.basics.tsv" 'imdb-data'
@@ -203,7 +203,7 @@ try {
     Assert-True (Test-Path "$cacheMigrationPath/sources/imdb/lists/queue.csv") 'Cache migration is opt-in'
     Push-Location $cacheMigrationPath
     try {
-        & "$scriptsPath/MigrateFilmsDatabaseV2.ps1" -DatabasePath 'films.yaml' -MigrateCaches
+        & "$scriptsPath/MigrateFilmsDatabaseV2.ps1" -DatabasePath 'film-catalog.yaml' -MigrateCaches
     } finally {
         Pop-Location
     }
@@ -453,7 +453,7 @@ return $global:FilmTestConfig[$Key]
 
     $syncPath = Join-Path $testPath 'sync'
     $null = New-Item -ItemType Directory "$syncPath/sources/imdb-lists" -Force
-    $films[0] | Export-Yaml -Path "$syncPath/films.yaml"
+    $films[0] | Export-Yaml -Path "$syncPath/film-catalog.yaml"
     "Const,Title,Position`ntt001,Sync List Title,1" | Set-Content "$syncPath/sources/imdb-lists/queue.csv"
     Copy-Item $cachePath "$syncPath/sources/netflix-unogs" -Recurse
     Copy-Item $imdbPath "$syncPath/sources/imdb" -Recurse
@@ -470,7 +470,7 @@ return $global:FilmTestConfig[$Key]
         $env:RAPIDAPI_KEY = $previousApiKey
         $global:FilmTestHttpMode = 'blocked'
     }
-    $synced = (Read-FilmsDatabase -LiteralPath "$syncPath/films.yaml")[0]
+    $synced = (Read-FilmsDatabase -LiteralPath "$syncPath/film-catalog.yaml")[0]
     Assert-Equal $synced.sources.'imdb-lists'.title 'Sync List Title' 'Sync uses new IMDb list directory'
     Assert-Equal $synced.sources.'netflix-unogs'.title 'Catalog Title' 'Sync uses new uNoGS cache directory'
     Assert-Equal $synced.sources.'netflix-watchlist'.title 'Sync Watchlist Title' 'Sync uses new watchlist directory'
@@ -514,3 +514,4 @@ finally {
     Remove-Variable FilmTestRequests, FilmTestHttpMode, FilmTestBindings, FilmTestQidBindings, FilmTestApiKeys, FilmTestConfig, FilmTestConfigKeys -Scope Global
     Remove-Item -LiteralPath $testPath -Recurse -Force
 }
+

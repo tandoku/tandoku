@@ -2,7 +2,7 @@
 Tools for compiling a database to aid discovery and ranking of Japanese films (including movies and TV series) for language learning.
 
 # Data
-## `films.yaml`
+## `film-catalog.yaml`
 YAML stream containing one document per film (movie or TV series), in V3 format.
 `origin` records importing inputs, `identifiers` holds shared provider IDs, and
 `sources` separates each input's metadata. See the
@@ -117,12 +117,12 @@ from the repository root. All HTTP in those tests is mocked.
 ## ImportNetflixWatchlist.ps1
 ### Usage
 ```powershell
-ImportNetflixWatchlist.ps1 -Path <netflix-my-list.json> -DatabasePath <films.yaml> [-Force]
+ImportNetflixWatchlist.ps1 -Path <netflix-my-list.json> -DatabasePath <film-catalog.yaml> [-Force]
 ```
 
 ### Parameters
 - `-Path` - Path to the netflix-my-list.json created by [Netflix Watch List Manager](https://chromewebstore.google.com/detail/netflix-watch-list-manage/obgidigipndchfoaapdbldekffjpmmfa).
-- `-DatabasePath` - Path to the films.yaml database file.
+- `-DatabasePath` - Path to the film-catalog.yaml database file.
 - `-Force` - Allows creating a record for a Netflix ID not already present.
 
 ### Behavior
@@ -137,11 +137,11 @@ since the watchlist can no longer overwrite the catalog title.
 ## ImportNetflixCatalog.ps1
 ### Usage
 ```powershell
-ImportNetflixCatalog.ps1 -DatabasePath <films.yaml> [-Country <codes>] [-AudioLanguage <code>] [-AnyAudio] [-SubtitleLanguage <code>] [-CachePath <dir>] [-RequestLimit <n>] [-ApiKey <key>]
+ImportNetflixCatalog.ps1 -DatabasePath <film-catalog.yaml> [-Country <codes>] [-AudioLanguage <code>] [-AnyAudio] [-SubtitleLanguage <code>] [-CachePath <dir>] [-RequestLimit <n>] [-ApiKey <key>]
 ```
 
 ### Parameters
-- `-DatabasePath` - Path to the films.yaml database file.
+- `-DatabasePath` - Path to the film-catalog.yaml database file.
 - `-Country` - One or more ISO 3166-1 alpha-2 country codes (defaults to `US`). Titles available in at least one of these countries are imported, and per-country availability details are retrieved for each of them.
 - `-AudioLanguage` - Two-letter ISO 639-1 audio language code to filter on (defaults to `ja`). Pass an empty string to skip the audio filter.
 - `-AnyAudio` - Includes dubbed audio; without it the selected language must be an original audio track in a requested country.
@@ -151,7 +151,7 @@ ImportNetflixCatalog.ps1 -DatabasePath <films.yaml> [-Country <codes>] [-AudioLa
 - `-ApiKey` - uNoGS RapidAPI key. When omitted, reads `rapidapi.apikey` from TandokuConfig, falling back to the `RAPIDAPI_KEY` environment variable if no value is configured.
 
 ### Behavior
-Queries the [uNoGS API](https://rapidapi.com/unogs/api/unogsng) for Netflix titles and imports them into films.yaml by adding or updating entries matched by `identifiers.netflix.id`. Uses the Search endpoint (resolving country codes to uNoGS country IDs via the Countries endpoint) to find titles available in the requested countries with the requested audio/subtitle languages, paging through all results. For each matching title it retrieves Title Countries, Title Details, and Title Genres, using the supplied cache when available.
+Queries the [uNoGS API](https://rapidapi.com/unogs/api/unogsng) for Netflix titles and imports them into film-catalog.yaml by adding or updating entries matched by `identifiers.netflix.id`. Uses the Search endpoint (resolving country codes to uNoGS country IDs via the Countries endpoint) to find titles available in the requested countries with the requested audio/subtitle languages, paging through all results. For each matching title it retrieves Title Countries, Title Details, and Title Genres, using the supplied cache when available.
 
 Stores the shared `identifiers.netflix.id`, and populates `sources.netflix-unogs`
 with `title`, `type` (`movie` or `series`), `year`, `matlabel`, `images`, `genres`,
@@ -203,15 +203,15 @@ Lists are processed in a stable order (sorted by slug, then list id) so that whe
 ## ImportIMDbList.ps1
 ### Usage
 ```powershell
-ImportIMDbList.ps1 -DatabasePath <films.yaml> -CsvPath <paths>
+ImportIMDbList.ps1 -DatabasePath <film-catalog.yaml> -CsvPath <paths>
 ```
 
 ### Parameters
-- `-DatabasePath` - Path to the films.yaml database file.
+- `-DatabasePath` - Path to the film-catalog.yaml database file.
 - `-CsvPath` - One or more paths to import list CSVs from. Each element may be a directory (all `*.csv` files within it are used), a single CSV file, or a wildcard pattern (e.g. `lists-*.csv`). Resolved files are deduplicated.
 
 ### Behavior
-Imports one or more IMDb list CSV exports (as produced by `DownloadIMDbLists.ps1`) into films.yaml. Each CSV's filename stem is the list name under `sources.imdb-lists.lists.<list-name>: <rank>`, where rank is the CSV `Position` (or null) and the IMDb ID is `Const`. Matches by `identifiers.imdb.id`, creating records when necessary, refreshes `sources.imdb-lists.title`, and adds the `imdb-lists` origin.
+Imports one or more IMDb list CSV exports (as produced by `DownloadIMDbLists.ps1`) into film-catalog.yaml. Each CSV's filename stem is the list name under `sources.imdb-lists.lists.<list-name>: <rank>`, where rank is the CSV `Position` (or null) and the IMDb ID is `Const`. Matches by `identifiers.imdb.id`, creating records when necessary, refreshes `sources.imdb-lists.title`, and adds the `imdb-lists` origin.
 
 Repeated runs only set the imported list's membership, leaving other lists and
 all other sources intact. A warning is emitted when distinct CSV files resolve
@@ -225,11 +225,11 @@ actually imported in the run are pruned.
 ## PopulateWikidata.ps1
 ### Usage
 ```powershell
-PopulateWikidata.ps1 -DatabasePath <films.yaml> [-Language <code>] [-Force]
+PopulateWikidata.ps1 -DatabasePath <film-catalog.yaml> [-Language <code>] [-Force]
 ```
 
 ### Parameters
-- `-DatabasePath` - Path to the films.yaml database file.
+- `-DatabasePath` - Path to the film-catalog.yaml database file.
 - `-Language` - Two-letter ISO 639-1 language code for the localized title fetched alongside English (defaults to `ja`). Populates `sources.wikidata.title.en` and `sources.wikidata.title.<Language>`.
 - `-Force` - When specified, re-runs both phases for every entry even if the data is already present, refreshing existing values and removing fields that Wikidata no longer returns. Without it, the script only fills in missing data.
 
@@ -267,11 +267,11 @@ A warning recommends `PruneFilms.ps1` for records without origins.
 ## PruneFilms.ps1
 ### Usage
 ```powershell
-PruneFilms.ps1 -DatabasePath <films.yaml>
+PruneFilms.ps1 -DatabasePath <film-catalog.yaml>
 ```
 
 ### Parameters
-- `-DatabasePath` - Path to the films.yaml database file.
+- `-DatabasePath` - Path to the film-catalog.yaml database file.
 
 ### Behavior
 Removes stale film records that no longer have any origin (a missing or empty `origin` list). A record can lose its origins when, for example, an IMDb-list-only film is pruned out of every list it belonged to (see `ImportIMDbList.ps1`); such a record no longer corresponds to any source. Each removed record is logged, and the database is only rewritten when at least one record is removed.
@@ -293,11 +293,11 @@ Shared helper used by the other IMDb-consuming scripts. For each requested datas
 ## PopulateIMDb.ps1
 ### Usage
 ```powershell
-PopulateIMDb.ps1 -DatabasePath <films.yaml> -ImdbDataPath <path> [-UpdateImdbData]
+PopulateIMDb.ps1 -DatabasePath <film-catalog.yaml> -ImdbDataPath <path> [-UpdateImdbData]
 ```
 
 ### Parameters
-- `-DatabasePath` - Path to the films.yaml database file.
+- `-DatabasePath` - Path to the film-catalog.yaml database file.
 - `-ImdbDataPath` - Path to a local folder for storing IMDb data files downloaded from https://datasets.imdbws.com.
 - `-UpdateImdbData` - When specified, re-downloads IMDb data files even if they already exist locally.
 
@@ -311,11 +311,11 @@ overwritten by a retrieved value are retained, as in the original workflow.
 ## PopulateTMDB.ps1
 ### Usage
 ```powershell
-PopulateTMDB.ps1 -DatabasePath <films.yaml> -TmdbDataPath <path> [-ApiKey <key>] [-UpdateTmdbData]
+PopulateTMDB.ps1 -DatabasePath <film-catalog.yaml> -TmdbDataPath <path> [-ApiKey <key>] [-UpdateTmdbData]
 ```
 
 ### Parameters
-- `-DatabasePath` - Path to the films.yaml database file.
+- `-DatabasePath` - Path to the film-catalog.yaml database file.
 - `-TmdbDataPath` - Path to the directory used to cache complete TMDB API responses in `tmdb-imdb.json`, `tmdb-movies.json`, and `tmdb-tv-series.json`.
 - `-ApiKey` - TMDB API key. When omitted, reads `tmdb.apikey` from TandokuConfig, falling back to the `TMDB_API_KEY` environment variable if no value is configured. Only required for uncached lookups.
 - `-UpdateTmdbData` - When specified, refreshes cached responses from TMDB.
@@ -328,11 +328,11 @@ The complete JSON response from each TMDB lookup is cached under `-TmdbDataPath`
 ## SuggestWikidataIdentifiers.ps1
 ### Usage
 ```powershell
-SuggestWikidataIdentifiers.ps1 -DatabasePath <films.yaml> -OutputPath <candidates.yaml> -ImdbDataPath <path> [-UpdateImdbData]
+SuggestWikidataIdentifiers.ps1 -DatabasePath <film-catalog.yaml> -OutputPath <candidates.yaml> -ImdbDataPath <path> [-UpdateImdbData]
 ```
 
 ### Parameters
-- `-DatabasePath` - Path to the films.yaml database file.
+- `-DatabasePath` - Path to the film-catalog.yaml database file.
 - `-OutputPath` - Path to the YAML file to write proposed candidates to.
 - `-ImdbDataPath` - Path to a local folder for storing IMDb data files downloaded from https://datasets.imdbws.com.
 - `-UpdateImdbData` - When specified, re-downloads IMDb data files even if they already exist locally.
@@ -342,7 +342,7 @@ Proposes candidates for records with `identifiers.netflix.id` but no
 `identifiers.wikidata.id`. Matches the uNoGS title, falling back to the watchlist
 title, using normalization (lowercase, non-letter/non-digit runs become spaces,
 trimmed). A warning is emitted when records share the same normalized title.
-The candidate-review stream below is separate from `films.yaml` and its format
+The candidate-review stream below is separate from `film-catalog.yaml` and its format
 is unchanged; `CommitWikidataIdentifiers.ps1` still consumes it.
 
 Uses `UpdateIMDbData.ps1` to fetch `title.akas`, `title.basics`, and `title.ratings`, then makes one streaming pass over each:
@@ -405,11 +405,11 @@ Writes use the Action API (`wbcreateclaim`) with `assert=user` and `maxlag=5` (r
 ## PopulateNatively.ps1
 ### Usage
 ```powershell
-PopulateNatively.ps1 -DatabasePath <films.yaml> -NativelyDataPath <path> [-UpdateNativelyData] [-NativelyLanguage <code>] [-OriginalLanguage <codes>]
+PopulateNatively.ps1 -DatabasePath <film-catalog.yaml> -NativelyDataPath <path> [-UpdateNativelyData] [-NativelyLanguage <code>] [-OriginalLanguage <codes>]
 ```
 
 ### Parameters
-- `-DatabasePath` - Path to the films.yaml database file.
+- `-DatabasePath` - Path to the film-catalog.yaml database file.
 - `-NativelyDataPath` - Path to a local folder for storing the Natively video catalog downloaded from [Natively](https://learnnatively.com).
 - `-UpdateNativelyData` - When specified, re-downloads the Natively catalog even if a local copy already exists.
 - `-NativelyLanguage` - Two-letter ISO 639-1 language code for the Natively catalog (defaults to `ja`). Converted internally to the three-letter ISO 639-2 code (e.g. `ja` → `jpn`) used for the Natively API and the local data file names.
@@ -428,24 +428,24 @@ download is skipped when no entries need lookup and no refresh was requested.
 ## ExportFilms.ps1
 ### Usage
 ```powershell
-ExportFilms.ps1 -DatabasePath <films.yaml> [-OutputPath <films.json>]
+ExportFilms.ps1 -DatabasePath <film-catalog.yaml> [-OutputPath <films.json>]
 ```
 
 ### Parameters
-- `-DatabasePath` - Path to the films.yaml database file.
+- `-DatabasePath` - Path to the film-catalog.yaml database file.
 - `-OutputPath` - Path to the output JSON file. Defaults to `films.json` in the current directory.
 
 ### Behavior
-Exports films.yaml to a JSON file with the same structure, wrapping all film records in an outer JSON array.
+Exports film-catalog.yaml to a JSON file with the same structure, wrapping all film records in an outer JSON array.
 
 ## MigrateFilmsDatabase.ps1
 ### Usage
 ```powershell
-MigrateFilmsDatabase.ps1 -DatabasePath <films.yaml> [-TitleLanguage <code>]
+MigrateFilmsDatabase.ps1 -DatabasePath <film-catalog.yaml> [-TitleLanguage <code>]
 ```
 
 ### Parameters
-- `-DatabasePath` - Path to the films.yaml database file to migrate in place.
+- `-DatabasePath` - Path to the film-catalog.yaml database file to migrate in place.
 - `-TitleLanguage` - Two-letter ISO 639-1 language code used as the key for the old `title-ja` value in the new per-language `title` dictionary (defaults to `ja`).
 
 ### Behavior
@@ -457,7 +457,7 @@ with the V2-to-V3 migration below. Already-migrated V2/V3 entries are left uncha
 ## MigrateFilmsDatabaseV2.ps1
 ### Usage
 ```powershell
-MigrateFilmsDatabaseV2.ps1 -DatabasePath <films.yaml> [-MigrateCaches]
+MigrateFilmsDatabaseV2.ps1 -DatabasePath <film-catalog.yaml> [-MigrateCaches]
 ```
 
 ### Behavior
@@ -512,3 +512,4 @@ creation of missing watchlist entries. Cache/input paths are relative to `-Path`
 
 Use `MigrateFilmsDatabaseV2.ps1 -MigrateCaches` before syncing an old directory
 layout so cached catalog details are reused instead of downloaded again.
+

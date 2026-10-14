@@ -1,7 +1,7 @@
 # Proposed films record format
 
 This proposal is implemented as the V3 format supported by the scripts.
-It inventories the fields written to `films.yaml` by the scripts in this folder;
+It inventories the fields written to `film-catalog.yaml` by the scripts in this folder;
 it does not include every field returned by the upstream APIs or stored in caches.
 The [workflow specification](discover-films-spec.md) describes script usage,
 migration, and cache directory layout.
@@ -266,5 +266,6 @@ and `source` fields, cache timestamps, and full TMDB API responses are not
 additional film-record fields. `SuggestWikidataIdentifiers.ps1` writes a separate
 candidate-review YAML stream (including URLs, ranked IMDb candidates, and
 `verified`); `CommitWikidataIdentifiers.ps1` consumes that stream and edits
-Wikidata, not `films.yaml`. The export, sync, prune, migration, and shared helper
+Wikidata, not `film-catalog.yaml`. The export, sync, prune, migration, and shared helper
 scripts do not introduce additional source metadata.
+
