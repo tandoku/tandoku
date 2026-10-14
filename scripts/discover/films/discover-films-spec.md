@@ -3,6 +3,10 @@ Tools for compiling a database to aid discovery and ranking of Japanese films (i
 
 # Data
 ## `films.yaml`
+For a proposed separation of shared identifiers and per-source metadata, see
+[Proposed films record format](films-record-proposal.md). That proposal is not
+yet implemented by the scripts; the examples below describe the current format.
+
 YAML file containing a stream of documets representing films (movie or TV series).
 
 ```yaml
