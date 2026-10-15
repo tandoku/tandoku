@@ -29,7 +29,7 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Scriban" Version="7.2.2" />
-    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="4.1.2" />
     <PackageReference Include="SubtitlesParser" Version="1.5.1" />
     <PackageReference Include="TestableIO.System.IO.Abstractions" Version="21.0.29" />
     <PackageReference Include="TestableIO.System.IO.Abstractions.Wrappers" Version="21.0.29" />
